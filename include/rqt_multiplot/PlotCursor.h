@@ -41,6 +41,10 @@ class PlotCursor : public QwtPlotPicker {
   void setTrackPoints(bool track);
   bool arePointsTracked() const;
   bool hasMouseControl() const;
+  void setXOffset(double offset);
+  double getXOffset() const;
+  void setYOffset(double offset);
+  double getYOffset() const;
 
   void update();
 
@@ -77,6 +81,8 @@ class PlotCursor : public QwtPlotPicker {
 
   bool trackPoints_;
   bool mouseControl_;
+  double xOffset_;
+  double yOffset_;
 
  private slots:
   void plotXAxisScaleDivChanged();

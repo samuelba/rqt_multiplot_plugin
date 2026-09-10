@@ -29,6 +29,7 @@
 #include <QWidget>
 
 #include <rqt_multiplot/BoundingRectangle.h>
+#include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageBroker.h>
 #include <rqt_multiplot/PlotConfig.h>
 
@@ -81,6 +82,8 @@ class PlotWidget : public QWidget {
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
 
+  void bindAxisOrigin(CurveConfig::Axis axis, double value);
+
  signals:
   void preferredScaleChanged(const BoundingRectangle& bounds);
   void currentScaleChanged(const BoundingRectangle& bounds);
@@ -123,7 +126,17 @@ class PlotWidget : public QWidget {
 
   BoundingRectangle currentBounds_;
 
+  bool xOriginSet_;
+  bool yOriginSet_;
+  double xOrigin_;
+  double yOrigin_;
+
   void updateAxisTitle(PlotAxesConfig::Axis axis);
+  bool axisLabelsFromZero(CurveConfig::Axis axis) const;
+  void seedAxisOrigin(CurveConfig::Axis axis);
+  void resetAxisOrigins();
+  void updateAxisTimeLabels();
+  void applyAxisTimeOffsets();
 
  private slots:
   void timerTimeout();

@@ -30,6 +30,7 @@
 #include <qwt/qwt_plot_curve.h>
 #include <qwt/qwt_scale_widget.h>
 
+#include <rqt_multiplot/AxisTimeFormat.h>
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/PlotCursorMachine.h>
 
@@ -41,7 +42,8 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotCursor::PlotCursor(QwtPlotCanvas* canvas) : QwtPlotPicker(canvas), trackPoints_(false), mouseControl_(false) {
+PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
+    : QwtPlotPicker(canvas), trackPoints_(false), mouseControl_(false), xOffset_(0.0), yOffset_(0.0) {
   setTrackerMode(QwtPicker::AlwaysOn);
   setStateMachine(new PlotCursorMachine());
 
@@ -116,6 +118,22 @@ bool PlotCursor::hasMouseControl() const {
   return mouseControl_;
 }
 
+void PlotCursor::setXOffset(double offset) {
+  xOffset_ = offset;
+}
+
+double PlotCursor::getXOffset() const {
+  return xOffset_;
+}
+
+void PlotCursor::setYOffset(double offset) {
+  yOffset_ = offset;
+}
+
+double PlotCursor::getYOffset() const {
+  return yOffset_;
+}
+
 QRect PlotCursor::getTextRect(const QPointF& point, const QFont& font) const {
   QwtText text = trackerTextF(point);
 
@@ -168,23 +186,11 @@ QwtText PlotCursor::trackerTextF(const QPointF& point) const {
   QwtScaleMap xMap = plot()->canvasMap(xAxis());
   QwtScaleMap yMap = plot()->canvasMap(yAxis());
 
-  double xPrecision = log10(fabs(xMap.invTransform(1.0) - xMap.invTransform(0.0)));
-  double yPrecision = log10(fabs(yMap.invTransform(1.0) - yMap.invTransform(0.0)));
+  const double xSpan = fabs(xMap.invTransform(1.0) - xMap.invTransform(0.0));
+  const double ySpan = fabs(yMap.invTransform(1.0) - yMap.invTransform(0.0));
 
-  QString x;
-  QString y;
-
-  if ((xPrecision < 0.0) && (fabs(point.x()) >= 1.0)) {
-    x.sprintf("%.*f", (int)ceil(fabs(xPrecision)), point.x());
-  } else {
-    x.sprintf("%g", point.x());
-  }
-
-  if ((yPrecision < 0.0) && (fabs(point.y()) >= 1.0)) {
-    y.sprintf("%.*f", (int)ceil(fabs(yPrecision)), point.y());
-  } else {
-    y.sprintf("%g", point.y());
-  }
+  const QString x = AxisTimeFormat::relative(point.x(), xOffset_, xSpan);
+  const QString y = AxisTimeFormat::relative(point.y(), yOffset_, ySpan);
 
   return QwtText(x + ", " + y);
 }

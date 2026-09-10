@@ -22,6 +22,7 @@ class MessageFieldType {
   Kind kind = Invalid;
   QString identifier;
   bool isNumeric = false;
+  bool isTime = false;
   bool isDynamicArray = false;
   size_t arraySize = 0;
   QVector<QPair<QString, MessageFieldType>> members;

@@ -31,7 +31,7 @@ class CurveAxisConfig : public Config {
   enum FieldType { MessageData, MessageReceiptTime };
 
   explicit CurveAxisConfig(QObject* parent = nullptr, QString topic = QString(), QString type = QString(),
-                           FieldType fieldType = MessageData, QString field = QString());
+                           FieldType fieldType = MessageData, QString field = QString(), bool labelFromZero = false);
   ~CurveAxisConfig() override;
 
   void setTopic(const QString& topic);
@@ -42,6 +42,8 @@ class CurveAxisConfig : public Config {
   FieldType getFieldType() const;
   void setField(const QString& field);
   const QString& getField() const;
+  void setLabelFromZero(bool labelFromZero);
+  bool isLabelFromZero() const;
   CurveAxisScaleConfig* getScaleConfig() const;
 
   void save(QSettings& settings) const override;
@@ -58,12 +60,14 @@ class CurveAxisConfig : public Config {
   void typeChanged(const QString& type);
   void fieldTypeChanged(int fieldType);
   void fieldChanged(const QString& field);
+  void labelFromZeroChanged(bool labelFromZero);
 
  private:
   QString topic_;
   QString type_;
   FieldType fieldType_;
   QString field_;
+  bool labelFromZero_;
 
   CurveAxisScaleConfig* scaleConfig_;
 
