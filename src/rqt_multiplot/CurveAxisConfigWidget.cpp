@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
 
@@ -31,9 +31,9 @@ namespace rqt_multiplot {
 CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
 
-  QPixmap pixmapOkay = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/okay.png")));
-  QPixmap pixmapError = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/error.png")));
-  QPixmap pixmapBusy = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/busy.png")));
+  QPixmap pixmapOkay = QPixmap(packageResourcePath("resource/22x22/okay.png"));
+  QPixmap pixmapError = QPixmap(packageResourcePath("resource/22x22/error.png"));
+  QPixmap pixmapBusy = QPixmap(packageResourcePath("resource/22x22/busy.png"));
 
   ui_->statusWidgetTopic->setIcon(StatusWidget::Okay, pixmapOkay);
   ui_->statusWidgetTopic->setIcon(StatusWidget::Error, pixmapError);
@@ -220,10 +220,10 @@ bool CurveAxisConfigWidget::validateField() {
     return false;
   }
 
-  variant_topic_tools::DataType fieldType = ui_->widgetField->getCurrentFieldDataType();
+  MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
 
   if (fieldType.isValid()) {
-    if (fieldType.isBuiltin() && variant_topic_tools::BuiltinDataType(fieldType).isNumeric()) {
+    if (fieldType.isNumeric) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
 
       return true;

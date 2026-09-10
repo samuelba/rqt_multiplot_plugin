@@ -23,7 +23,7 @@
 #include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_scale_div.h>
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include "rqt_multiplot/PlotPanner.h"
 
@@ -34,7 +34,7 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
-  cursor_ = QCursor(QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/23x23/move.png"))), 11, 11);
+  cursor_ = QCursor(QPixmap(packageResourcePath("resource/23x23/move.png")), 11, 11);
 
   if (canvas != nullptr) {
     canvas->installEventFilter(this);

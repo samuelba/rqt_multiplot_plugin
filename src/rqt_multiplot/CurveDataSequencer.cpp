@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QDebug>
+
+#include <rqt_multiplot/MessageFieldAccess.h>
 #include <rqt_multiplot/MessageSubscriber.h>
 
 #include "rqt_multiplot/CurveDataSequencer.h"
@@ -157,27 +160,29 @@ void CurveDataSequencer::processMessage(const Message& message) {
 
   QPointF point;
 
-  if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    variant_topic_tools::BuiltinVariant variant = message.getVariant().getMember(xAxisConfig->getField().toStdString());
+  if (message.isEmpty()) {
+    return;
+  }
 
-    point.setX(variant.getNumericValue());
+  if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
+    const auto* field = getMember(*message.getCompound(), xAxisConfig->getField().toStdString());
+    if (field == nullptr || !isNumericMessageType(*field)) {
+      return;
+    }
+    point.setX(getNumericValue(*field));
   } else {
-    point.setX(message.getReceiptTime().toSec());
+    point.setX(message.getReceiptTime().seconds());
   }
 
   if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    try {
-      variant_topic_tools::BuiltinVariant variant = message.getVariant().getMember(yAxisConfig->getField().toStdString());
-
-      point.setY(variant.getNumericValue());
-    } catch (const variant_topic_tools::NoSuchMemberException& e) {
-      ROS_WARN_STREAM_ONCE(
-          "Exception in processMessage while retrieving"
-          " member '"
-          << yAxisConfig->getField().toStdString() << "': " << e.what());
+    const auto* field = getMember(*message.getCompound(), yAxisConfig->getField().toStdString());
+    if (field == nullptr || !isNumericMessageType(*field)) {
+      qWarning() << "No such member" << yAxisConfig->getField();
+      return;
     }
+    point.setY(getNumericValue(*field));
   } else {
-    point.setY(message.getReceiptTime().toSec());
+    point.setY(message.getReceiptTime().seconds());
   }
 
   emit pointReceived(point);
@@ -194,25 +199,18 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
     if (!timeFields_.contains(axis)) {
       timeFields_[axis] = QString();
 
-      if (axisConfig->getFieldType() == CurveAxisConfig::MessageData) {
+      if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
         QStringList fieldParts = axisConfig->getField().split("/");
 
         while (!fieldParts.isEmpty()) {
           fieldParts.removeLast();
 
           QString parentField = fieldParts.join("/");
-          variant_topic_tools::MessageVariant variant;
+          const ros_babel_fish::Message* parent = parentField.isEmpty() ? message.getCompound().get()
+                                                                        : getMember(*message.getCompound(), parentField.toStdString());
 
-          if (!parentField.isEmpty()) {
-            variant = message.getVariant().getMember(fieldParts.join("/").toStdString());
-          } else {
-            variant = message.getVariant();
-          }
-
-          variant_topic_tools::MessageDataType type = variant.getType();
-
-          if (type.hasHeader()) {
-            timeFields_[axis] = parentField + "/header/stamp";
+          if (parent != nullptr && hasHeader(*parent)) {
+            timeFields_[axis] = parentField.isEmpty() ? QString("header/stamp") : parentField + "/header/stamp";
             break;
           }
         }
@@ -221,20 +219,21 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
 
     TimeValue timeValue;
 
-    if (!timeFields_[axis].isEmpty()) {
-      variant_topic_tools::BuiltinVariant variant = message.getVariant().getMember(timeFields_[axis].toStdString());
-
-      timeValue.time_ = variant.getValue<ros::Time>();
+    if (!timeFields_[axis].isEmpty() && !message.isEmpty()) {
+      const auto* stampField = getMember(*message.getCompound(), timeFields_[axis].toStdString());
+      timeValue.time_ = stampField != nullptr ? getStamp(*stampField) : message.getReceiptTime();
     } else {
       timeValue.time_ = message.getReceiptTime();
     }
 
-    if (axisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-      variant_topic_tools::BuiltinVariant variant = message.getVariant().getMember(axisConfig->getField().toStdString());
-
-      timeValue.value_ = variant.getNumericValue();
+    if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
+      const auto* field = getMember(*message.getCompound(), axisConfig->getField().toStdString());
+      if (field == nullptr || !isNumericMessageType(*field)) {
+        return;
+      }
+      timeValue.value_ = getNumericValue(*field);
     } else {
-      timeValue.value_ = message.getReceiptTime().toSec();
+      timeValue.value_ = message.getReceiptTime().seconds();
     }
 
     if (timeValues_[axis].isEmpty() || (timeValue.time_ > timeValues_[axis].last().time_)) {
@@ -264,8 +263,8 @@ void CurveDataSequencer::interpolate() {
       const TimeValue& firstX = timeValuesX.first();
       const TimeValue& secondX = *(++timeValuesX.begin());
 
-      point.setX(firstX.value_ + (secondX.value_ - firstX.value_) * (timeValuesY.front().time_ - firstX.time_).toSec() /
-                                     (secondX.time_ - firstX.time_).toSec());
+      point.setX(firstX.value_ + (secondX.value_ - firstX.value_) * (timeValuesY.front().time_ - firstX.time_).seconds() /
+                                     (secondX.time_ - firstX.time_).seconds());
       point.setY(timeValuesY.front().value_);
 
       timeValuesY.removeFirst();
@@ -278,8 +277,8 @@ void CurveDataSequencer::interpolate() {
       const TimeValue& secondY = *(++timeValuesY.begin());
 
       point.setX(timeValuesX.front().value_);
-      point.setY(firstY.value_ + (secondY.value_ - firstY.value_) * (timeValuesX.front().time_ - firstY.time_).toSec() /
-                                     (secondY.time_ - firstY.time_).toSec());
+      point.setY(firstY.value_ + (secondY.value_ - firstY.value_) * (timeValuesX.front().time_ - firstY.time_).seconds() /
+                                     (secondY.time_ - firstY.time_).seconds());
 
       timeValuesX.removeFirst();
 

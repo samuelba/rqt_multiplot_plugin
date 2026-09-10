@@ -26,6 +26,7 @@
 #include <rqt_multiplot/MessageDefinitionLoader.h>
 #include <rqt_multiplot/MessageFieldLineEdit.h>
 #include <rqt_multiplot/MessageFieldTreeWidget.h>
+#include <rqt_multiplot/MessageFieldType.h>
 #include <rqt_multiplot/MessageSubscriberRegistry.h>
 
 namespace Ui {
@@ -40,10 +41,10 @@ class MessageFieldWidget : public QWidget {
   ~MessageFieldWidget() override;
 
   QString getCurrentMessageType() const;
-  variant_topic_tools::MessageDataType getCurrentMessageDataType() const;
+  MessageFieldType getCurrentMessageDataType() const;
   void setCurrentField(const QString& field);
   QString getCurrentField() const;
-  variant_topic_tools::DataType getCurrentFieldDataType() const;
+  MessageFieldType getCurrentFieldDataType() const;
   bool isLoading() const;
   bool isConnecting() const;
   bool isCurrentFieldDefined() const;

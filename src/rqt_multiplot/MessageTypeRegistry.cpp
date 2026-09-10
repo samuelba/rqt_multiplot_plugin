@@ -16,24 +16,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <QDir>
 #include <QMutexLocker>
+#include <sstream>
+#include <string>
 
-#include <ros/package.h>
+#include <ament_index_cpp/get_resources.hpp>
+#include <ament_index_cpp/get_resource.hpp>
 
 #include "rqt_multiplot/MessageTypeRegistry.h"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static Initializations                                                    */
-/*****************************************************************************/
-
 MessageTypeRegistry::Impl MessageTypeRegistry::impl_;
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageTypeRegistry::MessageTypeRegistry(QObject* parent) : QObject(parent) {
   connect(&impl_, SIGNAL(started()), this, SLOT(threadStarted()));
@@ -48,10 +42,6 @@ MessageTypeRegistry::Impl::~Impl() {
   terminate();
   wait();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 QList<QString> MessageTypeRegistry::getTypes() {
   QMutexLocker lock(&impl_.mutex_);
@@ -69,10 +59,6 @@ bool MessageTypeRegistry::isEmpty() {
   return impl_.types_.isEmpty();
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void MessageTypeRegistry::update() {
   impl_.start();
 }
@@ -82,36 +68,34 @@ void MessageTypeRegistry::wait() {
 }
 
 void MessageTypeRegistry::Impl::run() {
-  std::vector<std::string> packages;
-
   mutex_.lock();
   types_.clear();
   mutex_.unlock();
 
-  if (ros::package::getAll(packages)) {
-    for (const auto& i : packages) {
-      QString package = QString::fromStdString(i);
-      QDir directory(QString::fromStdString(ros::package::getPath(i)) + "/msg");
+  const auto resources = ament_index_cpp::get_resources("rosidl_interfaces");
+  for (const auto& [package, prefix] : resources) {
+    std::string content;
+    if (!ament_index_cpp::get_resource("rosidl_interfaces", package, content)) {
+      continue;
+    }
 
-      if (directory.exists()) {
-        QList<QString> filters;
-        filters.append("*.msg");
-
-        QFileInfoList entries = directory.entryInfoList(filters, QDir::Files | QDir::Readable);
-
-        for (auto& entrie : entries) {
-          mutex_.lock();
-          types_.append(package + "/" + entrie.baseName());
-          mutex_.unlock();
-        }
+    std::stringstream stream(content);
+    std::string line;
+    while (std::getline(stream, line)) {
+      if (line.rfind("msg/", 0) != 0) {
+        continue;
       }
+
+      const auto typeName = line.substr(4);
+      if (typeName.empty()) {
+        continue;
+      }
+
+      QMutexLocker lock(&mutex_);
+      types_.append(QString::fromStdString(package + "/msg/" + typeName));
     }
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageTypeRegistry::threadStarted() {
   emit updateStarted();

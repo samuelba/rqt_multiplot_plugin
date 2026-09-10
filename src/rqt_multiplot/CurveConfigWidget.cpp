@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveConfigWidget.h>
 
@@ -36,11 +36,11 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   ui_->setupUi(this);
 
   ui_->pushButtonCopyRight->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/arrow_right.png"))));
+      QIcon(packageResourcePath("resource/22x22/arrow_right.png")));
   ui_->pushButtonCopyLeft->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/arrow_left.png"))));
+      QIcon(packageResourcePath("resource/22x22/arrow_left.png")));
   ui_->pushButtonSwap->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/arrows_right_left.png"))));
+      QIcon(packageResourcePath("resource/22x22/arrows_right_left.png")));
 
   ui_->curveAxisConfigWidgetX->setConfig(config_->getAxisConfig(CurveConfig::X));
   ui_->curveAxisConfigWidgetY->setConfig(config_->getAxisConfig(CurveConfig::Y));

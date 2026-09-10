@@ -24,7 +24,7 @@
 #include <QString>
 #include <QThread>
 
-#include <variant_topic_tools/MessageDefinition.h>
+#include <rqt_multiplot/MessageFieldType.h>
 
 namespace rqt_multiplot {
 class MessageDefinitionLoader : public QObject {
@@ -34,7 +34,7 @@ class MessageDefinitionLoader : public QObject {
   ~MessageDefinitionLoader() override;
 
   QString getType() const;
-  variant_topic_tools::MessageDefinition getDefinition() const;
+  MessageFieldType getDefinition() const;
   QString getError() const;
   bool isLoading() const;
 
@@ -56,7 +56,7 @@ class MessageDefinitionLoader : public QObject {
 
     mutable QMutex mutex_;
     QString type_;
-    variant_topic_tools::MessageDefinition definition_;
+    MessageFieldType definition_;
     QString error_;
   };
 

@@ -18,6 +18,8 @@
 
 #include <ui_MessageFieldWidget.h>
 
+#include <rqt_multiplot/MessageFieldAccess.h>
+
 #include "rqt_multiplot/MessageFieldWidget.h"
 
 namespace rqt_multiplot {
@@ -58,8 +60,8 @@ QString MessageFieldWidget::getCurrentMessageType() const {
   return loader_->getType();
 }
 
-variant_topic_tools::MessageDataType MessageFieldWidget::getCurrentMessageDataType() const {
-  return loader_->getDefinition().getMessageDataType();
+MessageFieldType MessageFieldWidget::getCurrentMessageDataType() const {
+  return loader_->getDefinition();
 }
 
 void MessageFieldWidget::setCurrentField(const QString& field) {
@@ -77,7 +79,7 @@ QString MessageFieldWidget::getCurrentField() const {
   return currentField_;
 }
 
-variant_topic_tools::DataType MessageFieldWidget::getCurrentFieldDataType() const {
+MessageFieldType MessageFieldWidget::getCurrentFieldDataType() const {
   return ui_->treeWidget->getCurrentFieldDataType();
 }
 
@@ -156,8 +158,8 @@ void MessageFieldWidget::loaderLoadingStarted() {
 }
 
 void MessageFieldWidget::loaderLoadingFinished() {
-  ui_->lineEdit->setMessageDataType(loader_->getDefinition().getMessageDataType());
-  ui_->treeWidget->setMessageDataType(loader_->getDefinition().getMessageDataType());
+  ui_->lineEdit->setMessageDataType(loader_->getDefinition());
+  ui_->treeWidget->setMessageDataType(loader_->getDefinition());
 
   ui_->lineEdit->setCurrentField(currentField_);
   ui_->treeWidget->setCurrentField(currentField_);
@@ -183,8 +185,11 @@ void MessageFieldWidget::subscriberMessageReceived(const QString& topic, const M
 
   disconnect();
 
-  ui_->lineEdit->setMessageDataType(message.getVariant().getType());
-  ui_->treeWidget->setMessageDataType(message.getVariant().getType());
+  if (!message.isEmpty()) {
+    const auto fieldType = fieldTypeFromMessage(*message.getCompound());
+    ui_->lineEdit->setMessageDataType(fieldType);
+    ui_->treeWidget->setMessageDataType(fieldType);
+  }
 
   ui_->lineEdit->setCurrentField(currentField_);
   ui_->treeWidget->setCurrentField(currentField_);

@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <ui_MultiplotWidget.h>
 

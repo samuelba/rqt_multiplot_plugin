@@ -1,51 +1,46 @@
-cmake_minimum_required(VERSION 3.5.1)
+cmake_minimum_required(VERSION 3.8)
 project(rqt_multiplot)
 
-# Set compiler flags
-set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
-
-find_package(catkin REQUIRED
-  COMPONENTS
-    rosbag
-    roscpp
-    rqt_gui
-    rqt_gui_cpp
-    variant_topic_tools
-)
-
-if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
-  find_package(Qt5Widgets REQUIRED)
-else()
-  find_package(Qt4 COMPONENTS QtCore QtGui REQUIRED)
-  include(${QT_USE_FILE})
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
 endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+
+find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
+find_package(pluginlib REQUIRED)
+find_package(qt_gui_cpp REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(ros_babel_fish REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(rosbag2_storage REQUIRED)
+find_package(rqt_gui_cpp REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 find_path(
   QWT_INCLUDE_DIRS
   NAMES
     qwt_plot.h
   PATHS
-    /usr/include/qwt-qt4
     /usr/include/qwt
     /usr/local/include/qwt
 )
 
-if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
-  find_library(
-    QWT_LIBRARIES
-    NAMES
-      qwt-qt5
-  )
-else()
-  find_library(
-    QWT_LIBRARIES
-    NAMES
-      qwt-qt4
-      qwt
-  )
-endif()
+find_library(
+  QWT_LIBRARIES
+  NAMES
+    qwt-qt5
+    qwt
+)
 
-catkin_python_setup()
+if(NOT QWT_INCLUDE_DIRS OR NOT QWT_LIBRARIES)
+  message(FATAL_ERROR "Qwt (Qt5) not found")
+endif()
 
 set(rqt_multiplot_SRCS
   src/rqt_multiplot/BagQuery.cpp
@@ -85,6 +80,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/MessageBroker.cpp
   src/rqt_multiplot/MessageDefinitionLoader.cpp
   src/rqt_multiplot/MessageEvent.cpp
+  src/rqt_multiplot/MessageFieldAccess.cpp
   src/rqt_multiplot/MessageFieldCompleter.cpp
   src/rqt_multiplot/MessageFieldItem.cpp
   src/rqt_multiplot/MessageFieldItemModel.cpp
@@ -129,6 +125,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/ProgressChangeEvent.cpp
   src/rqt_multiplot/ProgressWidget.cpp
   src/rqt_multiplot/QwtPlotCustom.cpp
+  src/rqt_multiplot/RosContext.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
   src/rqt_multiplot/UrlComboBox.cpp
@@ -221,6 +218,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/ProgressChangeEvent.h
   include/rqt_multiplot/ProgressWidget.h
   include/rqt_multiplot/QwtPlotCustom.h
+  include/rqt_multiplot/RosContext.h
   include/rqt_multiplot/StatusWidget.h
   include/rqt_multiplot/ThreadedTimer.h
   include/rqt_multiplot/UrlComboBox.h
@@ -253,99 +251,85 @@ set(rqt_multiplot_UIS
   src/rqt_multiplot/ProgressWidget.ui
 )
 
-set(rqt_multiplot_INCLUDE_DIRECTORIES
-  include
-  ${CMAKE_CURRENT_BINARY_DIR}
-)
+qt5_wrap_cpp(rqt_multiplot_MOCS ${rqt_multiplot_HDRS})
+qt5_wrap_ui(rqt_multiplot_UIS_H ${rqt_multiplot_UIS})
 
-catkin_package(
-  LIBRARIES
-    rqt_multiplot
-  CATKIN_DEPENDS
-    rosbag
-    roscpp
-    rqt_gui
-    rqt_gui_cpp
-    variant_topic_tools
-)
-
-if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
-  qt5_wrap_cpp(rqt_multiplot_MOCS ${rqt_multiplot_HDRS})
-  qt5_wrap_ui(rqt_multiplot_UIS_H ${rqt_multiplot_UIS})
-else()
-  qt4_wrap_cpp(rqt_multiplot_MOCS ${rqt_multiplot_HDRS})
-  qt4_wrap_ui(rqt_multiplot_UIS_H ${rqt_multiplot_UIS})
-endif()
-
-include_directories(
-  ${rqt_multiplot_INCLUDE_DIRECTORIES}
-  ${catkin_INCLUDE_DIRS}
-  ${QWT_INCLUDE_DIRS}
-)
-
-add_library(rqt_multiplot
+add_library(${PROJECT_NAME} SHARED
   ${rqt_multiplot_SRCS}
   ${rqt_multiplot_MOCS}
   ${rqt_multiplot_UIS_H}
 )
 
-target_link_libraries(rqt_multiplot
-  ${catkin_LIBRARIES}
+target_include_directories(${PROJECT_NAME} PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
+  ${QWT_INCLUDE_DIRS}
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  ${pluginlib_TARGETS}
+  ${qt_gui_cpp_TARGETS}
+  ${rqt_gui_cpp_TARGETS}
+  Qt5::Widgets
+  ament_index_cpp::ament_index_cpp
+  rclcpp::rclcpp
+  ros_babel_fish::ros_babel_fish
+  rosbag2_cpp::rosbag2_cpp
+  rosbag2_storage::rosbag2_storage
   ${QWT_LIBRARIES}
 )
 
-if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
-  qt5_use_modules(${PROJECT_NAME} Widgets)
-  target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
-else()
-  target_link_libraries(${PROJECT_NAME} ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY})
-endif()
-
-#find_package(class_loader)
-#class_loader_hide_library_symbols(rqt_multiplot)
-
-install(FILES plugin.xml
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
-
 install(
-  DIRECTORY resource
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-  FILES_MATCHING
-  PATTERN "*.png"
-)
-
-install(TARGETS rqt_multiplot
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 install(PROGRAMS scripts/rqt_multiplot
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-install(DIRECTORY include/${PROJECT_NAME}/
-  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-##########
-## Test ##
-##########
-if(CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(test_${PROJECT_NAME}
-    test/EmptyTests.cpp
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/test
+install(
+  DIRECTORY include/
+  DESTINATION include/${PROJECT_NAME}
+)
+
+install(FILES plugin.xml
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY resource
+  DESTINATION share/${PROJECT_NAME}
+)
+
+pluginlib_export_plugin_description_file(rqt_gui plugin.xml)
+
+ament_export_include_directories("include/${PROJECT_NAME}")
+ament_export_libraries(${PROJECT_NAME})
+ament_export_targets(${PROJECT_NAME})
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  find_package(builtin_interfaces REQUIRED)
+  find_package(geometry_msgs REQUIRED)
+  find_package(std_msgs REQUIRED)
+
+  ament_add_gtest(test_${PROJECT_NAME}
+    test/MessageFieldAccessTest.cpp
+    test/BagReaderTest.cpp
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
-
   if(TARGET test_${PROJECT_NAME})
-    target_link_libraries( test_${PROJECT_NAME}
+    target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
-      ${catkin_LIBRARIES}
-      gtest_main
+      ${geometry_msgs_TARGETS}
+      ${std_msgs_TARGETS}
+      rosbag2_cpp::rosbag2_cpp
+      rosbag2_storage::rosbag2_storage
     )
-    find_package(cmake_code_coverage QUIET)
-    if(cmake_code_coverage_FOUND)
-      add_gtest_coverage()
-    endif(cmake_code_coverage_FOUND)
   endif()
 endif()
+
+ament_package()

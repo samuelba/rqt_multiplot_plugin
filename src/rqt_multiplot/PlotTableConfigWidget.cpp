@@ -19,7 +19,7 @@
 #include <QColorDialog>
 #include <QFileDialog>
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PlotWidget.h>
@@ -43,11 +43,11 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
 
   ui_->widgetProgress->setEnabled(false);
 
-  ui_->pushButtonRun->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/run.png"))));
-  ui_->pushButtonPause->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/pause.png"))));
-  ui_->pushButtonClear->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/clear.png"))));
+  ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/16x16/run.png")));
+  ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/16x16/pause.png")));
+  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/eject.png"))));
+      QIcon(packageResourcePath("resource/16x16/eject.png")));
 
   ui_->pushButtonPause->setEnabled(false);
 
@@ -261,7 +261,7 @@ void PlotTableConfigWidget::pushButtonImportExportClicked() {
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {
-  QFileDialog dialog(this, "Open Bag", QDir::homePath(), "ROS Bag (*.bag)");
+  QFileDialog dialog(this, "Open Bag", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::ExistingFile);

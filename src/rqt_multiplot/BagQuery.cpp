@@ -16,36 +16,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <vector>
-
 #include <QApplication>
 
-#include <rosbag/message_instance.h>
-
-#include <variant_topic_tools/DataTypeRegistry.h>
-#include <variant_topic_tools/Message.h>
-#include <variant_topic_tools/MessageDefinition.h>
-#include <variant_topic_tools/MessageType.h>
-#include <variant_topic_tools/MessageVariant.h>
-
-#include <rqt_multiplot/DataTypeRegistry.h>
 #include <rqt_multiplot/MessageEvent.h>
+#include <rqt_multiplot/MessageFieldAccess.h>
 
 #include "rqt_multiplot/BagQuery.h"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 BagQuery::BagQuery(QObject* parent) : QObject(parent) {}
 
 BagQuery::~BagQuery() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool BagQuery::event(QEvent* event) {
   if (event->type() == MessageEvent::Type) {
@@ -59,60 +41,22 @@ bool BagQuery::event(QEvent* event) {
   return QObject::event(event);
 }
 
-void BagQuery::callback(const rosbag::MessageInstance& instance) {
+void BagQuery::callback(const QString& topic, const QString& type, const rclcpp::SerializedMessage& serialized, const rclcpp::Time& time) {
   Message message;
+  message.setReceiptTime(time);
+  message.setCompound(deserializeMessage(type.toStdString(), serialized));
 
-  if (!dataType_.isValid()) {
-    DataTypeRegistry::mutex_.lock();
-
-    variant_topic_tools::DataTypeRegistry registry;
-    dataType_ = registry.getDataType(instance.getDataType());
-
-    if (!dataType_) {
-      variant_topic_tools::MessageType messageType(instance.getDataType(), instance.getMD5Sum(), instance.getMessageDefinition());
-      variant_topic_tools::MessageDefinition messageDefinition(messageType);
-
-      dataType_ = messageDefinition.getMessageDataType();
-    }
-
-    DataTypeRegistry::mutex_.unlock();
-
-    serializer_ = dataType_.createSerializer();
-  }
-
-  std::vector<uint8_t> data(instance.size());
-  ros::serialization::OStream outputStream(data.data(), data.size());
-  instance.write(outputStream);
-
-  variant_topic_tools::MessageVariant variant = dataType_.createVariant();
-  ros::serialization::IStream inputStream(data.data(), data.size());
-
-  serializer_.deserialize(inputStream, variant);
-
-  message.setReceiptTime(instance.getTime());
-  message.setVariant(variant);
-
-  auto* messageEvent = new MessageEvent(QString::fromStdString(instance.getTopic()), message);
+  auto* messageEvent = new MessageEvent(topic, message);
 
   QApplication::postEvent(this, messageEvent);
 }
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
 void BagQuery::disconnectNotify(const QMetaMethod& /*signal*/) {
-  if (receivers(QMetaObject::normalizedSignature(SIGNAL(messageReceived(const QString&, const Message&)))) == 0) {
+  if (receivers(QMetaObject::normalizedSignature(SIGNAL(messageRead(const QString&, const Message&)))) == 0) {
     emit aboutToBeDestroyed();
 
     deleteLater();
   }
 }
-#else
-void BagQuery::disconnectNotify(const char* signal) {
-  if (!receivers(QMetaObject::normalizedSignature(SIGNAL(messageReceived(const QString&, const Message&))))) {
-    emit aboutToBeDestroyed();
-
-    deleteLater();
-  }
-}
-#endif
 
 }  // namespace rqt_multiplot
