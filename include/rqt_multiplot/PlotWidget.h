@@ -23,6 +23,7 @@
 #include <QList>
 #include <QMenu>
 #include <QRect>
+#include <QRectF>
 #include <QStringList>
 #include <QTimer>
 #include <QVector>
@@ -67,6 +68,8 @@ class PlotWidget : public QWidget {
   State getState() const;
   void setCanChangeState(bool can);
   bool canChangeState() const;
+  void setUserScaleLocked(bool locked);
+  bool isUserScaleLocked() const;
 
   void run();
   void pause();
@@ -90,6 +93,7 @@ class PlotWidget : public QWidget {
   void pausedChanged(bool paused);
   void stateChanged(int state);
   void cleared();
+  void userScaleLockedChanged(bool locked);
 
  protected:
   void dragEnterEvent(QDragEnterEvent* event) override;
@@ -122,6 +126,7 @@ class PlotWidget : public QWidget {
   bool paused_;
   bool rescale_;
   bool replot_;
+  bool userScaleLocked_;
   State state_;
 
   BoundingRectangle currentBounds_;
@@ -166,6 +171,8 @@ class PlotWidget : public QWidget {
 
   void plotXBottomScaleDivChanged();
   void plotYLeftScaleDivChanged();
+  void plotZoomed(const QRectF& bounds);
+  void plotZoomResetRequested();
 };
 }  // namespace rqt_multiplot
 

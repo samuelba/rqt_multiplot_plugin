@@ -43,6 +43,7 @@
 #include <rqt_multiplot/PlotCurve.h>
 #include <rqt_multiplot/PlotLegend.h>
 #include <rqt_multiplot/PlotMagnifier.h>
+#include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotPanner.h>
 #include <rqt_multiplot/PlotZoomer.h>
 
@@ -71,6 +72,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       paused_(true),
       rescale_(false),
       replot_(false),
+      userScaleLocked_(false),
       state_(Normal),
       xOriginSet_(false),
       yOriginSet_(false),
@@ -127,6 +129,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   panner_ = new PlotPanner(canvas);
   zoomer_ = new PlotZoomer(canvas);
   zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  canvas->setToolTip(QStringLiteral("Ctrl+drag: zoom rectangle. Right-click: reset zoom."));
 
 #if QWT_VERSION >= 0x060100
   currentBounds_.getMinimum().setX(ui_->plot->axisScaleDiv(QwtPlot::xBottom).lowerBound());
@@ -151,6 +154,8 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
+  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
+  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
 
   connect(timer_, SIGNAL(timeout()), this, SLOT(timerTimeout()));
 
@@ -297,6 +302,25 @@ bool PlotWidget::canChangeState() const {
   return ui_->pushButtonState->isEnabled();
 }
 
+void PlotWidget::setUserScaleLocked(bool locked) {
+  if (locked == userScaleLocked_) {
+    return;
+  }
+
+  userScaleLocked_ = locked;
+
+  if (!locked) {
+    rescale_ = true;
+    requestReplot();
+  }
+
+  emit userScaleLockedChanged(locked);
+}
+
+bool PlotWidget::isUserScaleLocked() const {
+  return userScaleLocked_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -347,13 +371,15 @@ void PlotWidget::requestReplot() {
 void PlotWidget::forceReplot() {
   BoundingRectangle preferredBounds = getPreferredScale();
 
-  if (rescale_) {
+  if (shouldApplyPreferredScale(rescale_, userScaleLocked_)) {
     emit preferredScaleChanged(preferredBounds);
 
     rescale_ = false;
   }
 
-  zoomer_->setZoomBase(preferredBounds.getRectangle());
+  if (!userScaleLocked_) {
+    zoomer_->setZoomBase(preferredBounds.getRectangle());
+  }
 
   ui_->plot->replot();
 
@@ -829,6 +855,14 @@ void PlotWidget::plotYLeftScaleDivChanged() {
   currentBounds_.getMaximum().setY(scale.upperBound());
 
   emit currentScaleChanged(currentBounds_);
+}
+
+void PlotWidget::plotZoomed(const QRectF& /*bounds*/) {
+  setUserScaleLocked(zoomer_->zoomRectIndex() > 0);
+}
+
+void PlotWidget::plotZoomResetRequested() {
+  setUserScaleLocked(false);
 }
 
 }  // namespace rqt_multiplot

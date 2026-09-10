@@ -125,7 +125,6 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotTableWidget.cpp
   src/rqt_multiplot/PlotWidget.cpp
   src/rqt_multiplot/PlotZoomer.cpp
-  src/rqt_multiplot/PlotZoomerMachine.cpp
   src/rqt_multiplot/ProgressChangeEvent.cpp
   src/rqt_multiplot/ProgressWidget.cpp
   src/rqt_multiplot/QwtPlotCustom.cpp
@@ -215,13 +214,13 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLegendConfig.h
   include/rqt_multiplot/PlotLegendConfigWidget.h
   include/rqt_multiplot/PlotMagnifier.h
+  include/rqt_multiplot/PlotMouseBindings.h
   include/rqt_multiplot/PlotPanner.h
   include/rqt_multiplot/PlotTableConfig.h
   include/rqt_multiplot/PlotTableConfigWidget.h
   include/rqt_multiplot/PlotTableWidget.h
   include/rqt_multiplot/PlotWidget.h
   include/rqt_multiplot/PlotZoomer.h
-  include/rqt_multiplot/PlotZoomerMachine.h
   include/rqt_multiplot/ProgressChangeEvent.h
   include/rqt_multiplot/ProgressWidget.h
   include/rqt_multiplot/QwtPlotCustom.h
@@ -330,6 +329,7 @@ if(BUILD_TESTING)
     test/CurveAxisConfigTest.cpp
     test/MessageFieldAccessTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
   if(TARGET test_${PROJECT_NAME})
