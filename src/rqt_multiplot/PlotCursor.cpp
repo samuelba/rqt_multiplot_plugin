@@ -43,7 +43,13 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
-    : QwtPlotPicker(canvas), trackPoints_(false), mouseControl_(false), xOffset_(0.0), yOffset_(0.0) {
+    : QwtPlotPicker(canvas),
+      trackPoints_(false),
+      mouseControl_(false),
+      xOffset_(0.0),
+      yOffset_(0.0),
+      xUsesTimeScale_(false),
+      yUsesTimeScale_(false) {
   setTrackerMode(QwtPicker::AlwaysOn);
   setStateMachine(new PlotCursorMachine());
 
@@ -134,6 +140,22 @@ double PlotCursor::getYOffset() const {
   return yOffset_;
 }
 
+void PlotCursor::setXUsesTimeScale(bool useTimeScale) {
+  xUsesTimeScale_ = useTimeScale;
+}
+
+bool PlotCursor::xUsesTimeScale() const {
+  return xUsesTimeScale_;
+}
+
+void PlotCursor::setYUsesTimeScale(bool useTimeScale) {
+  yUsesTimeScale_ = useTimeScale;
+}
+
+bool PlotCursor::yUsesTimeScale() const {
+  return yUsesTimeScale_;
+}
+
 QRect PlotCursor::getTextRect(const QPointF& point, const QFont& font) const {
   QwtText text = trackerTextF(point);
 
@@ -189,8 +211,8 @@ QwtText PlotCursor::trackerTextF(const QPointF& point) const {
   const double xSpan = fabs(xMap.invTransform(1.0) - xMap.invTransform(0.0));
   const double ySpan = fabs(yMap.invTransform(1.0) - yMap.invTransform(0.0));
 
-  const QString x = AxisTimeFormat::relative(point.x(), xOffset_, xSpan);
-  const QString y = AxisTimeFormat::relative(point.y(), yOffset_, ySpan);
+  const QString x = AxisTimeFormat::coordinate(point.x(), xOffset_, xSpan, xUsesTimeScale_);
+  const QString y = AxisTimeFormat::coordinate(point.y(), yOffset_, ySpan, yUsesTimeScale_);
 
   return QwtText(x + ", " + y);
 }

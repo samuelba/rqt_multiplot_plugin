@@ -67,6 +67,27 @@ TEST(CurveAxisConfig, missingKeyDefaultsFalseForMessageField) {
   EXPECT_FALSE(config.isLabelFromZero());
 }
 
+TEST(CurveAxisConfig, usesTimeScaleForReceiptTimeAndStampField) {
+  CurveAxisConfig receiptTime;
+  receiptTime.setFieldType(CurveAxisConfig::MessageReceiptTime);
+  EXPECT_TRUE(receiptTime.usesTimeScale());
+
+  CurveAxisConfig stamp;
+  stamp.setField("header/stamp");
+  EXPECT_TRUE(stamp.usesTimeScale());
+  EXPECT_TRUE(CurveAxisConfig::isTimeFieldPath("stamp"));
+  EXPECT_FALSE(CurveAxisConfig::isTimeFieldPath("linear/x"));
+}
+
+TEST(CurveAxisConfig, usesTimeScaleWhenLabelFromZero) {
+  CurveAxisConfig config;
+  config.setField("linear/x");
+  EXPECT_FALSE(config.usesTimeScale());
+
+  config.setLabelFromZero(true);
+  EXPECT_TRUE(config.usesTimeScale());
+}
+
 TEST(CurveAxisConfig, writesAndReadsLabelFromZero) {
   CurveAxisConfig source;
   source.setLabelFromZero(true);

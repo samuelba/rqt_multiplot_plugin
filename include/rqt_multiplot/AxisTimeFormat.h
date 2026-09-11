@@ -15,6 +15,7 @@ class AxisTimeFormat {
   static int decimalPlaces(double span);
   static QString fixed(double value, double span);
   static QString relative(double value, double t0, double span);
+  static QString coordinate(double value, double offset, double span, bool timeScale);
 };
 
 }  // namespace rqt_multiplot

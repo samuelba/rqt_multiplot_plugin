@@ -45,6 +45,10 @@ class PlotCursor : public QwtPlotPicker {
   double getXOffset() const;
   void setYOffset(double offset);
   double getYOffset() const;
+  void setXUsesTimeScale(bool useTimeScale);
+  bool xUsesTimeScale() const;
+  void setYUsesTimeScale(bool useTimeScale);
+  bool yUsesTimeScale() const;
 
   void update();
 
@@ -83,6 +87,8 @@ class PlotCursor : public QwtPlotPicker {
   bool mouseControl_;
   double xOffset_;
   double yOffset_;
+  bool xUsesTimeScale_;
+  bool yUsesTimeScale_;
 
  private slots:
   void plotXAxisScaleDivChanged();

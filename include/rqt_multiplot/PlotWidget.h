@@ -133,6 +133,7 @@ class PlotWidget : public QWidget {
 
   void updateAxisTitle(PlotAxesConfig::Axis axis);
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;
+  bool axisUsesTimeFormat(CurveConfig::Axis axis) const;
   void seedAxisOrigin(CurveConfig::Axis axis);
   void resetAxisOrigins();
   void updateAxisTimeLabels();

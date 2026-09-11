@@ -18,11 +18,14 @@ class OffsetScaleDraw : public QwtScaleDraw {
 
   void setOffset(double offset);
   double offset() const;
+  void setUseTimeScale(bool useTimeScale);
+  bool useTimeScale() const;
 
   QwtText label(double value) const override;
 
  private:
   double offset_;
+  bool useTimeScale_;
 };
 
 }  // namespace rqt_multiplot

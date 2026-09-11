@@ -108,6 +108,14 @@ bool CurveAxisConfig::isLabelFromZero() const {
   return labelFromZero_;
 }
 
+bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
+  return (field == QLatin1String("stamp")) || field.endsWith(QLatin1String("/stamp"));
+}
+
+bool CurveAxisConfig::usesTimeScale() const {
+  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || isTimeFieldPath(field_);
+}
+
 CurveAxisScaleConfig* CurveAxisConfig::getScaleConfig() const {
   return scaleConfig_;
 }

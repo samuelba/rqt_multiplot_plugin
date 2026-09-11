@@ -32,4 +32,12 @@ TEST(AxisTimeFormat, precisionIncreasesWhenSpanShrinks) {
   EXPECT_FALSE(fine.contains(QLatin1Char('e')));
 }
 
+TEST(AxisTimeFormat, coordinateUsesRelativeOnTimeScale) {
+  EXPECT_EQ(AxisTimeFormat::coordinate(1789065571.0, 1789065570.0, 10.0, true), QStringLiteral("1"));
+}
+
+TEST(AxisTimeFormat, coordinateKeepsGeneralFormatOnNumericScale) {
+  EXPECT_EQ(AxisTimeFormat::coordinate(123.456, 0.0, 2.0, false), QStringLiteral("123.456"));
+}
+
 }  // namespace

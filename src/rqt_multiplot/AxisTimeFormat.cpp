@@ -41,4 +41,16 @@ QString AxisTimeFormat::relative(double value, double t0, double span) {
   return fixed(value - t0, span);
 }
 
+QString AxisTimeFormat::coordinate(double value, double offset, double span, bool timeScale) {
+  if (timeScale) {
+    return relative(value, offset, span);
+  }
+
+  const double precision = std::log10(std::fabs(span));
+  if ((precision < 0.0) && (std::fabs(value) >= 1.0)) {
+    return QString::asprintf("%.*f", static_cast<int>(std::ceil(std::fabs(precision))), value);
+  }
+  return QString::asprintf("%g", value);
+}
+
 }  // namespace rqt_multiplot

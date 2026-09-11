@@ -253,8 +253,12 @@ void PlotCurve::configDataConfigChanged() {
 void PlotCurve::dataSequencerPointReceived(const QPointF& point) {
   if (!paused_) {
     if (auto* plotWidget = qobject_cast<PlotWidget*>(parent())) {
-      plotWidget->bindAxisOrigin(CurveConfig::X, point.x());
-      plotWidget->bindAxisOrigin(CurveConfig::Y, point.y());
+      if ((config_ != nullptr) && config_->getAxisConfig(CurveConfig::X)->isLabelFromZero()) {
+        plotWidget->bindAxisOrigin(CurveConfig::X, point.x());
+      }
+      if ((config_ != nullptr) && config_->getAxisConfig(CurveConfig::Y)->isLabelFromZero()) {
+        plotWidget->bindAxisOrigin(CurveConfig::Y, point.y());
+      }
     }
 
     BoundingRectangle oldBounds = getPreferredScale();

@@ -329,6 +329,7 @@ if(BUILD_TESTING)
     test/BagReaderTest.cpp
     test/CurveAxisConfigTest.cpp
     test/MessageFieldAccessTest.cpp
+    test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
