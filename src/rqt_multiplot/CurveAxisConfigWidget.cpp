@@ -362,6 +362,8 @@ void CurveAxisConfigWidget::widgetFieldLoadingStarted() {
 
   ui_->statusWidgetField->pushCurrentRole();
   ui_->statusWidgetField->setCurrentRole(StatusWidget::Busy, "Loading message definition...");
+
+  updateLabelFromZeroControl();
 }
 
 void CurveAxisConfigWidget::widgetFieldLoadingFinished() {
@@ -376,6 +378,7 @@ void CurveAxisConfigWidget::widgetFieldLoadingFailed(const QString&
                                                      /*error*/) {
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   if ((config_ != nullptr) && (ui_->comboBoxTopic->getCurrentTopicType() == config_->getType())) {
     ui_->widgetField->connectTopic(config_->getTopic());
   } else {
@@ -388,6 +391,8 @@ void CurveAxisConfigWidget::widgetFieldConnecting(const QString& topic) {
 
   ui_->statusWidgetField->pushCurrentRole();
   ui_->statusWidgetField->setCurrentRole(StatusWidget::Busy, "Waiting for connnection on topic [" + topic + "]...");
+
+  updateLabelFromZeroControl();
 }
 
 void CurveAxisConfigWidget::widgetFieldConnected(const QString& /*topic*/) {
@@ -403,6 +408,7 @@ void CurveAxisConfigWidget::widgetFieldConnectionTimeout(const QString&
                                                          double /*timeout*/) {
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   validateField();
 }
 
