@@ -13,6 +13,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
+find_package(Boost REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(qt_gui_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -263,6 +264,7 @@ add_library(${PROJECT_NAME} SHARED
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
+  ${Boost_INCLUDE_DIRS}
   ${QWT_INCLUDE_DIRS}
 )
 
