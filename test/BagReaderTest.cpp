@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/BagOpen.h>
 #include <rqt_multiplot/MessageFieldAccess.h>
 
 namespace {
@@ -56,9 +57,18 @@ void writeFixtureBag(const std::string& uri, const std::string& storageId) {
   writer.close();
 }
 
+std::filesystem::path findFirstFileWithExtension(const std::filesystem::path& directory, const std::string& extension) {
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    if (entry.is_regular_file() && entry.path().extension() == extension) {
+      return entry.path();
+    }
+  }
+  return {};
+}
+
 std::vector<ExtractedPoint> extractPoints(const std::string& uri) {
   rosbag2_cpp::Reader reader;
-  reader.open(uri);
+  rqt_multiplot::openBag(reader, uri);
 
   std::unordered_map<std::string, std::string> types;
   for (const auto& topic : reader.get_all_topics_and_types()) {
@@ -118,6 +128,47 @@ TEST(BagReader, extractsPointsFromSqliteBag) {
   const auto uri = (root / "sqlite_bag").string();
   writeFixtureBag(uri, "sqlite3");
   expectFixturePoints(extractPoints(uri));
+  std::filesystem::remove_all(root);
+}
+
+TEST(BagOpen, setsMcapStorageIdForMcapFile) {
+  const auto options = rqt_multiplot::storageOptionsForUri("/tmp/recording.mcap");
+  EXPECT_EQ(options.uri, "/tmp/recording.mcap");
+  EXPECT_EQ(options.storage_id, "mcap");
+}
+
+TEST(BagOpen, setsSqliteStorageIdForDb3File) {
+  EXPECT_EQ(rqt_multiplot::storageOptionsForUri("/tmp/recording.db3").storage_id, "sqlite3");
+}
+
+TEST(BagOpen, matchesMcapExtensionCaseInsensitively) {
+  EXPECT_EQ(rqt_multiplot::storageOptionsForUri("/tmp/recording.MCAP").storage_id, "mcap");
+}
+
+TEST(BagOpen, matchesDb3ExtensionCaseInsensitively) {
+  EXPECT_EQ(rqt_multiplot::storageOptionsForUri("/tmp/recording.DB3").storage_id, "sqlite3");
+}
+
+TEST(BagOpen, leavesStorageIdEmptyForBagDirectory) {
+  const auto root = makeTempDir();
+  const auto options = rqt_multiplot::storageOptionsForUri(root.string());
+  EXPECT_TRUE(options.storage_id.empty());
+  std::filesystem::remove_all(root);
+}
+
+TEST(BagReader, extractsPointsFromStandaloneMcapFile) {
+  const auto root = makeTempDir();
+  const auto bagDir = root / "mcap_bag";
+  writeFixtureBag(bagDir.string(), "mcap");
+
+  const auto mcapFile = findFirstFileWithExtension(bagDir, ".mcap");
+  ASSERT_FALSE(mcapFile.empty());
+
+  const auto standalone = root / "standalone.mcap";
+  std::filesystem::copy_file(mcapFile, standalone);
+  ASSERT_FALSE(std::filesystem::exists(standalone.parent_path() / "metadata.yaml"));
+
+  expectFixturePoints(extractPoints(standalone.string()));
   std::filesystem::remove_all(root);
 }
 

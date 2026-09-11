@@ -28,6 +28,7 @@
 
 #include <rqt_multiplot/ProgressChangeEvent.h>
 
+#include "rqt_multiplot/BagOpen.h"
 #include "rqt_multiplot/BagReader.h"
 
 namespace rqt_multiplot {
@@ -119,7 +120,7 @@ void BagReader::Impl::run() {
 
   try {
     rosbag2_cpp::Reader reader;
-    reader.open(fileName_.toStdString());
+    openBag(reader, fileName_.toStdString());
 
     QMap<QString, QString> topicTypes;
     for (const auto& topic : reader.get_all_topics_and_types()) {
