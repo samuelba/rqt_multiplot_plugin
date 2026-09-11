@@ -88,12 +88,12 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 | Ctrl + left drag | Draw a rectangle to zoom |
 | Mouse wheel | Zoom in / out |
 | Right click | Reset zoom |
-| Hover (Track enabled) | Crosshair; snap to nearest curve points |
+| Hover (Points enabled) | Crosshair; nearest-sample marker and title / x, y readout |
 | Drag a legend item onto another plot | Copy that curve |
 
 Use the plot toolbar to run, pause, clear, configure, export, or maximize one plot.
 
-**Link Scale** keeps axis ranges in sync across the grid. **Link Cursor** moves the crosshair on every plot. **Track Points** labels the nearest samples.
+**Link Scale** keeps axis ranges in sync across the grid. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
 
 ### Configure a plot
 

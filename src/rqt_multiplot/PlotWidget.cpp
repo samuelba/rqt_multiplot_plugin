@@ -130,7 +130,6 @@ PlotWidget::PlotWidget(QWidget* parent)
   panner_ = new PlotPanner(canvas);
   zoomer_ = new PlotZoomer(canvas);
   zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
-  canvas->setToolTip(QStringLiteral("Ctrl+drag: zoom rectangle. Right-click: reset zoom."));
 
 #if QWT_VERSION >= 0x060100
   currentBounds_.getMinimum().setX(ui_->plot->axisScaleDiv(QwtPlot::xBottom).lowerBound());

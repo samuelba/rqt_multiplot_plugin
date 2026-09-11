@@ -24,14 +24,19 @@
 #include <QPainter>
 #include <QPen>
 #include <QResizeEvent>
+#include <QSize>
+#include <QStringList>
+#include <QtMath>
 
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
 #include <qwt/qwt_scale_widget.h>
+#include <qwt/qwt_text.h>
 
 #include <rqt_multiplot/AxisTimeFormat.h>
 #include <rqt_multiplot/CurveData.h>
+#include <rqt_multiplot/PlotCursorLabel.h>
 #include <rqt_multiplot/PlotCursorMachine.h>
 
 #include "rqt_multiplot/PlotCursor.h"
@@ -51,6 +56,7 @@ PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
       xUsesTimeScale_(false),
       yUsesTimeScale_(false) {
   setTrackerMode(QwtPicker::AlwaysOn);
+  setTrackerPen(QPen(Qt::black));
   setStateMachine(new PlotCursorMachine());
 
   setRubberBand(QwtPicker::CrossRubberBand);
@@ -156,65 +162,49 @@ bool PlotCursor::yUsesTimeScale() const {
   return yUsesTimeScale_;
 }
 
-QRect PlotCursor::getTextRect(const QPointF& point, const QFont& font) const {
-  QwtText text = trackerTextF(point);
+QString PlotCursor::formatCoordinate(double value, bool isX) const {
+  const int axis = isX ? xAxis() : yAxis();
+  const QwtScaleMap map = plot()->canvasMap(axis);
+  const double span = fabs(map.invTransform(1.0) - map.invTransform(0.0));
+  const double offset = isX ? xOffset_ : yOffset_;
+  const bool timeScale = isX ? xUsesTimeScale_ : yUsesTimeScale_;
+  return AxisTimeFormat::coordinate(value, offset, span, timeScale);
+}
 
-  if (text.isEmpty()) {
-    return QRect();
+QStringList PlotCursor::trackedReadoutLines() const {
+  QStringList lines;
+  for (const auto& tracked : trackedPoints_) {
+    lines.append(trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true),
+                                   formatCoordinate(tracked.position.y(), false)));
+  }
+  return lines;
+}
+
+QRect PlotCursor::trackedReadoutRect(const QFont& font) const {
+  const QStringList lines = trackedReadoutLines();
+  if (lines.isEmpty()) {
+    return {};
   }
 
-  QSizeF textSize = text.textSize(font);
-  QRect textRect(0, 0, qCeil(textSize.width()), qCeil(textSize.height()));
-  QPoint position = transform(point);
-
-  int alignment = Qt::AlignTop | Qt::AlignRight;
-  int margin = 5;
-  int x = position.x();
-  int y = position.y();
-
-  if ((alignment & Qt::AlignLeft) != 0) {
-    x -= textRect.width() + margin;
-  } else if ((alignment & Qt::AlignRight) != 0) {
-    x += margin;
-  }
-
-  if ((alignment & Qt::AlignBottom) != 0) {
-    y += margin;
-  } else if ((alignment & Qt::AlignTop) != 0) {
-    y -= textRect.height() + margin;
-  }
-
-  textRect.moveTopLeft(QPoint(x, y));
-
-#if QWT_VERSION >= 0x060100
-  int left = qMax(textRect.left(), trackerRect(font).left() + margin);
-  int right = qMin(textRect.right(), trackerRect(font).right() - margin);
-  int top = qMax(textRect.top(), trackerRect(font).top() + margin);
-  int bottom = qMin(textRect.bottom(), trackerRect(font).bottom() - margin);
-#else
-  int left = qMax(textRect.left(), pickRect().left() + margin);
-  int right = qMin(textRect.right(), pickRect().right() - margin);
-  int top = qMax(textRect.top(), pickRect().top() + margin);
-  int bottom = qMin(textRect.bottom(), pickRect().bottom() - margin);
-#endif
-
-  textRect.moveBottomRight(QPoint(right, bottom));
-  textRect.moveTopLeft(QPoint(left, top));
-
-  return textRect;
+  constexpr int kPadding = 4;
+  QwtText text(trackedPointLabels(lines));
+  text.setRenderFlags(Qt::AlignLeft | Qt::AlignTop);
+  const QSizeF textSize = text.textSize(font);
+  const QSize size(qCeil(textSize.width()), qCeil(textSize.height()));
+  const QRect canvas(0, 0, plot()->canvas()->width(), plot()->canvas()->height());
+  return trackedPointsReadoutRect(transform(currentPosition_), size, canvas).adjusted(-kPadding, -kPadding, kPadding, kPadding);
 }
 
 QwtText PlotCursor::trackerTextF(const QPointF& point) const {
-  QwtScaleMap xMap = plot()->canvasMap(xAxis());
-  QwtScaleMap yMap = plot()->canvasMap(yAxis());
+  if (trackPoints_ && !trackedPoints_.isEmpty()) {
+    return {};
+  }
 
-  const double xSpan = fabs(xMap.invTransform(1.0) - xMap.invTransform(0.0));
-  const double ySpan = fabs(yMap.invTransform(1.0) - yMap.invTransform(0.0));
-
-  const QString x = AxisTimeFormat::coordinate(point.x(), xOffset_, xSpan, xUsesTimeScale_);
-  const QString y = AxisTimeFormat::coordinate(point.y(), yOffset_, ySpan, yUsesTimeScale_);
-
-  return QwtText(x + ", " + y);
+  QwtText text(trackedPointLabel(QString(), formatCoordinate(point.x(), true), formatCoordinate(point.y(), false)));
+  text.setColor(Qt::black);
+  text.setBackgroundBrush(QColor(255, 255, 255, 230));
+  text.setPaintAttribute(QwtText::PaintBackground, true);
+  return text;
 }
 
 /*****************************************************************************/
@@ -235,6 +225,26 @@ void PlotCursor::drawRubberBand(QPainter* painter) const {
   QwtPlotPicker::drawRubberBand(painter);
 
   drawTrackedPoints(painter);
+}
+
+QRegion PlotCursor::rubberBandMask() const {
+  QRegion mask = QwtPlotPicker::rubberBandMask();
+  if (!trackPoints_) {
+    return mask;
+  }
+
+  for (const auto& tracked : trackedPoints_) {
+    const QPoint point = transform(tracked.position);
+    const int extent = kTrackPointMarkerRadius + 1;
+    mask += QRect(point.x() - extent, point.y() - extent, 2 * extent + 1, 2 * extent + 1);
+  }
+
+  const QRect readout = trackedReadoutRect(plot()->canvas()->font());
+  if (!readout.isEmpty()) {
+    mask += readout;
+  }
+
+  return mask;
 }
 
 void PlotCursor::begin() {
@@ -308,33 +318,33 @@ void PlotCursor::updateTrackedPoints() {
     return;
   }
 
-  QwtScaleMap map = plot()->canvasMap(xAxis());
-  double maxDistance = fabs(map.invTransform(1.0) - map.invTransform(0.0));
+  const QwtScaleMap map = plot()->canvasMap(xAxis());
+  const double maxDistance = trackPointSnapDistance(map.invTransform(1.0) - map.invTransform(0.0), kTrackPointSnapPixels);
 
   for (auto* it : plot()->itemList()) {
     if (it->rtti() == QwtPlotItem::Rtti_PlotCurve) {
       auto* curve = dynamic_cast<QwtPlotCurve*>(it);
       auto* data = dynamic_cast<CurveData*>(curve->data());
 
-      if (data != nullptr) {
+      if ((data != nullptr) && curve->isVisible()) {
         QVector<size_t> indexes = data->getPointsInDistance(currentPosition_.x(), maxDistance);
 
         if (!indexes.isEmpty()) {
           TrackedPoint trackedPoint;
           trackedPoint.color = curve->pen().color();
+          trackedPoint.title = curve->title().text();
 
-          double minDistance = std::numeric_limits<double>::max();
-
-          for (size_t index = 0; index < indexes.count(); ++index) {
-            QPointF point = data->getPoint(indexes[index]);
-            QPointF vector = currentPosition_ - point;
-            double distance = vector.x() * vector.x() + vector.y() * vector.y();
-
-            if (distance < minDistance) {
-              trackedPoint.position = point;
-              minDistance = distance;
+          QPointF nearest;
+          double minDx = std::numeric_limits<double>::infinity();
+          for (int index = 0; index < indexes.count(); ++index) {
+            const QPointF point = data->getPoint(indexes[index]);
+            const double dx = std::fabs(point.x() - currentPosition_.x());
+            if (dx < minDx) {
+              minDx = dx;
+              nearest = point;
             }
           }
+          trackedPoint.position = nearest;
 
           trackedPoints_.append(trackedPoint);
         }
@@ -348,30 +358,35 @@ void PlotCursor::drawTrackedPoints(QPainter* painter) const {
     return;
   }
 
-  for (size_t index = 0; index < trackedPoints_.count(); ++index) {
-    QPointF position = trackedPoints_[index].position;
-    QPoint point = transform(position);
-
-    if (dynamic_cast<QWidget*>(painter->device()) != nullptr) {
-      painter->setPen(trackedPoints_[index].color);
-    }
-
-    painter->fillRect(point.x() - 3, point.y() - 3, 6, 6, painter->pen().color());
-
-    QRect textRect = getTextRect(position, painter->font());
-
-    if (!textRect.isEmpty()) {
-      if (dynamic_cast<QWidget*>(painter->device()) != nullptr) {
-        QwtText label = trackerTextF(position);
-
-        if (!label.isEmpty()) {
-          label.draw(painter, textRect);
-        }
-      } else {
-        painter->fillRect(textRect, painter->pen().color());
-      }
-    }
+  painter->save();
+  painter->setRenderHint(QPainter::Antialiasing, true);
+  painter->setPen(Qt::NoPen);
+  for (const auto& tracked : trackedPoints_) {
+    const QPoint point = transform(tracked.position);
+    painter->setBrush(tracked.color);
+    painter->drawEllipse(point, kTrackPointMarkerRadius, kTrackPointMarkerRadius);
   }
+  painter->restore();
+
+  drawTrackedPointReadout(painter);
+}
+
+void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
+  const QRect background = trackedReadoutRect(painter->font());
+  if (background.isEmpty()) {
+    return;
+  }
+
+  painter->save();
+  painter->fillRect(background, QColor(255, 255, 255, 230));
+  painter->setPen(QColor(0, 0, 0, 180));
+  painter->drawRect(background.adjusted(0, 0, -1, -1));
+
+  QwtText text(trackedPointLabels(trackedReadoutLines()));
+  text.setColor(Qt::black);
+  text.setRenderFlags(Qt::AlignLeft | Qt::AlignTop);
+  text.draw(painter, background.adjusted(4, 4, -4, -4));
+  painter->restore();
 }
 
 /*****************************************************************************/
