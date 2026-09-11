@@ -51,6 +51,8 @@ class CurveAxisConfigWidget : public QWidget {
   bool validateField();
   bool validateScale();
   void updateLabelFromZeroControl();
+  void updateFieldWidgetEnabled();
+  void setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType);
 
  private slots:
   void configTopicChanged(const QString& topic);
@@ -77,6 +79,7 @@ class CurveAxisConfigWidget : public QWidget {
   void widgetFieldCurrentFieldChanged(const QString& field);
 
   void checkBoxFieldReceiptTimeStateChanged(int state);
+  void checkBoxFieldArrayIndexStateChanged(int state);
   void checkBoxLabelFromZeroStateChanged(int state);
 };
 }  // namespace rqt_multiplot

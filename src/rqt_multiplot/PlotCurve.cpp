@@ -39,8 +39,10 @@ PlotCurve::PlotCurve(QObject* parent)
       dataSequencer_(new CurveDataSequencer(this)),
       paused_(true) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
+  qRegisterMetaType<QVector<QPointF>>("QVector<QPointF>");
 
   connect(dataSequencer_, SIGNAL(pointReceived(const QPointF&)), this, SLOT(dataSequencerPointReceived(const QPointF&)));
+  connect(dataSequencer_, SIGNAL(seriesReceived(const QVector<QPointF>&)), this, SLOT(dataSequencerSeriesReceived(const QVector<QPointF>&)));
 
   setData(data_);
 }
@@ -158,8 +160,7 @@ void PlotCurve::run() {
   CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
   CurveAxisConfig* yAxisConfig = config_->getAxisConfig(CurveConfig::Y);
 
-  if (paused_ && (!xAxisConfig->getField().isEmpty() || xAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime) &&
-      (!yAxisConfig->getField().isEmpty() || yAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime)) {
+  if (paused_ && xAxisConfig->hasConfiguredSource() && yAxisConfig->hasConfiguredSource()) {
     dataSequencer_->subscribe();
 
     paused_ = false;
@@ -273,6 +274,22 @@ void PlotCurve::dataSequencerPointReceived(const QPointF& point) {
 
     emit replotRequested();
   }
+}
+
+void PlotCurve::dataSequencerSeriesReceived(const QVector<QPointF>& points) {
+  if (paused_) {
+    return;
+  }
+
+  BoundingRectangle oldBounds = getPreferredScale();
+  data_->replacePoints(points);
+  BoundingRectangle bounds = getPreferredScale();
+
+  if (bounds != oldBounds) {
+    emit preferredScaleChanged(bounds);
+  }
+
+  emit replotRequested();
 }
 
 }  // namespace rqt_multiplot

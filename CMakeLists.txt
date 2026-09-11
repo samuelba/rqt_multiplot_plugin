@@ -301,7 +301,9 @@ install(
   RUNTIME DESTINATION bin
 )
 
-install(PROGRAMS scripts/rqt_multiplot
+install(PROGRAMS
+  scripts/rqt_multiplot
+  scripts/publish_array_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -334,6 +336,8 @@ if(BUILD_TESTING)
     test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
     test/CurveAxisConfigTest.cpp
+    test/CurveDataSequencerTest.cpp
+    test/CurveDataVectorTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp

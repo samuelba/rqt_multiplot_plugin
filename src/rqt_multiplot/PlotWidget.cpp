@@ -447,17 +447,8 @@ void PlotWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles)
     QString xAxisTitle = xAxisConfig->getTopic();
     QString yAxisTitle = yAxisConfig->getTopic();
 
-    if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-      xAxisTitle += "/" + xAxisConfig->getField();
-    } else {
-      xAxisTitle += "/recceipt_time";
-    }
-
-    if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-      yAxisTitle += "/" + yAxisConfig->getField();
-    } else {
-      yAxisTitle += "/recceipt_time";
-    }
+    xAxisTitle += "/" + xAxisConfig->getFieldLabel();
+    yAxisTitle += "/" + yAxisConfig->getFieldLabel();
 
     formattedAxisTitles.append(xAxisTitle);
     formattedAxisTitles.append(yAxisTitle);
@@ -534,12 +525,7 @@ void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
       for (size_t index = 0; index < config_->getNumCurves(); ++index) {
         CurveAxisConfig* curveAxisConfig = config_->getCurveConfig(index)->getAxisConfig(curveAxis);
 
-        QString titlePart = curveAxisConfig->getTopic();
-        if (curveAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-          titlePart += "/" + curveAxisConfig->getField();
-        } else {
-          titlePart += "/receipt_time";
-        }
+        QString titlePart = curveAxisConfig->getTopic() + "/" + curveAxisConfig->getFieldLabel();
 
         if (!titleParts.contains(titlePart)) {
           titleParts.append(titlePart);

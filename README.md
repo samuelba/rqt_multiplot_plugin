@@ -17,6 +17,7 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer
 - **Export** — PNG, SVG, PDF images; TXT or CSV curve data
 - **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`)
+- **Array snapshots** — plot a whole array vs index (or vs another array field); the curve is replaced on each message
 
 Also: run / pause / clear, message receipt time, start time from 0, circular and time-frame buffers, and drag-and-drop of curves between plot legends.
 
@@ -110,8 +111,26 @@ Pick topic, message type, and field for each axis. X and Y can come from differe
 Useful curve options:
 
 - **Message receipt time** — plot against the time the message arrived
+- **Array index** — X (or Y) is `0..n-1` for the other axis’s array
+- **Wildcard field** — `position/*` or `poses/*/position/x` plots every element; the series is replaced on each message
 - **Start time from 0** — shift timestamps so the first sample is zero
 - **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
+
+Array snapshots need the same topic on both axes. A field path with `*` cannot be mixed with receipt time or a single scalar index. Indexed paths such as `position/0` stay ordinary time series.
+
+Live topics for trying this:
+
+```shell
+ros2 run rqt_multiplot publish_array_demo.py
+```
+
+| Topic | Type | Try |
+| --- | --- | --- |
+| `/array_demo/floats` | `std_msgs/Float32MultiArray` | X array index, Y `data/*` |
+| `/array_demo/joints` | `sensor_msgs/JointState` | Y `position/*` (length 4 ↔ 8) |
+| `/array_demo/covariance` | `geometry_msgs/PoseWithCovariance` | Y `covariance/*` |
+| `/array_demo/poses` | `geometry_msgs/PoseArray` | X `poses/*/position/x`, Y `poses/*/position/y` |
+| `/array_demo/scan` | `sensor_msgs/LaserScan` | Y `ranges/*` |
 
 ### Import a bag
 

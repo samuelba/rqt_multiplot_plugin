@@ -94,6 +94,13 @@ void CurveData::appendPoint(double x, double y) {
   appendPoint(QPointF(x, y));
 }
 
+void CurveData::replacePoints(const QVector<QPointF>& points) {
+  clearPoints();
+  for (const auto& point : points) {
+    appendPoint(point);
+  }
+}
+
 void CurveData::writeFormatted(QStringList& formattedX, QStringList& formattedY) const {
   formattedX.clear();
   formattedY.clear();

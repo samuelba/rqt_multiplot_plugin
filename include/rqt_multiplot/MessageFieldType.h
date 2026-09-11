@@ -32,6 +32,8 @@ class MessageFieldType {
   bool isBuiltin() const { return kind == Builtin; }
   bool isMessage() const { return kind == Compound; }
   bool isArray() const { return kind == Array; }
+  bool isNumericArray() const { return isArray() && elementType && elementType->isNumeric; }
+  bool isPlottable() const { return isNumeric || isNumericArray(); }
 };
 
 }  // namespace rqt_multiplot

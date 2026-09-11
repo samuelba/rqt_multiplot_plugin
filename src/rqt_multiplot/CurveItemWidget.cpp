@@ -109,13 +109,7 @@ void CurveItemWidget::configXAxisConfigChanged() {
   CurveAxisConfig* config = config_->getAxisConfig(CurveConfig::X);
 
   QString text = config->getTopic();
-
-  if (config->getFieldType() == CurveAxisConfig::MessageData) {
-    text += "/" + config->getField();
-  } else {
-    text += "/receipt_time";
-  }
-
+  text += "/" + config->getFieldLabel();
   ui_->labelXAxis->setText(text);
 }
 
@@ -123,13 +117,7 @@ void CurveItemWidget::configYAxisConfigChanged() {
   CurveAxisConfig* config = config_->getAxisConfig(CurveConfig::Y);
 
   QString text = config->getTopic();
-
-  if (config->getFieldType() == CurveAxisConfig::MessageData) {
-    text += "/" + config->getField();
-  } else {
-    text += "/receipt_time";
-  }
-
+  text += "/" + config->getFieldLabel();
   ui_->labelYAxis->setText(text);
 }
 

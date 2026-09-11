@@ -46,9 +46,14 @@ class CurveDataSequencer : public QObject {
   void subscribe();
   void unsubscribe();
 
+  static bool hasSnapshotHint(const CurveConfig& config);
+  static bool isSnapshotConfig(const CurveConfig& config);
+  static bool tryBuildSnapshotSeries(const Message& message, const CurveConfig& config, QVector<QPointF>& points);
+
  signals:
   void subscribed();
   void pointReceived(const QPointF& point);
+  void seriesReceived(const QVector<QPointF>& points);
   void unsubscribed();
 
  private:

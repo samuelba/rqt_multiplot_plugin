@@ -22,6 +22,7 @@
 #include <QObject>
 #include <QPair>
 #include <QPointF>
+#include <QVector>
 
 #include <qwt/qwt_plot_curve.h>
 
@@ -77,6 +78,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   void configDataConfigChanged();
 
   void dataSequencerPointReceived(const QPointF& point);
+  void dataSequencerSeriesReceived(const QVector<QPointF>& points);
 };
 }  // namespace rqt_multiplot
 
