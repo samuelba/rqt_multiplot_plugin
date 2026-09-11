@@ -212,6 +212,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotConfigDialog.h
   include/rqt_multiplot/PlotConfigWidget.h
   include/rqt_multiplot/PlotCursor.h
+  include/rqt_multiplot/PlotCursorLabel.h
   include/rqt_multiplot/PlotCursorMachine.h
   include/rqt_multiplot/PlotExport.h
   include/rqt_multiplot/PlotCurve.h
@@ -336,6 +337,7 @@ if(BUILD_TESTING)
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotCursorLabelTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test

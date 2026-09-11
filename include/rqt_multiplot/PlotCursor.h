@@ -20,10 +20,17 @@
 #define RQT_MULTIPLOT_PLOT_CURSOR_H
 
 #include <QColor>
+#include <QFont>
 #include <QPoint>
+#include <QRect>
+#include <QRegion>
+#include <QString>
+#include <QStringList>
 #include <QVector>
 
 #include <qwt/qwt_plot_picker.h>
+
+#include <rqt_multiplot/PlotCursorLabel.h>
 
 class QwtPlotCanvas;
 
@@ -31,6 +38,8 @@ namespace rqt_multiplot {
 class PlotCursor : public QwtPlotPicker {
   Q_OBJECT
  public:
+  static constexpr int kTrackPointSnapPixels = rqt_multiplot::kTrackPointSnapPixels;
+
   explicit PlotCursor(QwtPlotCanvas* canvas);
   ~PlotCursor() override;
 
@@ -53,14 +62,13 @@ class PlotCursor : public QwtPlotPicker {
   void update();
 
   void drawRubberBand(QPainter* painter) const override;
+  QRegion rubberBandMask() const override;
 
  signals:
   void activeChanged(bool active);
   void currentPositionChanged(const QPointF& position);
 
  protected:
-  QRect getTextRect(const QPointF& point, const QFont& font) const;
-
   QwtText trackerTextF(const QPointF& point) const override;
 
   void begin() override;
@@ -73,11 +81,16 @@ class PlotCursor : public QwtPlotPicker {
   void updateTrackedPoints();
 
   void drawTrackedPoints(QPainter* painter) const;
+  void drawTrackedPointReadout(QPainter* painter) const;
+  QString formatCoordinate(double value, bool isX) const;
+  QStringList trackedReadoutLines() const;
+  QRect trackedReadoutRect(const QFont& font) const;
 
  private:
   struct TrackedPoint {
     QPointF position;
     QColor color;
+    QString title;
   };
 
   QPointF currentPosition_;
