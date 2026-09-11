@@ -74,6 +74,7 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonClearClicked();
   void pushButtonImportExportClicked();
   void menuImportBagFileTriggered();
+  void menuImportBagDirectoryTriggered();
   void menuExportImageFileTriggered();
   void menuExportTextFileTriggered();
 

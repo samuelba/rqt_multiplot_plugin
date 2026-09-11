@@ -52,6 +52,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonPause->setEnabled(false);
 
   menuImportExport_->addAction("Import from bag file...", this, SLOT(menuImportBagFileTriggered()));
+  menuImportExport_->addAction("Import from bag directory...", this, SLOT(menuImportBagDirectoryTriggered()));
   menuImportExport_->addSeparator();
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
@@ -261,14 +262,31 @@ void PlotTableConfigWidget::pushButtonImportExportClicked() {
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {
-  QFileDialog dialog(this, "Open Bag", QDir::homePath());
+  QFileDialog dialog(this, "Open Bag File", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+
+  dialog.setAcceptMode(QFileDialog::AcceptOpen);
+  dialog.setFileMode(QFileDialog::ExistingFile);
+
+  if (dialog.exec() == QDialog::Accepted) {
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      plotTable_->loadFromBagFile(files.first());
+    }
+  }
+}
+
+void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
+  QFileDialog dialog(this, "Open Bag Directory", QDir::homePath());
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::Directory);
   dialog.setOption(QFileDialog::ShowDirsOnly);
 
   if (dialog.exec() == QDialog::Accepted) {
-    plotTable_->loadFromBagFile(dialog.selectedFiles().first());
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      plotTable_->loadFromBagFile(files.first());
+    }
   }
 }
 

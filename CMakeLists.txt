@@ -45,6 +45,7 @@ endif()
 
 set(rqt_multiplot_SRCS
   src/rqt_multiplot/AxisTimeFormat.cpp
+  src/rqt_multiplot/BagOpen.cpp
   src/rqt_multiplot/BagQuery.cpp
   src/rqt_multiplot/BagReader.cpp
   src/rqt_multiplot/BitOperations.cpp
@@ -141,6 +142,7 @@ set(rqt_multiplot_SRCS
 
 set(rqt_multiplot_HDRS
   include/rqt_multiplot/AxisTimeFormat.h
+  include/rqt_multiplot/BagOpen.h
   include/rqt_multiplot/BagQuery.h
   include/rqt_multiplot/BagReader.h
   include/rqt_multiplot/BitOperations.h
