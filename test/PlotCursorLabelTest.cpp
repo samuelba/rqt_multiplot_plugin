@@ -26,7 +26,7 @@ TEST(PlotCursorLabel, snapDistanceScalesUnitsPerPixel) {
 TEST(PlotCursorLabel, nearestPointUsesVerticalLineNotEuclidean) {
   const QVector<QPointF> slope{{0.0, 0.0}, {1.0, 10.0}, {2.0, 20.0}};
 
-  EXPECT_EQ(nearestPointByX(slope, 1.0), QPointF(1.0, 10.0));
+  EXPECT_EQ(nearestPointByX(slope, 1.2), QPointF(1.0, 10.0));
 }
 
 TEST(PlotCursorLabel, formatsCoordinatesWithoutTitle) {

@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <cmath>
+#include <limits>
 
 #include <QEvent>
 #include <QMouseEvent>
@@ -333,12 +334,17 @@ void PlotCursor::updateTrackedPoints() {
           trackedPoint.color = curve->pen().color();
           trackedPoint.title = curve->title().text();
 
-          QVector<QPointF> candidates;
-          candidates.reserve(indexes.size());
+          QPointF nearest;
+          double minDx = std::numeric_limits<double>::infinity();
           for (int index = 0; index < indexes.count(); ++index) {
-            candidates.append(data->getPoint(indexes[index]));
+            const QPointF point = data->getPoint(indexes[index]);
+            const double dx = std::fabs(point.x() - currentPosition_.x());
+            if (dx < minDx) {
+              minDx = dx;
+              nearest = point;
+            }
           }
-          trackedPoint.position = nearestPointByX(candidates, currentPosition_.x());
+          trackedPoint.position = nearest;
 
           trackedPoints_.append(trackedPoint);
         }
@@ -366,7 +372,7 @@ void PlotCursor::drawTrackedPoints(QPainter* painter) const {
 }
 
 void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
-  const QRect background = trackedReadoutRect(plot()->canvas()->font());
+  const QRect background = trackedReadoutRect(painter->font());
   if (background.isEmpty()) {
     return;
   }
