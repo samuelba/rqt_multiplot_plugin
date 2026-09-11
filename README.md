@@ -1,122 +1,131 @@
 # Rqt Multiplot Plugin
 
-## Overview
+[![CI](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml?query=branch%3Amain)
 
-**Author(s):** Ralf Kaestner
+rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Qwt](https://qwt.sourceforge.io)).
 
-**Maintainer:** Ralf Kaestner <ralf.kaestner@gmail.com>
+**Author(s):** Ralf Kaestner, Samuel Bachmann
+
+**Maintainer:** Samuel Bachmann
 
 **License:** GNU Lesser General Public License (LGPL)
 
-**Operating system(s):** Debian-based Linux, Mac OS X
+## Features
 
-**Package PPA:** ppa:anybotics/ros
+- **Multiple plots and curves** — rows × columns of plots; each plot can hold many curves
+- **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
+- **Linked plots** — shared scale and cursor; optional point tracking under the pointer
+- **Export** — PNG, SVG, PDF images; TXT or CSV curve data
+- **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`)
 
-## Content
+Also: run / pause / clear, message receipt time, start time from 0, circular and time-frame buffers, and drag-and-drop of curves between plot legends.
 
-This project provides a GUI plugin for visualizing numeric values in multiple 2D plots using the [Qwt](http://qwt.sourceforge.net) plotting backend.
+![Overview](images/overview.png)
 
 ## Installation
-### Dependencies
 
-- [rqt](http://wiki.ros.org/rqt)
+### ROS distribution
 
-    ```shell
-    sudo apt-get install ros-indigo-rqt
-    ```
-
-- [variant_topic_tools](https://github.com/anybotics/variant)
-
-  Consult the [installation instructions](https://github.com/anybotics/variant/blob/master/README.md#installation) provided by this project.
-
-- [qwt](http://qwt.sourceforge.net/)
-
-    ```shell
-    sudo apt-get install libqwt-dev
-    ```
-
-### ROS Distribution
-
-The package is in the ROS (melodic, noetic) distribution.
+**Coming soon.** The package is not on the ROS build farm yet. After release:
 
 ```shell
 sudo apt-get update
-sudo apt-get install ros-melodic-rqt-multiplot
-sudo apt-get install ros-noetic-rqt-multiplot
-
+sudo apt-get install ros-jazzy-rqt-multiplot
+sudo apt-get install ros-kilted-rqt-multiplot
 ```
 
-### Building from Source
+### Building from source
 
-Create a symlink in your catkin source folder, e.g.:
-
-```shell
-ln -s ~/git/rqt_multiplot_plugin ~/catkin_ws/src
-cd ~/catkin_ws
-catkin build rqt_multiplot
-```
-
-### Debian Package
+Tested on ROS 2 Jazzy and Kilted. Put this repository in a colcon workspace `src` folder (clone or symlink), then:
 
 ```shell
-sudo add-apt-repository ppa:anybotics/ros
-sudo apt-get update
-sudo apt-get install ros-indigo-rqt-multiplot
+cd ~/colcon_ws
+rosdep install --from-paths src --ignore-src -y
+colcon build --packages-select rqt_multiplot
+source install/setup.bash
 ```
 
 ## Usage
 
-To launch the standalone rqt plugin, run
+Standalone plugin:
 
 ```shell
-rosrun rqt_multiplot rqt_multiplot
+ros2 run rqt_multiplot rqt_multiplot
 ```
 
-To launch the rqt GUI without a perspective, run
+Or start rqt and load **Plugins → Visualization → Multiplot**:
 
 ```shell
 rqt --force-discover
 ```
 
-This will discover all plugins, which can then be loaded manually.
-
-To delete the default configuration files (in case of problems):
+If the plugin list or layout is broken:
 
 ```shell
 rqt --clear-config
 ```
 
-### Import ROS Bag
+Load a configuration, a bag, and start plotting:
 
-To plot an imported ROS bag, the desired curves have to be configured before
-importing the bag.
+```shell
+ros2 run rqt_multiplot rqt_multiplot -- \
+  --multiplot-config file:///path/to/layout.xml \
+  --multiplot-bag /path/to/bag \
+  --multiplot-run-all
+```
 
-### Example Views
+| Option | Meaning |
+| --- | --- |
+| `--multiplot-config` / `-c` | XML layout URL |
+| `--multiplot-bag` / `-b` | rosbag2 file or directory |
+| `--multiplot-run-all` / `-r` | Start all plots immediately |
 
-![enter image description here](https://lh3.googleusercontent.com/-EF4aCvEV3ZU/V0Vku40VueI/AAAAAAAAajg/rdRvc-YWkPw50gPOGbGrtMtzMjgmBANfACLcB/s700/multiplot_1_legend.png "Overview")
+### Plot interaction
 
-#### Configure Plot
+| Input | Action |
+| --- | --- |
+| Left drag | Pan |
+| Ctrl + left drag | Draw a rectangle to zoom |
+| Mouse wheel | Zoom in / out |
+| Right click | Reset zoom |
+| Hover (Track enabled) | Crosshair; snap to nearest curve points |
+| Drag a legend item onto another plot | Copy that curve |
 
-![enter image description here](https://lh3.googleusercontent.com/-E14yRrgKars/V0VlFJdDX5I/AAAAAAAAajo/2Nfo_ovj5dABrF7OQPExlMJY1gMAKK43QCLcB/s700/multiplot_configure_plot.png "Configure plot")
+Use the plot toolbar to run, pause, clear, configure, export, or maximize one plot.
 
-#### Edit Curve
+**Link Scale** keeps axis ranges in sync across the grid. **Link Cursor** moves the crosshair on every plot. **Track Points** labels the nearest samples.
 
-![enter image description here](https://lh3.googleusercontent.com/-Ei_j84gwJ7U/V0VlWrjUumI/AAAAAAAAaj0/dEB0dkE2YJ8rCWpmql6ZW4f6iMlJgxv8ACLcB/s700/multiplot_edit_curve.png "Edit curve")
+### Configure a plot
 
-## Bugs & Feature Requests
+Open the gear on a plot. Add curves, set axis titles, legend, and plot rate.
 
-Please report bugs and feature requests on the [Issue Tracker](https://github.com/anybotics/rqt_multiplot_plugin).
+![Configure plot](images/configure_plot.png)
 
-## Build Status
+### Edit a curve
 
-### Devel Job Status
+Pick topic, message type, and field for each axis. X and Y can come from different topics.
 
-| | Melodic  | Noetic |
-| --- | --- | --- |
-| rqt_multiplot_plugin | [![Build Status](http://build.ros.org/buildStatus/icon?job=Mdev__rqt_multiplot_plugin__ubuntu_bionic_amd64)](http://build.ros.org/job/Mdev__rqt_multiplot_plugin__ubuntu_bionic_amd64/) | [![Build Status](http://build.ros.org/buildStatus/icon?job=Ndev__rqt_multiplot_plugin__ubuntu_focal_amd64)](http://build.ros.org/job/Ndev__rqt_multiplot_plugin__ubuntu_focal_amd64/) |
+![Edit curve](images/configure_curve.png)
 
-### Release Job Status
+Useful curve options:
 
-| | Melodic | Noetic |
-| --- | --- | --- |
-| rqt_multiplot | [![Build Status](http://build.ros.org/buildStatus/icon?job=Mbin_uB64__rqt_multiplot__ubuntu_bionic_amd64__binary)](http://build.ros.org/job/Mbin_uB64__rqt_multiplot__ubuntu_bionic_amd64__binary/) | [![Build Status](http://build.ros.org/buildStatus/icon?job=Nbin_uF64__rqt_multiplot__ubuntu_focal_amd64__binary)](http://build.ros.org/job/Nbin_uF64__rqt_multiplot__ubuntu_focal_amd64__binary/) |
+- **Message receipt time** — plot against the time the message arrived
+- **Start time from 0** — shift timestamps so the first sample is zero
+- **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
+
+### Import a bag
+
+Configure the curves first (topics and fields must match the bag). Then **Import from bag file…** or **Import from bag directory…**.
+
+Supported storage: `.mcap`, `.db3`, and a rosbag2 directory.
+
+### Export
+
+From the plot table or a single plot:
+
+- Image: PNG, SVG, PDF
+- Data: TXT (comment header) or CSV
+
+## Bugs and feature requests
+
+Use the [issue tracker](https://github.com/samuelba/rqt_multiplot_plugin/issues).
