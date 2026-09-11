@@ -22,6 +22,7 @@
 #include <QIcon>
 #include <QList>
 #include <QMenu>
+#include <QPainter>
 #include <QRect>
 #include <QRectF>
 #include <QStringList>
@@ -78,6 +79,7 @@ class PlotWidget : public QWidget {
   void requestReplot();
   void forceReplot();
 
+  void renderToPainter(QPainter& painter, const QRectF& bounds = QRectF());
   void renderToPixmap(QPixmap& pixmap, const QRectF& bounds = QRectF());
   void writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles);
   void writeFormattedCurveData(QList<QStringList>& formattedData);

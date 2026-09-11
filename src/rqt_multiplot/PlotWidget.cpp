@@ -33,6 +33,7 @@
 #include <qwt/qwt_scale_widget.h>
 
 #include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/PlotExport.h>
 
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
@@ -393,11 +394,11 @@ void PlotWidget::forceReplot() {
   replot_ = false;
 }
 
-void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
+void PlotWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   QRectF plotBounds = bounds;
 
-  if (plotBounds.isEmpty()) {
-    plotBounds = QRectF(0, 0, pixmap.width(), pixmap.height());
+  if (plotBounds.isEmpty() && (painter.device() != nullptr)) {
+    plotBounds = QRectF(0, 0, painter.device()->width(), painter.device()->height());
   }
 
   QwtPlotRenderer renderer;
@@ -405,7 +406,6 @@ void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
   renderer.setDiscardFlag(QwtPlotRenderer::DiscardBackground, true);
   renderer.setDiscardFlag(QwtPlotRenderer::DiscardCanvasBackground, true);
 
-  QPainter painter(&pixmap);
   size_t textHeight = 0;
 
   if (config_ != nullptr) {
@@ -417,6 +417,11 @@ void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
 
   renderer.render(ui_->plot, &painter,
                   QRectF(plotBounds.x(), plotBounds.y() + textHeight + 10, plotBounds.width(), plotBounds.height() - textHeight - 10));
+}
+
+void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
+  QPainter painter(&pixmap);
+  renderToPainter(painter, bounds.isEmpty() ? QRectF(0, 0, pixmap.width(), pixmap.height()) : bounds);
 }
 
 void PlotWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
@@ -461,12 +466,7 @@ void PlotWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles)
 }
 
 void PlotWidget::saveToImageFile(const QString& fileName) {
-  QPixmap pixmap(1280, 1024);
-
-  pixmap.fill(Qt::transparent);
-  renderToPixmap(pixmap);
-
-  pixmap.save(fileName, "PNG");
+  renderExportImage(fileName, [this](QPainter& painter, const QRectF& bounds) { renderToPainter(painter, bounds); });
 }
 
 void PlotWidget::saveToTextFile(const QString& fileName) {
@@ -480,31 +480,7 @@ void PlotWidget::saveToTextFile(const QString& fileName) {
     writeFormattedCurveData(formattedData);
 
     QTextStream stream(&file);
-
-    stream << "# " << formattedAxisTitles.join(", ") << "\n";
-
-    size_t row = 0;
-
-    while (true) {
-      QStringList dataLineParts;
-      bool finished = true;
-
-      for (size_t column = 0; column < formattedData.count(); ++column) {
-        if (row < formattedData[column].count()) {
-          dataLineParts.append(formattedData[column][row]);
-          finished &= false;
-        } else {
-          dataLineParts.append(QString());
-        }
-      }
-
-      if (!finished) {
-        stream << dataLineParts.join(", ") << "\n";
-        row++;
-      } else {
-        break;
-      }
-    }
+    writeCurveTable(stream, formattedAxisTitles, formattedData, headerStyleFromPath(fileName));
   }
 }
 
@@ -843,26 +819,33 @@ void PlotWidget::pushButtonStateClicked() {
 }
 
 void PlotWidget::menuExportImageFileTriggered() {
-  QFileDialog dialog(this, "Save Image File", QDir::homePath(), "Portable Network Graphics (*.png)");
+  QFileDialog dialog(this, "Save Image File", QDir::homePath(),
+                     "Portable Network Graphics (*.png);;Scalable Vector Graphics (*.svg);;Portable Document Format (*.pdf)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
   dialog.selectFile("rqt_multiplot.png");
 
   if (dialog.exec() == QDialog::Accepted) {
-    saveToImageFile(dialog.selectedFiles().first());
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      saveToImageFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+    }
   }
 }
 
 void PlotWidget::menuExportTextFileTriggered() {
-  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt)");
+  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt);;CSV (*.csv)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
   dialog.selectFile("rqt_multiplot.txt");
 
   if (dialog.exec() == QDialog::Accepted) {
-    saveToTextFile(dialog.selectedFiles().first());
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      saveToTextFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+    }
   }
 }
 
