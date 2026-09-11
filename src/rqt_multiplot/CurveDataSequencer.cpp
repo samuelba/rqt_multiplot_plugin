@@ -165,22 +165,22 @@ void CurveDataSequencer::processMessage(const Message& message) {
   }
 
   if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    const auto* field = getMember(*message.getCompound(), xAxisConfig->getField().toStdString());
-    if (field == nullptr || !isNumericMessageType(*field)) {
+    double x = 0.0;
+    if (!tryGetNumericValue(*message.getCompound(), xAxisConfig->getField().toStdString(), x)) {
       return;
     }
-    point.setX(getNumericValue(*field));
+    point.setX(x);
   } else {
     point.setX(message.getReceiptTime().seconds());
   }
 
   if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    const auto* field = getMember(*message.getCompound(), yAxisConfig->getField().toStdString());
-    if (field == nullptr || !isNumericMessageType(*field)) {
+    double y = 0.0;
+    if (!tryGetNumericValue(*message.getCompound(), yAxisConfig->getField().toStdString(), y)) {
       qWarning() << "No such member" << yAxisConfig->getField();
       return;
     }
-    point.setY(getNumericValue(*field));
+    point.setY(y);
   } else {
     point.setY(message.getReceiptTime().seconds());
   }
@@ -227,11 +227,11 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
     }
 
     if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
-      const auto* field = getMember(*message.getCompound(), axisConfig->getField().toStdString());
-      if (field == nullptr || !isNumericMessageType(*field)) {
+      double axisValue = 0.0;
+      if (!tryGetNumericValue(*message.getCompound(), axisConfig->getField().toStdString(), axisValue)) {
         return;
       }
-      timeValue.value_ = getNumericValue(*field);
+      timeValue.value_ = axisValue;
     } else {
       timeValue.value_ = message.getReceiptTime().seconds();
     }

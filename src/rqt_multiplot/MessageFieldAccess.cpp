@@ -5,8 +5,10 @@
 
 #include "rqt_multiplot/MessageFieldAccess.h"
 
+#include <cstdint>
 #include <sstream>
 #include <stdexcept>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -126,6 +128,83 @@ const ros_babel_fish::CompoundMessage* compoundArrayAt(const ros_babel_fish::Mes
   return nullptr;
 }
 
+template <typename T>
+bool primitiveArrayValueAt(const ros_babel_fish::ArrayMessageBase& array, size_t index, double& value) {
+  if constexpr (!std::is_arithmetic_v<T>) {
+    return false;
+  } else {
+    try {
+      if (array.isFixedSize()) {
+        const auto& typed = array.as<ros_babel_fish::FixedLengthArrayMessage<T>>();
+        if (index >= typed.size()) {
+          return false;
+        }
+        value = static_cast<double>(typed[index]);
+        return true;
+      }
+      if (array.isBounded()) {
+        const auto& typed = array.as<ros_babel_fish::BoundedArrayMessage<T>>();
+        if (index >= typed.size()) {
+          return false;
+        }
+        value = static_cast<double>(typed[index]);
+        return true;
+      }
+      const auto& typed = array.as<ros_babel_fish::ArrayMessage<T>>();
+      if (index >= typed.size()) {
+        return false;
+      }
+      value = static_cast<double>(typed[index]);
+      return true;
+    } catch (const ros_babel_fish::BabelFishException&) {
+      return false;
+    } catch (const std::out_of_range&) {
+      return false;
+    }
+  }
+}
+
+bool tryPrimitiveArrayValue(const ros_babel_fish::Message& message, size_t index, double& value) {
+  if (message.type() != ros_babel_fish::MessageTypes::Array) {
+    return false;
+  }
+
+  const auto& array = message.as<ros_babel_fish::ArrayMessageBase>();
+  using Type = ros_babel_fish::MessageTypes::MessageType;
+  switch (array.elementType()) {
+    case Type::Float:
+      return primitiveArrayValueAt<float>(array, index, value);
+    case Type::Double:
+      return primitiveArrayValueAt<double>(array, index, value);
+    case Type::LongDouble:
+      return primitiveArrayValueAt<long double>(array, index, value);
+    case Type::Char:
+      return primitiveArrayValueAt<unsigned char>(array, index, value);
+    case Type::Bool:
+      return primitiveArrayValueAt<bool>(array, index, value);
+    case Type::Octet:
+      return primitiveArrayValueAt<unsigned char>(array, index, value);
+    case Type::UInt8:
+      return primitiveArrayValueAt<uint8_t>(array, index, value);
+    case Type::Int8:
+      return primitiveArrayValueAt<int8_t>(array, index, value);
+    case Type::UInt16:
+      return primitiveArrayValueAt<uint16_t>(array, index, value);
+    case Type::Int16:
+      return primitiveArrayValueAt<int16_t>(array, index, value);
+    case Type::UInt32:
+      return primitiveArrayValueAt<uint32_t>(array, index, value);
+    case Type::Int32:
+      return primitiveArrayValueAt<int32_t>(array, index, value);
+    case Type::UInt64:
+      return primitiveArrayValueAt<uint64_t>(array, index, value);
+    case Type::Int64:
+      return primitiveArrayValueAt<int64_t>(array, index, value);
+    default:
+      return false;
+  }
+}
+
 ros_babel_fish::MessageMemberIntrospection compoundArrayElementIntrospection(const ros_babel_fish::Message& message) {
   try {
     return message.as<ros_babel_fish::CompoundArrayMessage>().elementIntrospection();
@@ -218,6 +297,51 @@ double getNumericValue(const ros_babel_fish::Message& message) {
     return message.value<bool>() ? 1.0 : 0.0;
   }
   return message.value<double>();
+}
+
+bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::string& path, double& value) {
+  const ros_babel_fish::Message* current = &message;
+  const auto parts = splitPath(path);
+
+  for (size_t i = 0; i < parts.size(); ++i) {
+    const auto& part = parts[i];
+    const bool isLast = (i + 1 == parts.size());
+
+    if (current->type() == ros_babel_fish::MessageTypes::Compound) {
+      const auto& compound = current->as<ros_babel_fish::CompoundMessage>();
+      if (!compound.containsKey(part)) {
+        return false;
+      }
+      current = &compound[part];
+      continue;
+    }
+
+    if (current->type() == ros_babel_fish::MessageTypes::Array) {
+      size_t index = 0;
+      try {
+        index = static_cast<size_t>(std::stoul(part));
+      } catch (const std::exception&) {
+        return false;
+      }
+
+      const auto* element = compoundArrayAt(*current, index);
+      if (element != nullptr) {
+        current = element;
+        continue;
+      }
+
+      return isLast && tryPrimitiveArrayValue(*current, index, value);
+    }
+
+    return false;
+  }
+
+  if (!isNumericMessageType(*current)) {
+    return false;
+  }
+
+  value = getNumericValue(*current);
+  return true;
 }
 
 rclcpp::Time getStamp(const ros_babel_fish::Message& message) {

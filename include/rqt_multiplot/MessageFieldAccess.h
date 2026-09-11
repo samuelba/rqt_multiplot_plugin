@@ -24,6 +24,7 @@ ros_babel_fish::Message* getMember(ros_babel_fish::Message& message, const std::
 
 bool isNumericMessageType(const ros_babel_fish::Message& message);
 double getNumericValue(const ros_babel_fish::Message& message);
+bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::string& path, double& value);
 rclcpp::Time getStamp(const ros_babel_fish::Message& message);
 bool hasHeader(const ros_babel_fish::Message& message);
 
