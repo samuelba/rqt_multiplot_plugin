@@ -35,6 +35,8 @@
 #include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/CurveData.h>
+#include <rqt_multiplot/OffsetScaleDraw.h>
+#include <rqt_multiplot/OffsetScaleEngine.h>
 #include <rqt_multiplot/PlotConfigDialog.h>
 #include <rqt_multiplot/PlotConfigWidget.h>
 #include <rqt_multiplot/PlotCursor.h>
@@ -69,7 +71,11 @@ PlotWidget::PlotWidget(QWidget* parent)
       paused_(true),
       rescale_(false),
       replot_(false),
-      state_(Normal) {
+      state_(Normal),
+      xOriginSet_(false),
+      yOriginSet_(false),
+      xOrigin_(0.0),
+      yOrigin_(0.0) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);
@@ -101,6 +107,11 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->plot->axisScaleDraw(QwtPlot::xTop)->enableComponent(QwtAbstractScaleDraw::Labels, false);
   ui_->plot->axisScaleDraw(QwtPlot::yRight)->enableComponent(QwtAbstractScaleDraw::Labels, false);
+
+  ui_->plot->setAxisScaleDraw(QwtPlot::xBottom, new OffsetScaleDraw());
+  ui_->plot->setAxisScaleDraw(QwtPlot::yLeft, new OffsetScaleDraw());
+  ui_->plot->setAxisScaleEngine(QwtPlot::xBottom, new OffsetScaleEngine());
+  ui_->plot->setAxisScaleEngine(QwtPlot::yLeft, new OffsetScaleEngine());
 
   ui_->horizontalSpacerRight->changeSize(ui_->plot->axisWidget(QwtPlot::yRight)->width() - 5, 20);
 
@@ -171,6 +182,11 @@ void PlotWidget::setConfig(PlotConfig* config) {
       configCurvesCleared();
     }
 
+    xOriginSet_ = false;
+    yOriginSet_ = false;
+    xOrigin_ = 0.0;
+    yOrigin_ = 0.0;
+
     config_ = config;
 
     if (config != nullptr) {
@@ -193,6 +209,8 @@ void PlotWidget::setConfig(PlotConfig* config) {
       for (size_t index = 0; index < config->getNumCurves(); ++index) {
         configCurveAdded(index);
       }
+    } else {
+      updateAxisTimeLabels();
     }
   }
 }
@@ -323,6 +341,7 @@ void PlotWidget::clear() {
     curves_[index]->clear();
   }
 
+  resetAxisOrigins();
   forceReplot();
 
   emit cleared();
@@ -535,6 +554,123 @@ void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
   }
 }
 
+bool PlotWidget::axisLabelsFromZero(CurveConfig::Axis axis) const {
+  if (config_ == nullptr) {
+    return false;
+  }
+
+  for (size_t index = 0; index < config_->getNumCurves(); ++index) {
+    if (config_->getCurveConfig(index)->getAxisConfig(axis)->isLabelFromZero()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool PlotWidget::axisUsesTimeFormat(CurveConfig::Axis axis) const {
+  if (config_ == nullptr) {
+    return false;
+  }
+
+  for (size_t index = 0; index < config_->getNumCurves(); ++index) {
+    if (config_->getCurveConfig(index)->getAxisConfig(axis)->usesTimeScale()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void PlotWidget::seedAxisOrigin(CurveConfig::Axis axis) {
+  for (auto* curve : curves_) {
+    CurveConfig* curveConfig = curve->getConfig();
+    if ((curveConfig == nullptr) || !curveConfig->getAxisConfig(axis)->isLabelFromZero()) {
+      continue;
+    }
+    CurveData* data = curve->getData();
+    if ((data != nullptr) && !data->isEmpty()) {
+      bindAxisOrigin(axis, data->getValue(0, axis));
+      return;
+    }
+  }
+}
+
+void PlotWidget::resetAxisOrigins() {
+  xOriginSet_ = false;
+  yOriginSet_ = false;
+  xOrigin_ = 0.0;
+  yOrigin_ = 0.0;
+  updateAxisTimeLabels();
+}
+
+void PlotWidget::updateAxisTimeLabels() {
+  if (!axisLabelsFromZero(CurveConfig::X)) {
+    xOriginSet_ = false;
+    xOrigin_ = 0.0;
+  } else if (!xOriginSet_) {
+    seedAxisOrigin(CurveConfig::X);
+  }
+  if (!axisLabelsFromZero(CurveConfig::Y)) {
+    yOriginSet_ = false;
+    yOrigin_ = 0.0;
+  } else if (!yOriginSet_) {
+    seedAxisOrigin(CurveConfig::Y);
+  }
+
+  applyAxisTimeOffsets();
+}
+
+void PlotWidget::applyAxisTimeOffsets() {
+  const double xOffset = (axisLabelsFromZero(CurveConfig::X) && xOriginSet_) ? xOrigin_ : 0.0;
+  const double yOffset = (axisLabelsFromZero(CurveConfig::Y) && yOriginSet_) ? yOrigin_ : 0.0;
+  const bool xTimeScale = axisUsesTimeFormat(CurveConfig::X);
+  const bool yTimeScale = axisUsesTimeFormat(CurveConfig::Y);
+
+  if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::xBottom))) {
+    draw->setUseTimeScale(xTimeScale);
+    draw->setOffset(xOffset);
+  }
+  if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::xBottom))) {
+    engine->setOffset(xOffset);
+  }
+  if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::yLeft))) {
+    draw->setUseTimeScale(yTimeScale);
+    draw->setOffset(yOffset);
+  }
+  if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::yLeft))) {
+    engine->setOffset(yOffset);
+  }
+  if (cursor_ != nullptr) {
+    cursor_->setXUsesTimeScale(xTimeScale);
+    cursor_->setYUsesTimeScale(yTimeScale);
+    cursor_->setXOffset(xOffset);
+    cursor_->setYOffset(yOffset);
+  }
+
+  if (currentBounds_.isValid()) {
+    ui_->plot->setAxisScale(QwtPlot::xBottom, currentBounds_.getMinimum().x(), currentBounds_.getMaximum().x());
+    ui_->plot->setAxisScale(QwtPlot::yLeft, currentBounds_.getMinimum().y(), currentBounds_.getMaximum().y());
+  }
+  requestReplot();
+}
+
+void PlotWidget::bindAxisOrigin(CurveConfig::Axis axis, double value) {
+  if (!axisLabelsFromZero(axis)) {
+    return;
+  }
+
+  bool& originSet = (axis == CurveConfig::X) ? xOriginSet_ : yOriginSet_;
+  double& origin = (axis == CurveConfig::X) ? xOrigin_ : yOrigin_;
+  if (originSet) {
+    return;
+  }
+
+  originSet = true;
+  origin = value;
+  applyAxisTimeOffsets();
+}
+
 /*****************************************************************************/
 /* Slots                                                                     */
 /*****************************************************************************/
@@ -562,6 +698,7 @@ void PlotWidget::configCurveAdded(size_t index) {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -575,6 +712,7 @@ void PlotWidget::configCurveRemoved(size_t index) {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -590,6 +728,7 @@ void PlotWidget::configCurvesCleared() {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -597,6 +736,7 @@ void PlotWidget::configCurvesCleared() {
 void PlotWidget::configCurveConfigChanged(size_t /*index*/) {
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 }
 
 void PlotWidget::configXAxisConfigChanged() {

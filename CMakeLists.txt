@@ -44,6 +44,7 @@ if(NOT QWT_INCLUDE_DIRS OR NOT QWT_LIBRARIES)
 endif()
 
 set(rqt_multiplot_SRCS
+  src/rqt_multiplot/AxisTimeFormat.cpp
   src/rqt_multiplot/BagQuery.cpp
   src/rqt_multiplot/BagReader.cpp
   src/rqt_multiplot/BitOperations.cpp
@@ -94,6 +95,8 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/MessageTopicRegistry.cpp
   src/rqt_multiplot/MessageTypeComboBox.cpp
   src/rqt_multiplot/MessageTypeRegistry.cpp
+  src/rqt_multiplot/OffsetScaleDraw.cpp
+  src/rqt_multiplot/OffsetScaleEngine.cpp
   src/rqt_multiplot/MultiplotConfig.cpp
   src/rqt_multiplot/MultiplotConfigWidget.cpp
   src/rqt_multiplot/MultiplotPlugin.cpp
@@ -138,6 +141,7 @@ set(rqt_multiplot_SRCS
 )
 
 set(rqt_multiplot_HDRS
+  include/rqt_multiplot/AxisTimeFormat.h
   include/rqt_multiplot/BagQuery.h
   include/rqt_multiplot/BagReader.h
   include/rqt_multiplot/BitOperations.h
@@ -187,6 +191,8 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/MessageTopicRegistry.h
   include/rqt_multiplot/MessageTypeComboBox.h
   include/rqt_multiplot/MessageTypeRegistry.h
+  include/rqt_multiplot/OffsetScaleDraw.h
+  include/rqt_multiplot/OffsetScaleEngine.h
   include/rqt_multiplot/MultiplotConfig.h
   include/rqt_multiplot/MultiplotConfigWidget.h
   include/rqt_multiplot/MultiplotPlugin.h
@@ -319,14 +325,18 @@ if(BUILD_TESTING)
   find_package(std_msgs REQUIRED)
 
   ament_add_gtest(test_${PROJECT_NAME}
-    test/MessageFieldAccessTest.cpp
+    test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
+    test/CurveAxisConfigTest.cpp
+    test/MessageFieldAccessTest.cpp
+    test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
   if(TARGET test_${PROJECT_NAME})
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
+      Qt5::Core
       ${geometry_msgs_TARGETS}
       ${std_msgs_TARGETS}
       rosbag2_cpp::rosbag2_cpp

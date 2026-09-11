@@ -391,6 +391,7 @@ MessageFieldType fieldTypeFromMessage(const ros_babel_fish::Message& message) {
     fieldType.kind = MessageFieldType::Compound;
     fieldType.identifier = QString::fromStdString(compound.name());
     fieldType.isNumeric = compound.isTime() || compound.isDuration();
+    fieldType.isTime = compound.isTime();
     for (const auto& key : compound.keys()) {
       fieldType.members.append(qMakePair(QString::fromStdString(key), fieldTypeFromMessage(compound[key])));
     }
@@ -426,6 +427,7 @@ MessageFieldType fieldTypeFromMessage(const ros_babel_fish::Message& message) {
   if (message.isTime() || message.isDuration()) {
     fieldType.isNumeric = true;
   }
+  fieldType.isTime = message.isTime();
   return fieldType;
 }
 

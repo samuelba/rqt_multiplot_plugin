@@ -63,6 +63,22 @@ TEST(MessageFieldAccess, readsHeaderStamp) {
   EXPECT_DOUBLE_EQ(stamp.seconds(), 12.5);
 }
 
+TEST(MessageFieldAccess, marksHeaderStampAsTime) {
+  auto prototype = createMessagePrototype("std_msgs/msg/Header");
+  ASSERT_NE(prototype, nullptr);
+
+  const auto fieldType = fieldTypeFromMessage(*prototype);
+  bool foundStamp = false;
+  for (const auto& member : fieldType.members) {
+    if (member.first == "stamp") {
+      foundStamp = true;
+      EXPECT_TRUE(member.second.isTime);
+      EXPECT_TRUE(member.second.isNumeric);
+    }
+  }
+  EXPECT_TRUE(foundStamp);
+}
+
 TEST(MessageFieldAccess, buildsFieldTypeTree) {
   auto prototype = createMessagePrototype("geometry_msgs/msg/Twist");
   ASSERT_NE(prototype, nullptr);
