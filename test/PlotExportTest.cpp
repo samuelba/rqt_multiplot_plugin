@@ -75,4 +75,9 @@ TEST(PlotExport, appendsMissingSuffix) {
   EXPECT_EQ(ensureFileSuffix("rqt_multiplot.png", "png"), QString("rqt_multiplot.png"));
 }
 
+TEST(PlotExport, replacesMismatchedSuffixWithSelectedFilter) {
+  EXPECT_EQ(ensureFileSuffix("rqt_multiplot.png", "svg"), QString("rqt_multiplot.svg"));
+  EXPECT_EQ(ensureFileSuffix("/tmp/out.txt", "csv"), QString("/tmp/out.csv"));
+}
+
 }  // namespace

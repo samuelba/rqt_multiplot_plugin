@@ -114,12 +114,22 @@ QString suffixFromNameFilter(const QString& nameFilter) {
 }
 
 QString ensureFileSuffix(const QString& fileName, const QString& suffix) {
-  if (suffix.isEmpty() || !fileSuffix(fileName).isEmpty()) {
+  if (suffix.isEmpty()) {
     return fileName;
   }
 
-  const QString normalized = suffix.startsWith('.') ? suffix.mid(1) : suffix;
-  return fileName + "." + normalized;
+  const QString normalized = (suffix.startsWith('.') ? suffix.mid(1) : suffix).toLower();
+  const QString current = fileSuffix(fileName);
+  if (current == normalized) {
+    return fileName;
+  }
+
+  const QFileInfo info(fileName);
+  const QString base = current.isEmpty() ? info.fileName() : info.completeBaseName();
+  if (info.path() == QLatin1String(".")) {
+    return base + "." + normalized;
+  }
+  return info.path() + "/" + base + "." + normalized;
 }
 
 bool renderExportImage(const QString& fileName, const std::function<void(QPainter&, const QRectF&)>& render) {
