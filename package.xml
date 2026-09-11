@@ -6,8 +6,7 @@
   <description>rqt_multiplot provides a GUI plugin for visualizing numeric values in multiple 2D plots using the Qwt plotting backend.</description>
   <author email="ralf.kaestner@gmail.com">Ralf Kaestner</author>
   <maintainer email="sbachmann@anybotics.com">Samuel Bachmann</maintainer>
-  <maintainer email="pleemann@anybotics.com">Philipp Leemann</maintainer>
-  <license>GNU Lesser General Public License (LGPL)</license>
+  <license>GNU Lesser General Public License v3.0 (LGPL-3.0)</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
