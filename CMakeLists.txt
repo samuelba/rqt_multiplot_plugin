@@ -319,6 +319,7 @@ if(BUILD_TESTING)
   ament_add_gtest(test_${PROJECT_NAME}
     test/MessageFieldAccessTest.cpp
     test/BagReaderTest.cpp
+    test/PlotConfigTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
   if(TARGET test_${PROJECT_NAME})
