@@ -20,7 +20,9 @@
 #include <QDebug>
 #include <QMutexLocker>
 
+#include <rcl/time.h>
 #include <rclcpp/serialized_message.hpp>
+#include <rclcpp/time.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
 
@@ -139,7 +141,7 @@ void BagReader::Impl::run() {
           const auto typeIt = topicTypes.find(QString::fromStdString(bagMessage->topic_name));
           if (typeIt != topicTypes.end()) {
             it.value()->callback(QString::fromStdString(bagMessage->topic_name), typeIt.value(), serialized,
-                                 rclcpp::Time(bagMessage->recv_timestamp));
+                                 rclcpp::Time(bagMessage->recv_timestamp, RCL_ROS_TIME));
           }
         }
       }

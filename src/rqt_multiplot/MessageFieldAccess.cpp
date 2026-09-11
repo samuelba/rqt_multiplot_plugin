@@ -228,17 +228,27 @@ std::string normalizeTypeName(const std::string& typeName) {
     return typeName;
   }
 
-  const auto first = typeName.find('/');
+  std::string normalized = typeName;
+  const auto lastSlash = normalized.rfind('/');
+  const auto lastDot = normalized.rfind('.');
+  if (lastDot != std::string::npos && (lastSlash == std::string::npos || lastDot > lastSlash)) {
+    const auto extension = normalized.substr(lastDot);
+    if (extension == ".msg" || extension == ".idl" || extension == ".srv" || extension == ".action") {
+      normalized.erase(lastDot);
+    }
+  }
+
+  const auto first = normalized.find('/');
   if (first == std::string::npos) {
-    return typeName;
+    return normalized;
   }
 
-  const auto second = typeName.find('/', first + 1);
+  const auto second = normalized.find('/', first + 1);
   if (second != std::string::npos) {
-    return typeName;
+    return normalized;
   }
 
-  return typeName.substr(0, first) + "/msg/" + typeName.substr(first + 1);
+  return normalized.substr(0, first) + "/msg/" + normalized.substr(first + 1);
 }
 
 const ros_babel_fish::Message* getMember(const ros_babel_fish::Message& message, const std::string& path) {

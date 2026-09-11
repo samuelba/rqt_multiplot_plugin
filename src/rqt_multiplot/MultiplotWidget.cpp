@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/PlotTableWidget.h>
 
 #include <ui_MultiplotWidget.h>
 
@@ -111,7 +112,7 @@ void MultiplotWidget::loadConfig(const QString& url) {
 }
 
 void MultiplotWidget::readBag(const QString& url) {
-  //   ui_->bagReaderWidget->readBag(url);
+  ui_->plotTableWidget->loadFromBagFile(url);
 }
 
 bool MultiplotWidget::confirmClose() {

@@ -29,6 +29,12 @@ TEST(MessageFieldAccess, normalizesRos1TypeNames) {
   EXPECT_EQ(normalizeTypeName(""), "");
 }
 
+TEST(MessageFieldAccess, stripsInterfaceFilenameExtensions) {
+  EXPECT_EQ(normalizeTypeName("std_msgs/msg/Header.msg"), "std_msgs/msg/Header");
+  EXPECT_EQ(normalizeTypeName("std_msgs/Header.msg"), "std_msgs/msg/Header");
+  EXPECT_EQ(normalizeTypeName("std_msgs/msg/Header.idl"), "std_msgs/msg/Header");
+}
+
 TEST(MessageFieldAccess, extractsNestedNumericFields) {
   auto fish = ros_babel_fish::BabelFish::make_shared();
   auto message = fish->create_message_shared("geometry_msgs/msg/Twist");

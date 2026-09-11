@@ -23,6 +23,7 @@
 #include <ament_index_cpp/get_resources.hpp>
 #include <ament_index_cpp/get_resource.hpp>
 
+#include "rqt_multiplot/MessageFieldAccess.h"
 #include "rqt_multiplot/MessageTypeRegistry.h"
 
 namespace rqt_multiplot {
@@ -92,7 +93,7 @@ void MessageTypeRegistry::Impl::run() {
       }
 
       QMutexLocker lock(&mutex_);
-      types_.append(QString::fromStdString(package + "/msg/" + typeName));
+      types_.append(QString::fromStdString(normalizeTypeName(package + "/" + typeName)));
     }
   }
 }

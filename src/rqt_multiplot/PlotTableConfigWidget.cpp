@@ -261,10 +261,11 @@ void PlotTableConfigWidget::pushButtonImportExportClicked() {
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {
-  QFileDialog dialog(this, "Open Bag", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+  QFileDialog dialog(this, "Open Bag", QDir::homePath());
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
-  dialog.setFileMode(QFileDialog::ExistingFile);
+  dialog.setFileMode(QFileDialog::Directory);
+  dialog.setOption(QFileDialog::ShowDirsOnly);
 
   if (dialog.exec() == QDialog::Accepted) {
     plotTable_->loadFromBagFile(dialog.selectedFiles().first());
