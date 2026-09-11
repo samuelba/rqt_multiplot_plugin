@@ -19,14 +19,11 @@
 #include <QMutexLocker>
 
 #include <rqt_multiplot/DataTypeRegistry.h>
+#include <rqt_multiplot/MessageFieldAccess.h>
 
 #include "rqt_multiplot/MessageDefinitionLoader.h"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageDefinitionLoader::MessageDefinitionLoader(QObject* parent) : QObject(parent), impl_(this) {
   connect(&impl_, SIGNAL(started()), this, SLOT(threadStarted()));
@@ -45,17 +42,13 @@ MessageDefinitionLoader::Impl::~Impl() {
   wait();
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 QString MessageDefinitionLoader::getType() const {
   QMutexLocker lock(&impl_.mutex_);
 
   return impl_.type_;
 }
 
-variant_topic_tools::MessageDefinition MessageDefinitionLoader::getDefinition() const {
+MessageFieldType MessageDefinitionLoader::getDefinition() const {
   QMutexLocker lock(&impl_.mutex_);
 
   return impl_.definition_;
@@ -70,10 +63,6 @@ QString MessageDefinitionLoader::getError() const {
 bool MessageDefinitionLoader::isLoading() const {
   return impl_.isRunning();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MessageDefinitionLoader::load(const QString& type) {
   impl_.wait();
@@ -92,18 +81,14 @@ void MessageDefinitionLoader::Impl::run() {
   error_.clear();
 
   try {
-    QMutexLocker lock(&DataTypeRegistry::mutex_);
-
-    definition_.load(type_.toStdString());
-  } catch (const ros::Exception& exception) {
-    definition_.clear();
+    QMutexLocker registryLock(&DataTypeRegistry::mutex_);
+    auto prototype = createMessagePrototype(type_.toStdString());
+    definition_ = fieldTypeFromMessage(*prototype);
+  } catch (const std::exception& exception) {
+    definition_ = MessageFieldType();
     error_ = QString::fromStdString(exception.what());
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageDefinitionLoader::threadStarted() {
   emit loadingStarted();

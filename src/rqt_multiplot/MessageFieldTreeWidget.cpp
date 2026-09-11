@@ -19,30 +19,20 @@
 #include <limits>
 
 #include <QHeaderView>
+#include <QMetaType>
 #include <QSpinBox>
-
-#include <variant_topic_tools/MessageVariable.h>
 
 #include "rqt_multiplot/MessageFieldTreeWidget.h"
 
-Q_DECLARE_METATYPE(variant_topic_tools::DataType)
-
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 MessageFieldTreeWidget::MessageFieldTreeWidget(QWidget* parent) : QTreeWidget(parent) {
+  qRegisterMetaType<MessageFieldType>();
   setColumnCount(2);
   headerItem()->setText(0, "Name");
   headerItem()->setText(1, "Type");
 
-#if QT_VERSION >= 0x050000
   header()->setSectionResizeMode(QHeaderView::ResizeToContents);
-#else
-  header()->setResizeMode(QHeaderView::ResizeToContents);
-#endif
 
   connect(this, SIGNAL(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)), this,
           SLOT(currentItemChanged(QTreeWidgetItem*, QTreeWidgetItem*)));
@@ -50,17 +40,13 @@ MessageFieldTreeWidget::MessageFieldTreeWidget(QWidget* parent) : QTreeWidget(pa
 
 MessageFieldTreeWidget::~MessageFieldTreeWidget() = default;
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
-void MessageFieldTreeWidget::setMessageDataType(const variant_topic_tools::MessageDataType& dataType) {
+void MessageFieldTreeWidget::setMessageDataType(const MessageFieldType& dataType) {
   clear();
 
   blockSignals(true);
-  invisibleRootItem()->setData(1, Qt::UserRole, QVariant::fromValue<variant_topic_tools::DataType>(dataType));
-  for (size_t i = 0; i < dataType.getNumVariableMembers(); ++i) {
-    addField(dataType.getVariableMember(i));
+  invisibleRootItem()->setData(1, Qt::UserRole, QVariant::fromValue(dataType));
+  for (const auto& member : dataType.members) {
+    addField(member.first, member.second);
   }
   blockSignals(false);
 
@@ -69,14 +55,13 @@ void MessageFieldTreeWidget::setMessageDataType(const variant_topic_tools::Messa
   }
 }
 
-variant_topic_tools::MessageDataType MessageFieldTreeWidget::getMessageDataType() const {
+MessageFieldType MessageFieldTreeWidget::getMessageDataType() const {
   QTreeWidgetItem* item = invisibleRootItem();
 
   if (item != nullptr) {
-    return item->data(1, Qt::UserRole).value<variant_topic_tools::DataType>();
-  } else {
-    return variant_topic_tools::DataType();
+    return item->data(1, Qt::UserRole).value<MessageFieldType>();
   }
+  return {};
 }
 
 void MessageFieldTreeWidget::setCurrentField(const QString& field) {
@@ -93,14 +78,13 @@ QString MessageFieldTreeWidget::getCurrentField() const {
   return currentField_;
 }
 
-variant_topic_tools::DataType MessageFieldTreeWidget::getCurrentFieldDataType() const {
+MessageFieldType MessageFieldTreeWidget::getCurrentFieldDataType() const {
   QTreeWidgetItem* item = currentItem();
 
   if (item != nullptr) {
-    return item->data(1, Qt::UserRole).value<variant_topic_tools::DataType>();
-  } else {
-    return variant_topic_tools::DataType();
+    return item->data(1, Qt::UserRole).value<MessageFieldType>();
   }
+  return {};
 }
 
 bool MessageFieldTreeWidget::isCurrentFieldDefined() const {
@@ -115,7 +99,7 @@ void MessageFieldTreeWidget::setCurrentItem(const QString& field) {
     QVariant itemData = item->data(1, Qt::UserRole);
 
     if (itemData.isValid()) {
-      auto fieldType = itemData.value<variant_topic_tools::DataType>();
+      auto fieldType = itemData.value<MessageFieldType>();
 
       if (fieldType.isMessage()) {
         QTreeWidgetItem* childItem = findChild(item, 0, fields.front());
@@ -131,9 +115,9 @@ void MessageFieldTreeWidget::setCurrentItem(const QString& field) {
         size_t index = fields.front().toUInt(&indexOkay);
         auto* spinBoxIndex = dynamic_cast<QSpinBox*>(itemWidget(item->child(0), 0));
 
-        if (indexOkay && (index < spinBoxIndex->maximum())) {
+        if (indexOkay && (spinBoxIndex != nullptr) && (index < static_cast<size_t>(spinBoxIndex->maximum()))) {
           spinBoxIndex->blockSignals(true);
-          spinBoxIndex->setValue(index);
+          spinBoxIndex->setValue(static_cast<int>(index));
           spinBoxIndex->blockSignals(false);
 
           item = item->child(0);
@@ -153,16 +137,12 @@ void MessageFieldTreeWidget::setCurrentItem(const QString& field) {
   blockSignals(false);
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
-void MessageFieldTreeWidget::addField(const variant_topic_tools::MessageVariable& variable, QTreeWidgetItem* parent) {
+void MessageFieldTreeWidget::addField(const QString& name, const MessageFieldType& fieldType, QTreeWidgetItem* parent) {
   auto* item = new QTreeWidgetItem();
 
-  item->setText(0, QString::fromStdString(variable.getName()));
-  item->setText(1, QString::fromStdString(variable.getType().getIdentifier()));
-  item->setData(1, Qt::UserRole, QVariant::fromValue(variable.getType()));
+  item->setText(0, name);
+  item->setText(1, fieldType.identifier);
+  item->setData(1, Qt::UserRole, QVariant::fromValue(fieldType));
   item->setFlags(Qt::ItemIsEnabled);
 
   QFont typeFont = item->font(1);
@@ -175,19 +155,15 @@ void MessageFieldTreeWidget::addField(const variant_topic_tools::MessageVariable
     addTopLevelItem(item);
   }
 
-  if (variable.getType().isMessage()) {
-    variant_topic_tools::MessageDataType messageType = variable.getType();
-
-    for (size_t i = 0; i < messageType.getNumVariableMembers(); ++i) {
-      addField(messageType.getVariableMember(i), item);
+  if (fieldType.isMessage()) {
+    for (const auto& member : fieldType.members) {
+      addField(member.first, member.second, item);
     }
-  } else if (variable.getType().isArray()) {
-    variant_topic_tools::ArrayDataType arrayType = variable.getType();
-
+  } else if (fieldType.isArray() && fieldType.elementType) {
     auto* spinBoxIndex = new QSpinBox(this);
     spinBoxIndex->setMinimum(0);
-    if (!arrayType.isDynamic()) {
-      spinBoxIndex->setMaximum(arrayType.getNumMembers() - 1);
+    if (!fieldType.isDynamicArray && fieldType.arraySize > 0) {
+      spinBoxIndex->setMaximum(static_cast<int>(fieldType.arraySize) - 1);
     } else {
       spinBoxIndex->setMaximum(std::numeric_limits<int>::max());
     }
@@ -196,8 +172,8 @@ void MessageFieldTreeWidget::addField(const variant_topic_tools::MessageVariable
     connect(spinBoxIndex, SIGNAL(valueChanged(int)), this, SLOT(spinBoxIndexValueChanged(int)));
 
     auto* memberItem = new QTreeWidgetItem();
-    memberItem->setText(1, QString::fromStdString(arrayType.getMemberType().getIdentifier()));
-    memberItem->setData(1, Qt::UserRole, QVariant::fromValue(arrayType.getMemberType()));
+    memberItem->setText(1, fieldType.elementType->identifier);
+    memberItem->setData(1, Qt::UserRole, QVariant::fromValue(*fieldType.elementType));
     memberItem->setFlags(Qt::ItemIsEnabled);
 
     QFont memberTypeFont = memberItem->font(1);
@@ -207,30 +183,20 @@ void MessageFieldTreeWidget::addField(const variant_topic_tools::MessageVariable
     item->addChild(memberItem);
     setItemWidget(memberItem, 0, spinBoxIndex);
 
-    if (arrayType.getMemberType().isMessage()) {
-      variant_topic_tools::MessageDataType messageMemberType = arrayType.getMemberType();
-
-      for (size_t i = 0; i < messageMemberType.getNumVariableMembers(); ++i) {
-        addField(messageMemberType.getVariableMember(i), memberItem);
+    if (fieldType.elementType->isMessage()) {
+      for (const auto& member : fieldType.elementType->members) {
+        addField(member.first, member.second, memberItem);
       }
-    } else if (arrayType.getMemberType().isBuiltin()) {
-      variant_topic_tools::BuiltinDataType builtinMemberType = arrayType.getMemberType();
-
-      if (builtinMemberType.isNumeric()) {
-        memberItem->setFlags(memberItem->flags() | Qt::ItemIsSelectable);
-      }
+    } else if (fieldType.elementType->isNumeric) {
+      memberItem->setFlags(memberItem->flags() | Qt::ItemIsSelectable);
     }
-  } else if (variable.getType().isBuiltin()) {
-    variant_topic_tools::BuiltinDataType builtinType = variable.getType();
-
-    if (builtinType.isNumeric()) {
-      item->setFlags(item->flags() | Qt::ItemIsSelectable);
-    }
+  } else if (fieldType.isNumeric) {
+    item->setFlags(item->flags() | Qt::ItemIsSelectable);
   }
 }
 
 QTreeWidgetItem* MessageFieldTreeWidget::findChild(QTreeWidgetItem* item, int column, const QString& text) {
-  for (size_t i = 0; i < item->childCount(); ++i) {
+  for (int i = 0; i < item->childCount(); ++i) {
     if (item->child(i)->text(column) == text) {
       return item->child(i);
     }
@@ -238,10 +204,6 @@ QTreeWidgetItem* MessageFieldTreeWidget::findChild(QTreeWidgetItem* item, int co
 
   return nullptr;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageFieldTreeWidget::currentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* /*previous*/) {
   QString field;

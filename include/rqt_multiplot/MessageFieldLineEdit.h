@@ -23,8 +23,7 @@
 
 #include <rqt_multiplot/MessageFieldCompleter.h>
 #include <rqt_multiplot/MessageFieldItemModel.h>
-
-#include <variant_topic_tools/MessageDataType.h>
+#include <rqt_multiplot/MessageFieldType.h>
 
 namespace rqt_multiplot {
 class MessageFieldLineEdit : public QLineEdit {
@@ -33,11 +32,11 @@ class MessageFieldLineEdit : public QLineEdit {
   explicit MessageFieldLineEdit(QWidget* parent = nullptr);
   ~MessageFieldLineEdit() override;
 
-  void setMessageDataType(const variant_topic_tools::MessageDataType& dataType);
-  variant_topic_tools::MessageDataType getMessageDataType() const;
+  void setMessageDataType(const MessageFieldType& dataType);
+  MessageFieldType getMessageDataType() const;
   void setCurrentField(const QString& field);
   QString getCurrentField() const;
-  variant_topic_tools::DataType getCurrentFieldDataType() const;
+  MessageFieldType getCurrentFieldDataType() const;
   bool isCurrentFieldDefined() const;
 
  signals:

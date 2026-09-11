@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <ui_ProgressWidget.h>
 
@@ -36,11 +36,11 @@ ProgressWidget::ProgressWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::P
   ui_->progressBar->setValue(0);
 
   ui_->widgetStatus->setIcon(StatusWidget::Okay,
-                             QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/okay.png"))));
+                             QPixmap(packageResourcePath("resource/16x16/okay.png")));
   ui_->widgetStatus->setIcon(StatusWidget::Error,
-                             QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/error.png"))));
+                             QPixmap(packageResourcePath("resource/16x16/error.png")));
   ui_->widgetStatus->setFrames(
-      StatusWidget::Busy, QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/busy.png"))), 8);
+      StatusWidget::Busy, QPixmap(packageResourcePath("resource/16x16/busy.png")), 8);
 }
 
 ProgressWidget::~ProgressWidget() {

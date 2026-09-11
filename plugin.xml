@@ -1,5 +1,5 @@
-<library path="lib/librqt_multiplot">
-  <class name="MultiplotPlugin"
+<library path="rqt_multiplot">
+  <class name="rqt_multiplot/MultiplotPlugin"
          type="rqt_multiplot::MultiplotPlugin"
          base_class_type="rqt_gui_cpp::Plugin">
     <description>

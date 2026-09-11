@@ -22,26 +22,9 @@
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
-MessageSubscriberRegistry::MessageSubscriberRegistry(QObject* parent, const ros::NodeHandle& nodeHandle)
-    : MessageBroker(parent), nodeHandle_(nodeHandle) {}
+MessageSubscriberRegistry::MessageSubscriberRegistry(QObject* parent) : MessageBroker(parent) {}
 
 MessageSubscriberRegistry::~MessageSubscriberRegistry() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
-const ros::NodeHandle& MessageSubscriberRegistry::getNodeHandle() const {
-  return nodeHandle_;
-}
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool MessageSubscriberRegistry::subscribe(const QString& topic, QObject* receiver, const char* method, const PropertyMap& properties,
                                           Qt::ConnectionType type) {
@@ -53,7 +36,7 @@ bool MessageSubscriberRegistry::subscribe(const QString& topic, QObject* receive
   }
 
   if (it == subscribers_.end()) {
-    it = subscribers_.insert(topic, new MessageSubscriber(this, getNodeHandle()));
+    it = subscribers_.insert(topic, new MessageSubscriber(this));
 
     it.value()->setQueueSize(queueSize);
     it.value()->setTopic(topic);
@@ -75,10 +58,6 @@ bool MessageSubscriberRegistry::unsubscribe(const QString& topic, QObject* recei
     return false;
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageSubscriberRegistry::subscriberAboutToBeDestroyed() {
   for (QMap<QString, MessageSubscriber*>::iterator it = subscribers_.begin(); it != subscribers_.end(); ++it) {

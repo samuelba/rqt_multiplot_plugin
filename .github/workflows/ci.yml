@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.ros_distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [jazzy, kilted]
+    container:
+      image: ros:${{ matrix.ros_distro }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src/rqt_multiplot_plugin
+
+      - name: Install dependencies
+        run: |
+          rosdep update --rosdistro "${ROS_DISTRO}"
+          rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
+            --dependency-types buildtool \
+            --dependency-types build \
+            --dependency-types build_export \
+            --dependency-types exec \
+            --dependency-types test
+
+      - name: Build
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          colcon build --packages-select rqt_multiplot --event-handlers console_direct+
+
+      - name: Test
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          source install/setup.bash
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+
+          colcon test-result --verbose

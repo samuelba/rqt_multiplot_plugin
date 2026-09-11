@@ -22,12 +22,12 @@
 #include <QList>
 #include <QString>
 
-#include <variant_topic_tools/DataType.h>
+#include <rqt_multiplot/MessageFieldType.h>
 
 namespace rqt_multiplot {
 class MessageFieldItem {
  public:
-  explicit MessageFieldItem(const variant_topic_tools::DataType& dataType, MessageFieldItem* parent = nullptr, QString name = QString());
+  explicit MessageFieldItem(const MessageFieldType& dataType, MessageFieldItem* parent = nullptr, QString name = QString());
   ~MessageFieldItem();
 
   MessageFieldItem* getParent() const;
@@ -38,7 +38,7 @@ class MessageFieldItem {
   int getRow() const;
   static size_t getNumColumns();
   const QString& getName() const;
-  const variant_topic_tools::DataType& getDataType() const;
+  const MessageFieldType& getDataType() const;
 
   void appendChild(MessageFieldItem* child);
 
@@ -49,7 +49,7 @@ class MessageFieldItem {
   QList<MessageFieldItem*> children_;
 
   QString name_;
-  variant_topic_tools::DataType dataType_;
+  MessageFieldType dataType_;
 };
 }  // namespace rqt_multiplot
 

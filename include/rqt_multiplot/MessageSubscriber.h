@@ -19,14 +19,12 @@
 #ifndef RQT_MULTIPLOT_MESSAGE_SUBSCRIBER_H
 #define RQT_MULTIPLOT_MESSAGE_SUBSCRIBER_H
 
-#include <QMap>
 #include <QMetaMethod>
 #include <QObject>
 #include <QString>
 
-#include <ros/node_handle.h>
-
-#include <variant_topic_tools/Subscriber.h>
+#include <ros_babel_fish/detail/babel_fish_subscription.hpp>
+#include <ros_babel_fish/messages/compound_message.hpp>
 
 #include <rqt_multiplot/Message.h>
 
@@ -36,10 +34,9 @@ class MessageSubscriber : public QObject {
  public:
   enum Property { QueueSize };
 
-  explicit MessageSubscriber(QObject* parent = nullptr, const ros::NodeHandle& nodeHandle = ros::NodeHandle("~"));
+  explicit MessageSubscriber(QObject* parent = nullptr);
   ~MessageSubscriber() override;
 
-  const ros::NodeHandle& getNodeHandle() const;
   void setTopic(const QString& topic);
   const QString& getTopic() const;
   void setQueueSize(size_t queueSize);
@@ -56,25 +53,18 @@ class MessageSubscriber : public QObject {
   void aboutToBeDestroyed();
 
  private:
-  ros::NodeHandle nodeHandle_;
-
   QString topic_;
   size_t queueSize_;
 
-  variant_topic_tools::Subscriber subscriber_;
+  ros_babel_fish::BabelFishSubscription::SharedPtr subscriber_;
 
   void subscribe();
   void unsubscribe();
 
-  void callback(const variant_topic_tools::MessageVariant& variant, const ros::Time& receiptTime);
+  void callback(const ros_babel_fish::CompoundMessage& compound);
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
   void connectNotify(const QMetaMethod& signal) override;
   void disconnectNotify(const QMetaMethod& signal) override;
-#else
-  void connectNotify(const char* signal);
-  void disconnectNotify(const char* signal);
-#endif
 };
 }  // namespace rqt_multiplot
 

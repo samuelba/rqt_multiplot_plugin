@@ -25,7 +25,7 @@
 #include <QPointF>
 #include <QVector>
 
-#include <ros/time.h>
+#include <rclcpp/time.hpp>
 
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageBroker.h>
@@ -54,7 +54,8 @@ class CurveDataSequencer : public QObject {
  private:
   class TimeValue {
    public:
-    inline explicit TimeValue(const ros::Time& time = ros::Time(), double value = 0.0) : time_(time), value_(value){};
+    inline explicit TimeValue(const rclcpp::Time& time = rclcpp::Time(0, 0, RCL_ROS_TIME), double value = 0.0)
+        : time_(time), value_(value){};
 
     inline TimeValue(const TimeValue& src) = default;
 
@@ -64,7 +65,7 @@ class CurveDataSequencer : public QObject {
 
     inline bool operator<(const TimeValue& timeValue) const { return (time_ < timeValue.time_); };
 
-    ros::Time time_;
+    rclcpp::Time time_;
     double value_;
   };
 

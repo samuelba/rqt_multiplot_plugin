@@ -16,13 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QSettings>
 
-#include <ros/console.h>
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/XmlSettings.h>
 
@@ -45,12 +45,12 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
   ui_->setupUi(this);
 
   ui_->pushButtonClearHistory->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/clear_history.png"))));
-  ui_->pushButtonNew->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/add.png"))));
-  ui_->pushButtonOpen->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/open.png"))));
-  ui_->pushButtonSave->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/save.png"))));
+      QIcon(packageResourcePath("resource/16x16/clear_history.png")));
+  ui_->pushButtonNew->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
+  ui_->pushButtonOpen->setIcon(QIcon(packageResourcePath("resource/16x16/open.png")));
+  ui_->pushButtonSave->setIcon(QIcon(packageResourcePath("resource/16x16/save.png")));
   ui_->pushButtonSaveAs->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/save_as.png"))));
+      QIcon(packageResourcePath("resource/16x16/save_as.png")));
 
   ui_->pushButtonClearHistory->setEnabled(false);
   ui_->pushButtonSave->setEnabled(false);
@@ -195,7 +195,7 @@ bool MultiplotConfigWidget::loadConfig(const QString& url) {
           setCurrentConfigUrl(url);
           setCurrentConfigModified(false);
 
-          ROS_INFO_STREAM("Loaded configuration from [" << url.toStdString() << "]");
+          qInfo() << "Loaded configuration from [" << url << "]";
 
           return true;
         }
@@ -203,7 +203,7 @@ bool MultiplotConfigWidget::loadConfig(const QString& url) {
     }
   }
 
-  ROS_ERROR_STREAM("Failed to load configuration from [" << url.toStdString() << "]");
+  qWarning() << "Failed to load configuration from [" << url << "]";
 
   return false;
 }
@@ -237,7 +237,7 @@ bool MultiplotConfigWidget::saveConfig(const QString& url) {
           setCurrentConfigUrl(url);
           setCurrentConfigModified(false);
 
-          ROS_INFO_STREAM("Saved configuration to [" << url.toStdString() << "]");
+          qInfo() << "Saved configuration to [" << url << "]";
 
           return true;
         }
@@ -245,7 +245,7 @@ bool MultiplotConfigWidget::saveConfig(const QString& url) {
     }
   }
 
-  ROS_ERROR_STREAM("Failed to save configuration to [" << url.toStdString() << "]");
+  qWarning() << "Failed to save configuration to [" << url << "]";
 
   return false;
 }

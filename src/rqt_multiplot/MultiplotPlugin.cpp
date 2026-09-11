@@ -16,18 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <string>
-#include <vector>
-
-#include <QByteArray>
 #include <QCloseEvent>
+#include <QCommandLineParser>
 #include <QUrl>
 
-#include <boost/program_options.hpp>
+#include <QDebug>
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 
 #include <rqt_multiplot/MultiplotWidget.h>
+#include <rqt_multiplot/RosContext.h>
 
 #include "rqt_multiplot/MultiplotPlugin.h"
 
@@ -50,6 +48,8 @@ MultiplotPlugin::~MultiplotPlugin() = default;
 /*****************************************************************************/
 
 void MultiplotPlugin::initPlugin(qt_gui_cpp::PluginContext& context) {
+  RosContext::setNode(node_);
+
   widget_ = new MultiplotWidget();
 
   context.addWidget(widget_);
@@ -96,37 +96,21 @@ void MultiplotPlugin::restoreSettings(const qt_gui_cpp::Settings&
 }
 
 void MultiplotPlugin::parseArguments(const QStringList& arguments) {
-  size_t argc = arguments.count();
-  std::vector<QByteArray> args;
+  QCommandLineParser parser;
+  const QCommandLineOption configOption(QStringList() << "c" << "multiplot-config", "Load an xml plot configuration", "url");
+  const QCommandLineOption bagOption(QStringList() << "b" << "multiplot-bag", "Load a rosbag2 file", "path");
+  const QCommandLineOption runAllOption(QStringList() << "r" << "multiplot-run-all", "Run all plots on startup");
+  parser.addOption(configOption);
+  parser.addOption(bagOption);
+  parser.addOption(runAllOption);
+  parser.parse(QStringList() << "rqt_multiplot" << arguments);
 
-  const char* argv[argc + 1];
-  argv[0] = "rqt_multiplot";
-
-  for (int i = 0; i < argc; ++i) {
-    args.push_back(arguments[i].toLocal8Bit());
-    argv[i + 1] = args[i].constData();
+  runAllPlotsOnStart_ = parser.isSet(runAllOption);
+  if (parser.isSet(configOption)) {
+    widget_->loadConfig(QUrl::fromUserInput(parser.value(configOption)).toString());
   }
-
-  boost::program_options::variables_map variables;
-  boost::program_options::options_description options;
-
-  options.add_options()("multiplot-config,c", boost::program_options::value<std::string>(), "");
-  options.add_options()("multiplot-bag,b", boost::program_options::value<std::string>(), "");
-  options.add_options()("multiplot-run-all,r", boost::program_options::bool_switch(&runAllPlotsOnStart_), "");
-
-  try {
-    boost::program_options::store(boost::program_options::parse_command_line(argc + 1, argv, options), variables);
-    boost::program_options::notify(variables);
-
-    if (variables.count("multiplot-config") != 0u) {
-      QUrl url = QUrl::fromUserInput(QString::fromStdString(variables["multiplot-config"].as<std::string>()));
-      widget_->loadConfig(url.toString());
-    }
-    if (variables.count("multiplot-bag") != 0u) {
-      widget_->readBag(QString::fromStdString(variables["multiplot-bag"].as<std::string>()));
-    }
-  } catch (const std::exception& exception) {
-    ROS_ERROR("Error parsing command line: %s", exception.what());
+  if (parser.isSet(bagOption)) {
+    widget_->readBag(parser.value(bagOption));
   }
 }
 

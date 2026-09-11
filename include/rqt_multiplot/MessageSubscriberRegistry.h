@@ -29,18 +29,14 @@ namespace rqt_multiplot {
 class MessageSubscriberRegistry : public MessageBroker {
   Q_OBJECT
  public:
-  explicit MessageSubscriberRegistry(QObject* parent = nullptr, const ros::NodeHandle& nodeHandle = ros::NodeHandle("~"));
+  explicit MessageSubscriberRegistry(QObject* parent = nullptr);
   ~MessageSubscriberRegistry() override;
-
-  const ros::NodeHandle& getNodeHandle() const;
 
   bool subscribe(const QString& topic, QObject* receiver, const char* method, const PropertyMap& properties = PropertyMap(),
                  Qt::ConnectionType type = Qt::AutoConnection) override;
   bool unsubscribe(const QString& topic, QObject* receiver, const char* method = nullptr) override;
 
  private:
-  ros::NodeHandle nodeHandle_;
-
   QMap<QString, MessageSubscriber*> subscribers_;
 
  private slots:

@@ -19,7 +19,8 @@
 #include <QDir>
 #include <QMutexLocker>
 
-#include <ros/package.h>
+#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <ament_index_cpp/get_packages_with_prefixes.hpp>
 
 #include "rqt_multiplot/PackageRegistry.h"
 
@@ -82,22 +83,20 @@ void PackageRegistry::wait() {
 }
 
 void PackageRegistry::Impl::run() {
-  std::vector<std::string> packages;
-
   mutex_.lock();
   packages_.clear();
   mutex_.unlock();
 
-  if (ros::package::getAll(packages)) {
-    for (const auto& i : packages) {
-      QString package = QString::fromStdString(i);
-      QDir directory(QString::fromStdString(ros::package::getPath(i)));
-
+  const auto prefixes = ament_index_cpp::get_packages_with_prefixes();
+  for (const auto& [name, prefix] : prefixes) {
+    try {
+      QDir directory(QString::fromStdString(ament_index_cpp::get_package_share_directory(name)));
       if (directory.exists()) {
         mutex_.lock();
-        packages_[package] = directory.absolutePath();
+        packages_[QString::fromStdString(name)] = directory.absolutePath();
         mutex_.unlock();
       }
+    } catch (const std::exception&) {
     }
   }
 }

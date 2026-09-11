@@ -32,7 +32,7 @@
 #include <qwt/qwt_plot_renderer.h>
 #include <qwt/qwt_scale_widget.h>
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/PlotConfigDialog.h>
@@ -76,16 +76,16 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   setAcceptDrops(true);
 
-  runIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/run.png")));
-  pauseIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/pause.png")));
-  normalIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/zoom_in.png")));
-  maximizedIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/zoom_out.png")));
+  runIcon_ = QIcon(packageResourcePath("resource/16x16/run.png"));
+  pauseIcon_ = QIcon(packageResourcePath("resource/16x16/pause.png"));
+  normalIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_in.png"));
+  maximizedIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_out.png"));
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
-  ui_->pushButtonClear->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/clear.png"))));
+  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/eject.png"))));
-  ui_->pushButtonSetup->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/setup.png"))));
+      QIcon(packageResourcePath("resource/16x16/eject.png")));
+  ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
   ui_->pushButtonState->setIcon(normalIcon_);
 
   ui_->plot->setAutoReplot(false);

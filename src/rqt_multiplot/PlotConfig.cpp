@@ -38,7 +38,11 @@ PlotConfig::PlotConfig(QObject* parent, QString title, double plotRate)
   connect(legendConfig_, SIGNAL(changed()), this, SLOT(legendConfigChanged()));
 }
 
-PlotConfig::~PlotConfig() = default;
+PlotConfig::~PlotConfig() {
+  for (CurveConfig* curveConfig : curveConfig_) {
+    disconnect(curveConfig, nullptr, this, nullptr);
+  }
+}
 
 /*****************************************************************************/
 /* Accessors                                                                 */
@@ -128,22 +132,41 @@ void PlotConfig::removeCurve(CurveConfig* curveConfig) {
 }
 
 void PlotConfig::removeCurve(size_t index) {
-  if (index < curveConfig_.count()) {
-    delete curveConfig_[index];
+  if (index >= static_cast<size_t>(curveConfig_.count())) {
+    return;
   }
+
+  CurveConfig* curveConfig = curveConfig_[index];
+  curveConfig_.remove(index);
+
+  disconnect(curveConfig, SIGNAL(changed()), this, SLOT(curveConfigChanged()));
+  disconnect(curveConfig, SIGNAL(destroyed()), this, SLOT(curveConfigDestroyed()));
+  delete curveConfig;
+
+  for (int i = 0; i < curveConfig_.count(); ++i) {
+    curveConfig_[i]->getColorConfig()->setAutoColorIndex(static_cast<size_t>(i));
+  }
+
+  emit curveRemoved(index);
+  emit changed();
 }
 
 void PlotConfig::clearCurves() {
-  if (!curveConfig_.isEmpty()) {
-    for (size_t i = 0; i < curveConfig_.count(); ++i) {
-      delete curveConfig_[i];
-    }
-
-    curveConfig_.clear();
-
-    emit curvesCleared();
-    emit changed();
+  if (curveConfig_.isEmpty()) {
+    return;
   }
+
+  const QVector<CurveConfig*> curves = curveConfig_;
+  curveConfig_.clear();
+
+  for (CurveConfig* curveConfig : curves) {
+    disconnect(curveConfig, SIGNAL(changed()), this, SLOT(curveConfigChanged()));
+    disconnect(curveConfig, SIGNAL(destroyed()), this, SLOT(curveConfigDestroyed()));
+    delete curveConfig;
+  }
+
+  emit curvesCleared();
+  emit changed();
 }
 
 QVector<CurveConfig*> PlotConfig::findCurves(const QString& title) const {
@@ -312,18 +335,20 @@ void PlotConfig::curveConfigChanged() {
 }
 
 void PlotConfig::curveConfigDestroyed() {
-  int index = curveConfig_.indexOf(dynamic_cast<CurveConfig*>(sender()));
+  const int index = curveConfig_.indexOf(static_cast<CurveConfig*>(sender()));
 
-  if (index >= 0) {
-    curveConfig_.remove(index);
-
-    for (size_t i = 0; i < curveConfig_.count(); ++i) {
-      curveConfig_[i]->getColorConfig()->setAutoColorIndex(i);
-    }
-
-    emit curveRemoved(index);
-    emit changed();
+  if (index < 0) {
+    return;
   }
+
+  curveConfig_.remove(index);
+
+  for (int i = 0; i < curveConfig_.count(); ++i) {
+    curveConfig_[i]->getColorConfig()->setAutoColorIndex(static_cast<size_t>(i));
+  }
+
+  emit curveRemoved(static_cast<size_t>(index));
+  emit changed();
 }
 
 void PlotConfig::axesConfigChanged() {

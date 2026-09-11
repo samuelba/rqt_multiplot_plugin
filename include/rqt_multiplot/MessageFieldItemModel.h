@@ -22,8 +22,7 @@
 #include <QAbstractItemModel>
 
 #include <rqt_multiplot/MessageFieldItem.h>
-
-#include <variant_topic_tools/MessageDataType.h>
+#include <rqt_multiplot/MessageFieldType.h>
 
 namespace rqt_multiplot {
 class MessageFieldItemModel : public QAbstractItemModel {
@@ -32,9 +31,9 @@ class MessageFieldItemModel : public QAbstractItemModel {
   explicit MessageFieldItemModel(QObject* parent = nullptr);
   ~MessageFieldItemModel() override;
 
-  void setMessageDataType(const variant_topic_tools::MessageDataType& dataType);
-  variant_topic_tools::MessageDataType getMessageDataType() const;
-  variant_topic_tools::DataType getFieldDataType(const QString& field) const;
+  void setMessageDataType(const MessageFieldType& dataType);
+  MessageFieldType getMessageDataType() const;
+  MessageFieldType getFieldDataType(const QString& field) const;
 
   int rowCount(const QModelIndex& parent) const override;
   int columnCount(const QModelIndex& parent) const override;

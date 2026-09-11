@@ -17,21 +17,20 @@
  ******************************************************************************/
 
 #include <QApplication>
+#include <QDebug>
 #include <QMutexLocker>
 
-#include <ros/console.h>
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
+#include <rcl/time.h>
+#include <rclcpp/serialized_message.hpp>
+#include <rclcpp/time.hpp>
+#include <rosbag2_cpp/reader.hpp>
+#include <rosbag2_storage/serialized_bag_message.hpp>
 
 #include <rqt_multiplot/ProgressChangeEvent.h>
 
 #include "rqt_multiplot/BagReader.h"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 BagReader::BagReader(QObject* parent) : MessageBroker(parent), impl_(this) {
   connect(&impl_, SIGNAL(started()), this, SLOT(threadStarted()));
@@ -50,10 +49,6 @@ BagReader::Impl::~Impl() {
   wait();
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 QString BagReader::getFileName() const {
   return impl_.fileName_;
 }
@@ -65,10 +60,6 @@ QString BagReader::getError() const {
 bool BagReader::isReading() const {
   return impl_.isRunning();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void BagReader::read(const QString& fileName) {
   impl_.wait();
@@ -105,9 +96,8 @@ bool BagReader::unsubscribe(const QString& topic, QObject* receiver, const char*
 
   if (it != impl_.queries_.end()) {
     return it.value()->disconnect(SIGNAL(messageRead(const QString&, const Message&)), receiver, method);
-  } else {
-    return false;
   }
+  return false;
 }
 
 bool BagReader::event(QEvent* event) {
@@ -128,44 +118,46 @@ void BagReader::Impl::run() {
   }
 
   try {
-    rosbag::Bag bag;
+    rosbag2_cpp::Reader reader;
+    reader.open(fileName_.toStdString());
 
-    bag.open(fileName_.toStdString(), rosbag::bagmode::Read);
-
-    std::vector<std::string> queriedTopics;
-    queriedTopics.reserve(queries_.count());
-
-    for (QMap<QString, BagQuery*>::const_iterator jt = queries_.begin(); jt != queries_.end(); ++jt) {
-      queriedTopics.push_back(jt.key().toStdString());
+    QMap<QString, QString> topicTypes;
+    for (const auto& topic : reader.get_all_topics_and_types()) {
+      topicTypes.insert(QString::fromStdString(topic.name), QString::fromStdString(topic.type));
     }
 
-    rosbag::View view(bag, rosbag::TopicQuery(queriedTopics));
+    const auto& metadata = reader.get_metadata();
+    const auto startNs = metadata.starting_time.time_since_epoch().count();
+    const auto durationNs = metadata.duration.count();
 
-    for (rosbag::View::iterator it = view.begin(); it != view.end(); ++it) {
-      mutex_.lock();
+    while (reader.has_next()) {
+      auto bagMessage = reader.read_next();
 
-      QMap<QString, BagQuery*>::const_iterator jt = queries_.find(QString::fromStdString(it->getTopic()));
-
-      if (jt != queries_.end()) {
-        jt.value()->callback(*it);
+      {
+        QMutexLocker lock(&mutex_);
+        QMap<QString, BagQuery*>::const_iterator it = queries_.find(QString::fromStdString(bagMessage->topic_name));
+        if (it != queries_.end()) {
+          rclcpp::SerializedMessage serialized(*bagMessage->serialized_data);
+          const auto typeIt = topicTypes.find(QString::fromStdString(bagMessage->topic_name));
+          if (typeIt != topicTypes.end()) {
+            it.value()->callback(QString::fromStdString(bagMessage->topic_name), typeIt.value(), serialized,
+                                 rclcpp::Time(bagMessage->recv_timestamp, RCL_ROS_TIME));
+          }
+        }
       }
 
-      mutex_.unlock();
-
-      double progress = (it->getTime() - view.getBeginTime()).toSec() / (view.getEndTime() - view.getBeginTime()).toSec();
+      double progress = 1.0;
+      if (durationNs > 0) {
+        progress = static_cast<double>(bagMessage->recv_timestamp - startNs) / static_cast<double>(durationNs);
+      }
 
       auto* progressChangeEvent = new ProgressChangeEvent(progress);
-
       QApplication::postEvent(parent(), progressChangeEvent);
     }
-  } catch (const ros::Exception& exception) {
+  } catch (const std::exception& exception) {
     error_ = QString::fromStdString(exception.what());
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void BagReader::threadStarted() {
   emit readingStarted();
@@ -173,11 +165,11 @@ void BagReader::threadStarted() {
 
 void BagReader::threadFinished() {
   if (impl_.error_.isEmpty()) {
-    ROS_INFO_STREAM("Read bag from [file://" << impl_.fileName_.toStdString() << "]");
+    qInfo() << "Read bag from [file://" << impl_.fileName_ << "]";
 
     emit readingFinished();
   } else {
-    ROS_ERROR_STREAM("Failed to read bag from [file://" << impl_.fileName_.toStdString() << "]: " << impl_.error_.toStdString());
+    qWarning() << "Failed to read bag from [file://" << impl_.fileName_ << "]:" << impl_.error_;
 
     emit readingFailed(impl_.error_);
   }

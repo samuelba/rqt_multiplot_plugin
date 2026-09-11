@@ -19,9 +19,8 @@
 #ifndef RQT_MULTIPLOT_MESSAGE_H
 #define RQT_MULTIPLOT_MESSAGE_H
 
-#include <ros/time.h>
-
-#include <variant_topic_tools/MessageVariant.h>
+#include <rclcpp/time.hpp>
+#include <ros_babel_fish/messages/compound_message.hpp>
 
 namespace rqt_multiplot {
 class Message {
@@ -30,15 +29,15 @@ class Message {
   Message(const Message& src);
   ~Message();
 
-  void setReceiptTime(const ros::Time& receiptTime);
-  const ros::Time& getReceiptTime() const;
-  void setVariant(const variant_topic_tools::MessageVariant& variant);
-  const variant_topic_tools::MessageVariant& getVariant() const;
+  void setReceiptTime(const rclcpp::Time& receiptTime);
+  const rclcpp::Time& getReceiptTime() const;
+  void setCompound(ros_babel_fish::CompoundMessage::SharedPtr compound);
+  ros_babel_fish::CompoundMessage::SharedPtr getCompound() const;
   bool isEmpty() const;
 
  private:
-  ros::Time receiptTime_;
-  variant_topic_tools::MessageVariant variant_;
+  rclcpp::Time receiptTime_{0, 0, RCL_ROS_TIME};
+  ros_babel_fish::CompoundMessage::SharedPtr compound_;
 };
 }  // namespace rqt_multiplot
 
