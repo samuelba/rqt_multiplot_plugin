@@ -22,6 +22,7 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Svg REQUIRED)
 
 find_path(
   QWT_INCLUDE_DIRS
@@ -115,6 +116,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotConfigWidget.cpp
   src/rqt_multiplot/PlotCursor.cpp
   src/rqt_multiplot/PlotCursorMachine.cpp
+  src/rqt_multiplot/PlotExport.cpp
   src/rqt_multiplot/PlotCurve.cpp
   src/rqt_multiplot/PlotLegend.cpp
   src/rqt_multiplot/PlotLegendConfig.cpp
@@ -211,6 +213,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotConfigWidget.h
   include/rqt_multiplot/PlotCursor.h
   include/rqt_multiplot/PlotCursorMachine.h
+  include/rqt_multiplot/PlotExport.h
   include/rqt_multiplot/PlotCurve.h
   include/rqt_multiplot/PlotLegend.h
   include/rqt_multiplot/PlotLegendConfig.h
@@ -280,6 +283,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   ${qt_gui_cpp_TARGETS}
   ${rqt_gui_cpp_TARGETS}
   Qt5::Widgets
+  Qt5::Svg
   ament_index_cpp::ament_index_cpp
   rclcpp::rclcpp
   ros_babel_fish::ros_babel_fish
@@ -332,6 +336,7 @@ if(BUILD_TESTING)
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )

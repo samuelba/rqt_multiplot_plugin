@@ -20,6 +20,7 @@
 #include <QFileDialog>
 
 #include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/PlotExport.h>
 
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PlotWidget.h>
@@ -291,26 +292,33 @@ void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
 }
 
 void PlotTableConfigWidget::menuExportImageFileTriggered() {
-  QFileDialog dialog(this, "Save Image File", QDir::homePath(), "Portable Network Graphics (*.png)");
+  QFileDialog dialog(this, "Save Image File", QDir::homePath(),
+                     "Portable Network Graphics (*.png);;Scalable Vector Graphics (*.svg);;Portable Document Format (*.pdf)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
   dialog.selectFile("rqt_multiplot.png");
 
-  if (dialog.exec() == QDialog::Accepted) {
-    plotTable_->saveToImageFile(dialog.selectedFiles().first());
+  if ((dialog.exec() == QDialog::Accepted) && (plotTable_ != nullptr)) {
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      plotTable_->saveToImageFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+    }
   }
 }
 
 void PlotTableConfigWidget::menuExportTextFileTriggered() {
-  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt)");
+  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt);;CSV (*.csv)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
   dialog.selectFile("rqt_multiplot.txt");
 
-  if (dialog.exec() == QDialog::Accepted) {
-    plotTable_->saveToTextFile(dialog.selectedFiles().first());
+  if ((dialog.exec() == QDialog::Accepted) && (plotTable_ != nullptr)) {
+    const auto files = dialog.selectedFiles();
+    if (!files.isEmpty()) {
+      plotTable_->saveToTextFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+    }
   }
 }
 

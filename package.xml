@@ -24,6 +24,7 @@
   <depend>rqt_gui</depend>
   <depend>rqt_gui_cpp</depend>
   <depend>qtbase5-dev</depend>
+  <depend>libqt5-svg-dev</depend>
   <depend>libqwt-qt5-dev</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>

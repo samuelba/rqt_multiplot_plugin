@@ -20,6 +20,8 @@
 #define RQT_MULTIPLOT_PLOT_TABLE_WIDGET_H
 
 #include <QGridLayout>
+#include <QPainter>
+#include <QRectF>
 #include <QVector>
 #include <QWidget>
 
@@ -52,6 +54,7 @@ class PlotTableWidget : public QWidget {
   void requestReplot();
   void forceReplot();
 
+  void renderToPainter(QPainter& painter, const QRectF& bounds = QRectF());
   void renderToPixmap(QPixmap& pixmap);
   void writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles);
   void writeFormattedCurveData(QList<QStringList>& formattedData);

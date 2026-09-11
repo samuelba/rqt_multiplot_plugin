@@ -21,6 +21,7 @@
 #include <QTextStream>
 
 #include <rqt_multiplot/PlotCursor.h>
+#include <rqt_multiplot/PlotExport.h>
 #include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotWidget.h>
 
@@ -156,23 +157,35 @@ void PlotTableWidget::forceReplot() {
   }
 }
 
-void PlotTableWidget::renderToPixmap(QPixmap& pixmap) {
+void PlotTableWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   size_t numRows = getNumRows();
   size_t numColumns = getNumColumns();
 
-  if ((numRows != 0u) && (numColumns != 0u)) {
-    double plotWidth = (pixmap.width() - 20.0 * (numColumns - 1.0)) / numColumns;
-    double plotHeight = (pixmap.height() - 20.0 * (numRows - 1.0)) / numRows;
+  if ((numRows == 0u) || (numColumns == 0u)) {
+    return;
+  }
 
-    double y = 0.0;
-    for (size_t row = 0; row < plotWidgets_.count(); ++row, y += plotHeight + 20.0) {
-      double x = 0.0;
+  QRectF plotBounds = bounds;
+  if (plotBounds.isEmpty() && (painter.device() != nullptr)) {
+    plotBounds = QRectF(0, 0, painter.device()->width(), painter.device()->height());
+  }
 
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column, x += plotWidth + 20.0) {
-        plotWidgets_[row][column]->renderToPixmap(pixmap, QRectF(x, y, plotWidth, plotHeight));
-      }
+  const double plotWidth = (plotBounds.width() - 20.0 * (numColumns - 1.0)) / numColumns;
+  const double plotHeight = (plotBounds.height() - 20.0 * (numRows - 1.0)) / numRows;
+
+  double y = plotBounds.y();
+  for (size_t row = 0; row < plotWidgets_.count(); ++row, y += plotHeight + 20.0) {
+    double x = plotBounds.x();
+
+    for (size_t column = 0; column < plotWidgets_[row].count(); ++column, x += plotWidth + 20.0) {
+      plotWidgets_[row][column]->renderToPainter(painter, QRectF(x, y, plotWidth, plotHeight));
     }
   }
+}
+
+void PlotTableWidget::renderToPixmap(QPixmap& pixmap) {
+  QPainter painter(&pixmap);
+  renderToPainter(painter, QRectF(0, 0, pixmap.width(), pixmap.height()));
 }
 
 void PlotTableWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles) {
@@ -218,12 +231,7 @@ void PlotTableWidget::loadFromBagFile(const QString& fileName) {
 }
 
 void PlotTableWidget::saveToImageFile(const QString& fileName) {
-  QPixmap pixmap(1280, 1024);
-
-  pixmap.fill(Qt::transparent);
-  renderToPixmap(pixmap);
-
-  pixmap.save(fileName, "PNG");
+  renderExportImage(fileName, [this](QPainter& painter, const QRectF& bounds) { renderToPainter(painter, bounds); });
 }
 
 void PlotTableWidget::saveToTextFile(const QString& fileName) {
@@ -237,31 +245,7 @@ void PlotTableWidget::saveToTextFile(const QString& fileName) {
     writeFormattedCurveData(formattedData);
 
     QTextStream stream(&file);
-
-    stream << "# " << formattedAxisTitles.join(", ") << "\n";
-
-    size_t row = 0;
-
-    while (true) {
-      QStringList dataLineParts;
-      bool finished = true;
-
-      for (size_t column = 0; column < formattedData.count(); ++column) {
-        if (row < formattedData[column].count()) {
-          dataLineParts.append(formattedData[column][row]);
-          finished &= false;
-        } else {
-          dataLineParts.append(QString());
-        }
-      }
-
-      if (!finished) {
-        stream << dataLineParts.join(", ") << "\n";
-        row++;
-      } else {
-        break;
-      }
-    }
+    writeCurveTable(stream, formattedAxisTitles, formattedData, headerStyleFromPath(fileName));
   }
 }
 
