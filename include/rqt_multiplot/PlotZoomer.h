@@ -19,6 +19,10 @@
 #ifndef RQT_MULTIPLOT_PLOT_ZOOMER_H
 #define RQT_MULTIPLOT_PLOT_ZOOMER_H
 
+#include <QRect>
+#include <QRect>
+#include <QRegion>
+
 #include <qwt/qwt_plot_zoomer.h>
 
 class QwtPlotCanvas;
@@ -31,6 +35,10 @@ class PlotZoomer : public QwtPlotZoomer {
   ~PlotZoomer() override;
 
   void drawRubberBand(QPainter* painter) const override;
+  QRegion rubberBandMask() const override;
+
+ signals:
+  void zoomResetRequested();
 
  protected:
   void widgetMousePressEvent(QMouseEvent* event) override;
@@ -38,6 +46,8 @@ class PlotZoomer : public QwtPlotZoomer {
 
  private:
   QPoint position_;
+
+  QRect selectionRect() const;
 };
 }  // namespace rqt_multiplot
 

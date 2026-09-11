@@ -24,6 +24,7 @@
 #include <qwt/qwt_scale_div.h>
 
 #include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/PlotMouseBindings.h>
 
 #include "rqt_multiplot/PlotPanner.h"
 
@@ -52,7 +53,7 @@ bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
     if (!panning_ && (event->type() == QEvent::MouseButtonPress)) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
-      if (mouseEvent->button() == Qt::LeftButton) {
+      if (isPanMouse(mouseEvent->button(), mouseEvent->modifiers())) {
         position_ = mouseEvent->pos();
 
         xMap_ = canvas_->plot()->canvasMap(QwtPlot::xBottom);
