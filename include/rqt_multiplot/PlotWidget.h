@@ -23,12 +23,14 @@
 #include <QList>
 #include <QMenu>
 #include <QRect>
+#include <QRectF>
 #include <QStringList>
 #include <QTimer>
 #include <QVector>
 #include <QWidget>
 
 #include <rqt_multiplot/BoundingRectangle.h>
+#include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageBroker.h>
 #include <rqt_multiplot/PlotConfig.h>
 
@@ -66,6 +68,8 @@ class PlotWidget : public QWidget {
   State getState() const;
   void setCanChangeState(bool can);
   bool canChangeState() const;
+  void setUserScaleLocked(bool locked);
+  bool isUserScaleLocked() const;
 
   void run();
   void pause();
@@ -81,12 +85,15 @@ class PlotWidget : public QWidget {
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
 
+  void bindAxisOrigin(CurveConfig::Axis axis, double value);
+
  signals:
   void preferredScaleChanged(const BoundingRectangle& bounds);
   void currentScaleChanged(const BoundingRectangle& bounds);
   void pausedChanged(bool paused);
   void stateChanged(int state);
   void cleared();
+  void userScaleLockedChanged(bool locked);
 
  protected:
   void dragEnterEvent(QDragEnterEvent* event) override;
@@ -119,11 +126,23 @@ class PlotWidget : public QWidget {
   bool paused_;
   bool rescale_;
   bool replot_;
+  bool userScaleLocked_;
   State state_;
 
   BoundingRectangle currentBounds_;
 
+  bool xOriginSet_;
+  bool yOriginSet_;
+  double xOrigin_;
+  double yOrigin_;
+
   void updateAxisTitle(PlotAxesConfig::Axis axis);
+  bool axisLabelsFromZero(CurveConfig::Axis axis) const;
+  bool axisUsesTimeFormat(CurveConfig::Axis axis) const;
+  void seedAxisOrigin(CurveConfig::Axis axis);
+  void resetAxisOrigins();
+  void updateAxisTimeLabels();
+  void applyAxisTimeOffsets();
 
  private slots:
   void timerTimeout();
@@ -153,6 +172,8 @@ class PlotWidget : public QWidget {
 
   void plotXBottomScaleDivChanged();
   void plotYLeftScaleDivChanged();
+  void plotZoomed(const QRectF& bounds);
+  void plotZoomResetRequested();
 };
 }  // namespace rqt_multiplot
 

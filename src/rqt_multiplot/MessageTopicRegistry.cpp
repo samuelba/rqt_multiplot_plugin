@@ -16,24 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <QDir>
 #include <QMutexLocker>
 
-#include <ros/master.h>
+#include <rqt_multiplot/RosContext.h>
 
 #include "rqt_multiplot/MessageTopicRegistry.h"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static Initializations                                                    */
-/*****************************************************************************/
-
 MessageTopicRegistry::Impl MessageTopicRegistry::impl_;
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageTopicRegistry::MessageTopicRegistry(QObject* parent) : QObject(parent) {
   connect(&impl_, SIGNAL(started()), this, SLOT(threadStarted()));
@@ -48,10 +39,6 @@ MessageTopicRegistry::Impl::~Impl() {
   terminate();
   wait();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 QMap<QString, QString> MessageTopicRegistry::getTopics() {
   QMutexLocker lock(&impl_.mutex_);
@@ -69,34 +56,28 @@ bool MessageTopicRegistry::isEmpty() {
   return impl_.topics_.isEmpty();
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void MessageTopicRegistry::update() {
   impl_.start();
 }
 
 void MessageTopicRegistry::Impl::run() {
-  std::vector<ros::master::TopicInfo> topics;
-
   mutex_.lock();
   topics_.clear();
   mutex_.unlock();
 
-  if (ros::master::getTopics(topics)) {
-    for (auto& i : topics) {
-      QString topic = QString::fromStdString(i.name);
-      QString type = QString::fromStdString(i.datatype);
+  auto node = RosContext::node();
+  if (!node) {
+    return;
+  }
 
-      topics_[topic] = type;
+  const auto topics = node->get_topic_names_and_types();
+  QMutexLocker lock(&mutex_);
+  for (const auto& [name, types] : topics) {
+    if (!types.empty()) {
+      topics_[QString::fromStdString(name)] = QString::fromStdString(types.front());
     }
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageTopicRegistry::threadStarted() {
   emit updateStarted();

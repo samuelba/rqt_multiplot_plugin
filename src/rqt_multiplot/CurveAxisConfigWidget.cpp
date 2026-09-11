@@ -16,7 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ros/package.h>
+#include <QSignalBlocker>
+
+#include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
 
@@ -31,9 +33,9 @@ namespace rqt_multiplot {
 CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
 
-  QPixmap pixmapOkay = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/okay.png")));
-  QPixmap pixmapError = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/error.png")));
-  QPixmap pixmapBusy = QPixmap(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/22x22/busy.png")));
+  QPixmap pixmapOkay = QPixmap(packageResourcePath("resource/22x22/okay.png"));
+  QPixmap pixmapError = QPixmap(packageResourcePath("resource/22x22/error.png"));
+  QPixmap pixmapBusy = QPixmap(packageResourcePath("resource/22x22/busy.png"));
 
   ui_->statusWidgetTopic->setIcon(StatusWidget::Okay, pixmapOkay);
   ui_->statusWidgetTopic->setIcon(StatusWidget::Error, pixmapError);
@@ -69,6 +71,7 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent),
   connect(ui_->widgetField, SIGNAL(currentFieldChanged(const QString&)), this, SLOT(widgetFieldCurrentFieldChanged(const QString&)));
 
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
+  connect(ui_->checkBoxLabelFromZero, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLabelFromZeroStateChanged(int)));
 
   if (ui_->comboBoxTopic->isUpdating()) {
     comboBoxTopicUpdateStarted();
@@ -98,6 +101,7 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       disconnect(config_, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       disconnect(config_, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       disconnect(config_, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      disconnect(config_, SIGNAL(labelFromZeroChanged(bool)), this, SLOT(configLabelFromZeroChanged(bool)));
       disconnect(config_->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
     }
 
@@ -110,12 +114,14 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       connect(config, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       connect(config, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       connect(config, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      connect(config, SIGNAL(labelFromZeroChanged(bool)), this, SLOT(configLabelFromZeroChanged(bool)));
       connect(config->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
 
       configTopicChanged(config->getTopic());
       configTypeChanged(config->getType());
       configFieldTypeChanged(config->getFieldType());
       configFieldChanged(config->getField());
+      configLabelFromZeroChanged(config->isLabelFromZero());
       configScaleConfigChanged();
     } else {
       ui_->widgetScale->setConfig(nullptr);
@@ -220,10 +226,10 @@ bool CurveAxisConfigWidget::validateField() {
     return false;
   }
 
-  variant_topic_tools::DataType fieldType = ui_->widgetField->getCurrentFieldDataType();
+  MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
 
   if (fieldType.isValid()) {
-    if (fieldType.isBuiltin() && variant_topic_tools::BuiltinDataType(fieldType).isNumeric()) {
+    if (fieldType.isNumeric) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
 
       return true;
@@ -255,6 +261,19 @@ bool CurveAxisConfigWidget::validateScale() {
   }
 }
 
+void CurveAxisConfigWidget::updateLabelFromZeroControl() {
+  const bool receiptTime = (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime);
+  const MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
+  const bool fieldIsTime = fieldType.isTime;
+  const bool fieldKnownNonTime = fieldType.isValid() && !fieldType.isTime;
+  const bool enabled = receiptTime || fieldIsTime;
+
+  ui_->checkBoxLabelFromZero->setEnabled(enabled);
+  if (!enabled && fieldKnownNonTime && (config_ != nullptr)) {
+    config_->setLabelFromZero(false);
+  }
+}
+
 /*****************************************************************************/
 /* Slots                                                                     */
 /*****************************************************************************/
@@ -272,15 +291,23 @@ void CurveAxisConfigWidget::configTypeChanged(const QString& type) {
 }
 
 void CurveAxisConfigWidget::configFieldTypeChanged(int fieldType) {
+  const QSignalBlocker blocker(ui_->checkBoxFieldReceiptTime);
   ui_->checkBoxFieldReceiptTime->setCheckState((fieldType == CurveAxisConfig::MessageReceiptTime) ? Qt::Checked : Qt::Unchecked);
 
+  updateLabelFromZeroControl();
   validateType();
 }
 
 void CurveAxisConfigWidget::configFieldChanged(const QString& field) {
   ui_->widgetField->setCurrentField(field);
 
+  updateLabelFromZeroControl();
   validateField();
+}
+
+void CurveAxisConfigWidget::configLabelFromZeroChanged(bool labelFromZero) {
+  const QSignalBlocker blocker(ui_->checkBoxLabelFromZero);
+  ui_->checkBoxLabelFromZero->setCheckState(labelFromZero ? Qt::Checked : Qt::Unchecked);
 }
 
 void CurveAxisConfigWidget::configScaleConfigChanged() {
@@ -335,12 +362,15 @@ void CurveAxisConfigWidget::widgetFieldLoadingStarted() {
 
   ui_->statusWidgetField->pushCurrentRole();
   ui_->statusWidgetField->setCurrentRole(StatusWidget::Busy, "Loading message definition...");
+
+  updateLabelFromZeroControl();
 }
 
 void CurveAxisConfigWidget::widgetFieldLoadingFinished() {
   ui_->widgetField->setEnabled(ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked);
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   validateField();
 }
 
@@ -348,6 +378,7 @@ void CurveAxisConfigWidget::widgetFieldLoadingFailed(const QString&
                                                      /*error*/) {
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   if ((config_ != nullptr) && (ui_->comboBoxTopic->getCurrentTopicType() == config_->getType())) {
     ui_->widgetField->connectTopic(config_->getTopic());
   } else {
@@ -360,12 +391,15 @@ void CurveAxisConfigWidget::widgetFieldConnecting(const QString& topic) {
 
   ui_->statusWidgetField->pushCurrentRole();
   ui_->statusWidgetField->setCurrentRole(StatusWidget::Busy, "Waiting for connnection on topic [" + topic + "]...");
+
+  updateLabelFromZeroControl();
 }
 
 void CurveAxisConfigWidget::widgetFieldConnected(const QString& /*topic*/) {
   ui_->widgetField->setEnabled(ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked);
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   validateField();
 }
 
@@ -374,6 +408,7 @@ void CurveAxisConfigWidget::widgetFieldConnectionTimeout(const QString&
                                                          double /*timeout*/) {
   ui_->statusWidgetField->popCurrentRole();
 
+  updateLabelFromZeroControl();
   validateField();
 }
 
@@ -382,6 +417,7 @@ void CurveAxisConfigWidget::widgetFieldCurrentFieldChanged(const QString& field)
     config_->setField(field);
   }
 
+  updateLabelFromZeroControl();
   validateField();
 }
 
@@ -390,9 +426,19 @@ void CurveAxisConfigWidget::checkBoxFieldReceiptTimeStateChanged(int state) {
 
   if (config_ != nullptr) {
     config_->setFieldType((state == Qt::Checked) ? CurveAxisConfig::MessageReceiptTime : CurveAxisConfig::MessageData);
+    if (state == Qt::Checked) {
+      config_->setLabelFromZero(true);
+    }
   }
 
+  updateLabelFromZeroControl();
   validateField();
+}
+
+void CurveAxisConfigWidget::checkBoxLabelFromZeroStateChanged(int state) {
+  if (config_ != nullptr) {
+    config_->setLabelFromZero(state == Qt::Checked);
+  }
 }
 
 }  // namespace rqt_multiplot

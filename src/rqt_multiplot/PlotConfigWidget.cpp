@@ -22,7 +22,7 @@
 #include <QLayout>
 #include <QMimeData>
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/CurveConfigDialog.h>
 #include <rqt_multiplot/CurveConfigWidget.h>
@@ -41,19 +41,19 @@ namespace rqt_multiplot {
 PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotConfigWidget()), config_(new PlotConfig(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonAddCurve->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/add.png"))));
+  ui_->pushButtonAddCurve->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
   ui_->pushButtonEditCurve->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/edit.png"))));
+      QIcon(packageResourcePath("resource/16x16/edit.png")));
   ui_->pushButtonRemoveCurves->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/remove.png"))));
+      QIcon(packageResourcePath("resource/16x16/remove.png")));
 
   ui_->pushButtonEditCurve->setEnabled(false);
   ui_->pushButtonRemoveCurves->setEnabled(false);
 
   ui_->pushButtonCopyCurves->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/copy.png"))));
+      QIcon(packageResourcePath("resource/16x16/copy.png")));
   ui_->pushButtonPasteCurves->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/paste.png"))));
+      QIcon(packageResourcePath("resource/16x16/paste.png")));
 
   ui_->pushButtonCopyCurves->setEnabled(false);
   ui_->pushButtonPasteCurves->setEnabled(false);

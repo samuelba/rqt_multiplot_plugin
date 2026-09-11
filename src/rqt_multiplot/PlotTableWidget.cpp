@@ -21,6 +21,7 @@
 #include <QTextStream>
 
 #include <rqt_multiplot/PlotCursor.h>
+#include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotWidget.h>
 
 #include "rqt_multiplot/PlotTableWidget.h"
@@ -264,6 +265,18 @@ void PlotTableWidget::saveToTextFile(const QString& fileName) {
   }
 }
 
+bool PlotTableWidget::anyPlotUserScaleLocked() const {
+  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
+    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+      if (plotWidgets_[row][column]->isUserScaleLocked()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 void PlotTableWidget::updatePlotScale(const BoundingRectangle& bounds, PlotWidget* excluded) {
   BoundingRectangle validBounds = bounds;
 
@@ -348,6 +361,7 @@ void PlotTableWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
                 SLOT(plotPreferredScaleChanged(const BoundingRectangle&)));
         connect(plotWidgets[row][column], SIGNAL(currentScaleChanged(const BoundingRectangle&)), this,
                 SLOT(plotCurrentScaleChanged(const BoundingRectangle&)));
+        connect(plotWidgets[row][column], SIGNAL(userScaleLockedChanged(bool)), this, SLOT(plotUserScaleLockedChanged(bool)));
         connect(plotWidgets[row][column]->getCursor(), SIGNAL(activeChanged(bool)), this, SLOT(plotCursorActiveChanged(bool)));
         connect(plotWidgets[row][column]->getCursor(), SIGNAL(currentPositionChanged(const QPointF&)), this,
                 SLOT(plotCursorCurrentPositionChanged(const QPointF&)));
@@ -446,19 +460,43 @@ void PlotTableWidget::bagReaderReadingFailed(const QString& /*error*/) {
 }
 
 void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds) {
-  if (config_ != nullptr) {
-    if (config_->isScaleLinked()) {
-      BoundingRectangle bounds;
+  if (config_ == nullptr) {
+    return;
+  }
 
-      for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-        for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
-          bounds += plotWidgets_[row][column]->getPreferredScale();
-        }
+  if (shouldIgnoreLinkedPreferredScale(config_->isScaleLinked(), anyPlotUserScaleLocked())) {
+    return;
+  }
+
+  if (config_->isScaleLinked()) {
+    BoundingRectangle preferredBounds;
+
+    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
+      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+        preferredBounds += plotWidgets_[row][column]->getPreferredScale();
       }
+    }
 
-      updatePlotScale(bounds);
-    } else {
-      dynamic_cast<PlotWidget*>(sender())->setCurrentScale(bounds);
+    updatePlotScale(preferredBounds);
+    return;
+  }
+
+  auto* plot = dynamic_cast<PlotWidget*>(sender());
+  if ((plot != nullptr) && shouldApplyPreferredScale(true, plot->isUserScaleLocked())) {
+    plot->setCurrentScale(bounds);
+  }
+}
+
+void PlotTableWidget::plotUserScaleLockedChanged(bool locked) {
+  if ((config_ == nullptr) || !config_->isScaleLinked()) {
+    return;
+  }
+
+  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
+    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+      if (sender() != plotWidgets_[row][column]) {
+        plotWidgets_[row][column]->setUserScaleLocked(locked);
+      }
     }
   }
 }

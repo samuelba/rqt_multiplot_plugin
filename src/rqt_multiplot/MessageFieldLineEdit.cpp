@@ -18,8 +18,6 @@
 
 #include <QCompleter>
 
-#include <variant_topic_tools/MessageVariable.h>
-
 #include "rqt_multiplot/MessageFieldLineEdit.h"
 
 namespace rqt_multiplot {
@@ -42,11 +40,11 @@ MessageFieldLineEdit::~MessageFieldLineEdit() = default;
 /* Accessors                                                                 */
 /*****************************************************************************/
 
-void MessageFieldLineEdit::setMessageDataType(const variant_topic_tools::MessageDataType& dataType) {
+void MessageFieldLineEdit::setMessageDataType(const MessageFieldType& dataType) {
   completerModel_->setMessageDataType(dataType);
 }
 
-variant_topic_tools::MessageDataType MessageFieldLineEdit::getMessageDataType() const {
+MessageFieldType MessageFieldLineEdit::getMessageDataType() const {
   return completerModel_->getMessageDataType();
 }
 
@@ -64,7 +62,7 @@ QString MessageFieldLineEdit::getCurrentField() const {
   return currentField_;
 }
 
-variant_topic_tools::DataType MessageFieldLineEdit::getCurrentFieldDataType() const {
+MessageFieldType MessageFieldLineEdit::getCurrentFieldDataType() const {
   return completerModel_->getFieldDataType(currentField_);
 }
 

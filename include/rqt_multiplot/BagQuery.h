@@ -19,16 +19,13 @@
 #ifndef RQT_MULTIPLOT_BAG_QUERY_H
 #define RQT_MULTIPLOT_BAG_QUERY_H
 
+#include <QMetaMethod>
 #include <QObject>
 
-#include <variant_topic_tools/MessageDataType.h>
-#include <variant_topic_tools/MessageSerializer.h>
+#include <rclcpp/serialized_message.hpp>
+#include <rclcpp/time.hpp>
 
 #include <rqt_multiplot/Message.h>
-
-namespace rosbag {
-class MessageInstance;
-}
 
 namespace rqt_multiplot {
 class BagQuery : public QObject {
@@ -46,16 +43,9 @@ class BagQuery : public QObject {
   void aboutToBeDestroyed();
 
  private:
-  variant_topic_tools::MessageDataType dataType_;
-  variant_topic_tools::MessageSerializer serializer_;
+  void callback(const QString& topic, const QString& type, const rclcpp::SerializedMessage& serialized, const rclcpp::Time& time);
 
-  void callback(const rosbag::MessageInstance& instance);
-
-#if QT_VERSION >= QT_VERSION_CHECK(5, 0, 0)
   void disconnectNotify(const QMetaMethod& signal) override;
-#else
-  void disconnectNotify(const char* signal);
-#endif
 };
 }  // namespace rqt_multiplot
 

@@ -32,15 +32,18 @@
 #include <qwt/qwt_plot_renderer.h>
 #include <qwt/qwt_scale_widget.h>
 
-#include <ros/package.h>
+#include <rqt_multiplot/PackageResource.h>
 
 #include <rqt_multiplot/CurveData.h>
+#include <rqt_multiplot/OffsetScaleDraw.h>
+#include <rqt_multiplot/OffsetScaleEngine.h>
 #include <rqt_multiplot/PlotConfigDialog.h>
 #include <rqt_multiplot/PlotConfigWidget.h>
 #include <rqt_multiplot/PlotCursor.h>
 #include <rqt_multiplot/PlotCurve.h>
 #include <rqt_multiplot/PlotLegend.h>
 #include <rqt_multiplot/PlotMagnifier.h>
+#include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotPanner.h>
 #include <rqt_multiplot/PlotZoomer.h>
 
@@ -69,23 +72,28 @@ PlotWidget::PlotWidget(QWidget* parent)
       paused_(true),
       rescale_(false),
       replot_(false),
-      state_(Normal) {
+      userScaleLocked_(false),
+      state_(Normal),
+      xOriginSet_(false),
+      yOriginSet_(false),
+      xOrigin_(0.0),
+      yOrigin_(0.0) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);
 
   setAcceptDrops(true);
 
-  runIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/run.png")));
-  pauseIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/pause.png")));
-  normalIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/zoom_in.png")));
-  maximizedIcon_ = QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/zoom_out.png")));
+  runIcon_ = QIcon(packageResourcePath("resource/16x16/run.png"));
+  pauseIcon_ = QIcon(packageResourcePath("resource/16x16/pause.png"));
+  normalIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_in.png"));
+  maximizedIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_out.png"));
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
-  ui_->pushButtonClear->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/clear.png"))));
+  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(
-      QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/eject.png"))));
-  ui_->pushButtonSetup->setIcon(QIcon(QString::fromStdString(ros::package::getPath("rqt_multiplot").append("/resource/16x16/setup.png"))));
+      QIcon(packageResourcePath("resource/16x16/eject.png")));
+  ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
   ui_->pushButtonState->setIcon(normalIcon_);
 
   ui_->plot->setAutoReplot(false);
@@ -102,6 +110,11 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->plot->axisScaleDraw(QwtPlot::xTop)->enableComponent(QwtAbstractScaleDraw::Labels, false);
   ui_->plot->axisScaleDraw(QwtPlot::yRight)->enableComponent(QwtAbstractScaleDraw::Labels, false);
 
+  ui_->plot->setAxisScaleDraw(QwtPlot::xBottom, new OffsetScaleDraw());
+  ui_->plot->setAxisScaleDraw(QwtPlot::yLeft, new OffsetScaleDraw());
+  ui_->plot->setAxisScaleEngine(QwtPlot::xBottom, new OffsetScaleEngine());
+  ui_->plot->setAxisScaleEngine(QwtPlot::yLeft, new OffsetScaleEngine());
+
   ui_->horizontalSpacerRight->changeSize(ui_->plot->axisWidget(QwtPlot::yRight)->width() - 5, 20);
 
   timer_->setInterval(1e3 / 30.0);
@@ -116,6 +129,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   panner_ = new PlotPanner(canvas);
   zoomer_ = new PlotZoomer(canvas);
   zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  canvas->setToolTip(QStringLiteral("Ctrl+drag: zoom rectangle. Right-click: reset zoom."));
 
 #if QWT_VERSION >= 0x060100
   currentBounds_.getMinimum().setX(ui_->plot->axisScaleDiv(QwtPlot::xBottom).lowerBound());
@@ -140,6 +154,8 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
+  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
+  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
 
   connect(timer_, SIGNAL(timeout()), this, SLOT(timerTimeout()));
 
@@ -171,6 +187,11 @@ void PlotWidget::setConfig(PlotConfig* config) {
       configCurvesCleared();
     }
 
+    xOriginSet_ = false;
+    yOriginSet_ = false;
+    xOrigin_ = 0.0;
+    yOrigin_ = 0.0;
+
     config_ = config;
 
     if (config != nullptr) {
@@ -193,6 +214,8 @@ void PlotWidget::setConfig(PlotConfig* config) {
       for (size_t index = 0; index < config->getNumCurves(); ++index) {
         configCurveAdded(index);
       }
+    } else {
+      updateAxisTimeLabels();
     }
   }
 }
@@ -286,6 +309,25 @@ bool PlotWidget::canChangeState() const {
   return ui_->pushButtonState->isEnabled();
 }
 
+void PlotWidget::setUserScaleLocked(bool locked) {
+  if (locked == userScaleLocked_) {
+    return;
+  }
+
+  userScaleLocked_ = locked;
+
+  if (!locked) {
+    rescale_ = true;
+    requestReplot();
+  }
+
+  emit userScaleLockedChanged(locked);
+}
+
+bool PlotWidget::isUserScaleLocked() const {
+  return userScaleLocked_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -323,6 +365,7 @@ void PlotWidget::clear() {
     curves_[index]->clear();
   }
 
+  resetAxisOrigins();
   forceReplot();
 
   emit cleared();
@@ -335,13 +378,15 @@ void PlotWidget::requestReplot() {
 void PlotWidget::forceReplot() {
   BoundingRectangle preferredBounds = getPreferredScale();
 
-  if (rescale_) {
+  if (shouldApplyPreferredScale(rescale_, userScaleLocked_)) {
     emit preferredScaleChanged(preferredBounds);
 
     rescale_ = false;
   }
 
-  zoomer_->setZoomBase(preferredBounds.getRectangle());
+  if (!userScaleLocked_) {
+    zoomer_->setZoomBase(preferredBounds.getRectangle());
+  }
 
   ui_->plot->replot();
 
@@ -535,6 +580,123 @@ void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
   }
 }
 
+bool PlotWidget::axisLabelsFromZero(CurveConfig::Axis axis) const {
+  if (config_ == nullptr) {
+    return false;
+  }
+
+  for (size_t index = 0; index < config_->getNumCurves(); ++index) {
+    if (config_->getCurveConfig(index)->getAxisConfig(axis)->isLabelFromZero()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool PlotWidget::axisUsesTimeFormat(CurveConfig::Axis axis) const {
+  if (config_ == nullptr) {
+    return false;
+  }
+
+  for (size_t index = 0; index < config_->getNumCurves(); ++index) {
+    if (config_->getCurveConfig(index)->getAxisConfig(axis)->usesTimeScale()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void PlotWidget::seedAxisOrigin(CurveConfig::Axis axis) {
+  for (auto* curve : curves_) {
+    CurveConfig* curveConfig = curve->getConfig();
+    if ((curveConfig == nullptr) || !curveConfig->getAxisConfig(axis)->isLabelFromZero()) {
+      continue;
+    }
+    CurveData* data = curve->getData();
+    if ((data != nullptr) && !data->isEmpty()) {
+      bindAxisOrigin(axis, data->getValue(0, axis));
+      return;
+    }
+  }
+}
+
+void PlotWidget::resetAxisOrigins() {
+  xOriginSet_ = false;
+  yOriginSet_ = false;
+  xOrigin_ = 0.0;
+  yOrigin_ = 0.0;
+  updateAxisTimeLabels();
+}
+
+void PlotWidget::updateAxisTimeLabels() {
+  if (!axisLabelsFromZero(CurveConfig::X)) {
+    xOriginSet_ = false;
+    xOrigin_ = 0.0;
+  } else if (!xOriginSet_) {
+    seedAxisOrigin(CurveConfig::X);
+  }
+  if (!axisLabelsFromZero(CurveConfig::Y)) {
+    yOriginSet_ = false;
+    yOrigin_ = 0.0;
+  } else if (!yOriginSet_) {
+    seedAxisOrigin(CurveConfig::Y);
+  }
+
+  applyAxisTimeOffsets();
+}
+
+void PlotWidget::applyAxisTimeOffsets() {
+  const double xOffset = (axisLabelsFromZero(CurveConfig::X) && xOriginSet_) ? xOrigin_ : 0.0;
+  const double yOffset = (axisLabelsFromZero(CurveConfig::Y) && yOriginSet_) ? yOrigin_ : 0.0;
+  const bool xTimeScale = axisUsesTimeFormat(CurveConfig::X);
+  const bool yTimeScale = axisUsesTimeFormat(CurveConfig::Y);
+
+  if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::xBottom))) {
+    draw->setUseTimeScale(xTimeScale);
+    draw->setOffset(xOffset);
+  }
+  if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::xBottom))) {
+    engine->setOffset(xOffset);
+  }
+  if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::yLeft))) {
+    draw->setUseTimeScale(yTimeScale);
+    draw->setOffset(yOffset);
+  }
+  if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::yLeft))) {
+    engine->setOffset(yOffset);
+  }
+  if (cursor_ != nullptr) {
+    cursor_->setXUsesTimeScale(xTimeScale);
+    cursor_->setYUsesTimeScale(yTimeScale);
+    cursor_->setXOffset(xOffset);
+    cursor_->setYOffset(yOffset);
+  }
+
+  if (currentBounds_.isValid()) {
+    ui_->plot->setAxisScale(QwtPlot::xBottom, currentBounds_.getMinimum().x(), currentBounds_.getMaximum().x());
+    ui_->plot->setAxisScale(QwtPlot::yLeft, currentBounds_.getMinimum().y(), currentBounds_.getMaximum().y());
+  }
+  requestReplot();
+}
+
+void PlotWidget::bindAxisOrigin(CurveConfig::Axis axis, double value) {
+  if (!axisLabelsFromZero(axis)) {
+    return;
+  }
+
+  bool& originSet = (axis == CurveConfig::X) ? xOriginSet_ : yOriginSet_;
+  double& origin = (axis == CurveConfig::X) ? xOrigin_ : yOrigin_;
+  if (originSet) {
+    return;
+  }
+
+  originSet = true;
+  origin = value;
+  applyAxisTimeOffsets();
+}
+
 /*****************************************************************************/
 /* Slots                                                                     */
 /*****************************************************************************/
@@ -562,6 +724,7 @@ void PlotWidget::configCurveAdded(size_t index) {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -575,6 +738,7 @@ void PlotWidget::configCurveRemoved(size_t index) {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -590,6 +754,7 @@ void PlotWidget::configCurvesCleared() {
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 
   forceReplot();
 }
@@ -597,6 +762,7 @@ void PlotWidget::configCurvesCleared() {
 void PlotWidget::configCurveConfigChanged(size_t /*index*/) {
   configXAxisConfigChanged();
   configYAxisConfigChanged();
+  updateAxisTimeLabels();
 }
 
 void PlotWidget::configXAxisConfigChanged() {
@@ -728,6 +894,14 @@ void PlotWidget::plotYLeftScaleDivChanged() {
   currentBounds_.getMaximum().setY(scale.upperBound());
 
   emit currentScaleChanged(currentBounds_);
+}
+
+void PlotWidget::plotZoomed(const QRectF& /*bounds*/) {
+  setUserScaleLocked(zoomer_->zoomRectIndex() > 0);
+}
+
+void PlotWidget::plotZoomResetRequested() {
+  setUserScaleLocked(false);
 }
 
 }  // namespace rqt_multiplot

@@ -17,11 +17,10 @@
  ******************************************************************************/
 
 #include <QMouseEvent>
+#include <QPainter>
+#include <QPen>
 
-#include <qwt/qwt_painter.h>
 #include <qwt/qwt_plot_canvas.h>
-
-#include <rqt_multiplot/PlotZoomerMachine.h>
 
 #include "rqt_multiplot/PlotZoomer.h"
 
@@ -32,9 +31,9 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotZoomer::PlotZoomer(QwtPlotCanvas* canvas, bool doReplot) : QwtPlotZoomer(canvas, doReplot) {
-  if (canvas != nullptr) {
-    setStateMachine(new PlotZoomerMachine());
-  }
+  setMousePattern(MouseSelect1, Qt::LeftButton, Qt::ControlModifier);
+  setRubberBand(RectRubberBand);
+  setRubberBandPen(QPen(Qt::DashLine));
 }
 
 PlotZoomer::~PlotZoomer() = default;
@@ -43,26 +42,33 @@ PlotZoomer::~PlotZoomer() = default;
 /* Methods                                                                   */
 /*****************************************************************************/
 
+QRect PlotZoomer::selectionRect() const {
+  if (pickedPoints().count() < 2) {
+    return {};
+  }
+
+  return QRect(pickedPoints().first(), pickedPoints().last()).normalized();
+}
+
 void PlotZoomer::drawRubberBand(QPainter* painter) const {
-  if (!isActive()) {
+  const QRect rect = selectionRect();
+  if (!isActive() || rect.isNull()) {
     return;
   }
 
-  if ((stateMachine()->selectionType() == QwtPickerMachine::RectSelection) && (rubberBand() == RectRubberBand)) {
-    if (pickedPoints().count() < 2) {
-      return;
-    }
+  painter->save();
+  painter->setClipping(false);
+  painter->drawRect(rect);
+  painter->restore();
+}
 
-    QPoint p1 = pickedPoints()[0];
-    QPoint p2 = pickedPoints()[pickedPoints().count() - 1];
-
-    QRect rect = QRect(p1, p2).normalized();
-    rect.adjust(0, 0, -1, -1);
-
-    QwtPainter::drawRect(painter, rect);
-  } else {
-    QwtPlotZoomer::drawRubberBand(painter);
+QRegion PlotZoomer::rubberBandMask() const {
+  const QRect rect = selectionRect();
+  if (rect.isNull()) {
+    return {};
   }
+
+  return QRegion(rect.adjusted(-2, -2, 2, 2));
 }
 
 void PlotZoomer::widgetMousePressEvent(QMouseEvent* event) {
@@ -77,6 +83,7 @@ void PlotZoomer::widgetMouseReleaseEvent(QMouseEvent* event) {
   if (mouseMatch(MouseSelect2, event)) {
     if (position_ == event->pos()) {
       zoom(0);
+      emit zoomResetRequested();
     }
   } else {
     QwtPlotZoomer::widgetMouseReleaseEvent(event);

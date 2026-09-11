@@ -77,6 +77,7 @@ class PlotTableWidget : public QWidget {
   BagReader* bagReader_;
 
   void updatePlotScale(const BoundingRectangle& bounds, PlotWidget* excluded = nullptr);
+  bool anyPlotUserScaleLocked() const;
 
  private slots:
   void configBackgroundColorChanged(const QColor& color);
@@ -87,6 +88,7 @@ class PlotTableWidget : public QWidget {
 
   void plotPreferredScaleChanged(const BoundingRectangle& bounds);
   void plotCurrentScaleChanged(const BoundingRectangle& bounds);
+  void plotUserScaleLockedChanged(bool locked);
   void plotCursorActiveChanged(bool active);
   void plotCursorCurrentPositionChanged(const QPointF& position);
   void plotPausedChanged(bool paused);

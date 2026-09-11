@@ -20,38 +20,30 @@
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 Message::Message() = default;
 
 Message::Message(const Message& src) = default;
 
 Message::~Message() = default;
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
-void Message::setReceiptTime(const ros::Time& receiptTime) {
+void Message::setReceiptTime(const rclcpp::Time& receiptTime) {
   receiptTime_ = receiptTime;
 }
 
-const ros::Time& Message::getReceiptTime() const {
+const rclcpp::Time& Message::getReceiptTime() const {
   return receiptTime_;
 }
 
-void Message::setVariant(const variant_topic_tools::MessageVariant& variant) {
-  variant_ = variant;
+void Message::setCompound(ros_babel_fish::CompoundMessage::SharedPtr compound) {
+  compound_ = std::move(compound);
 }
 
-const variant_topic_tools::MessageVariant& Message::getVariant() const {
-  return variant_;
+ros_babel_fish::CompoundMessage::SharedPtr Message::getCompound() const {
+  return compound_;
 }
 
 bool Message::isEmpty() const {
-  return variant_.isEmpty();
+  return !compound_ || !compound_->isValid();
 }
 
 }  // namespace rqt_multiplot

@@ -16,11 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <variant_topic_tools/MessageVariable.h>
-
 #include "rqt_multiplot/MessageFieldItemModel.h"
-
-Q_DECLARE_METATYPE(variant_topic_tools::DataType)
 
 namespace rqt_multiplot {
 
@@ -38,7 +34,7 @@ MessageFieldItemModel::~MessageFieldItemModel() {
 /* Accessors                                                                 */
 /*****************************************************************************/
 
-void MessageFieldItemModel::setMessageDataType(const variant_topic_tools::MessageDataType& dataType) {
+void MessageFieldItemModel::setMessageDataType(const MessageFieldType& dataType) {
   if (rootItem_ != nullptr) {
     delete rootItem_;
     rootItem_ = nullptr;
@@ -49,15 +45,14 @@ void MessageFieldItemModel::setMessageDataType(const variant_topic_tools::Messag
   }
 }
 
-variant_topic_tools::MessageDataType MessageFieldItemModel::getMessageDataType() const {
+MessageFieldType MessageFieldItemModel::getMessageDataType() const {
   if (rootItem_ != nullptr) {
     return rootItem_->getDataType();
-  } else {
-    return variant_topic_tools::MessageDataType();
   }
+  return {};
 }
 
-variant_topic_tools::DataType MessageFieldItemModel::getFieldDataType(const QString& field) const {
+MessageFieldType MessageFieldItemModel::getFieldDataType(const QString& field) const {
   if (rootItem_ != nullptr) {
     MessageFieldItem* descendant = rootItem_->getDescendant(field);
 
@@ -66,7 +61,7 @@ variant_topic_tools::DataType MessageFieldItemModel::getFieldDataType(const QStr
     }
   }
 
-  return variant_topic_tools::DataType();
+  return {};
 }
 
 /*****************************************************************************/

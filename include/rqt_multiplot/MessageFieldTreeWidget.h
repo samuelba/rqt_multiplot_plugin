@@ -21,7 +21,7 @@
 
 #include <QTreeWidget>
 
-#include <variant_topic_tools/MessageDataType.h>
+#include <rqt_multiplot/MessageFieldType.h>
 
 namespace rqt_multiplot {
 class MessageFieldTreeWidget : public QTreeWidget {
@@ -30,11 +30,11 @@ class MessageFieldTreeWidget : public QTreeWidget {
   explicit MessageFieldTreeWidget(QWidget* parent = nullptr);
   ~MessageFieldTreeWidget() override;
 
-  void setMessageDataType(const variant_topic_tools::MessageDataType& dataType);
-  variant_topic_tools::MessageDataType getMessageDataType() const;
+  void setMessageDataType(const MessageFieldType& dataType);
+  MessageFieldType getMessageDataType() const;
   void setCurrentField(const QString& field);
   QString getCurrentField() const;
-  variant_topic_tools::DataType getCurrentFieldDataType() const;
+  MessageFieldType getCurrentFieldDataType() const;
   bool isCurrentFieldDefined() const;
 
  signals:
@@ -45,7 +45,7 @@ class MessageFieldTreeWidget : public QTreeWidget {
 
   void setCurrentItem(const QString& field);
 
-  void addField(const variant_topic_tools::MessageVariable& variable, QTreeWidgetItem* parent = nullptr);
+  void addField(const QString& name, const MessageFieldType& fieldType, QTreeWidgetItem* parent = nullptr);
 
   static QTreeWidgetItem* findChild(QTreeWidgetItem* item, int column, const QString& text);
 

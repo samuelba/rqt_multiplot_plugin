@@ -26,12 +26,13 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, FieldType fieldType, QString field)
+CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, FieldType fieldType, QString field, bool labelFromZero)
     : Config(parent),
       topic_(std::move(topic)),
       type_(std::move(type)),
       fieldType_(fieldType),
       field_(std::move(field)),
+      labelFromZero_(labelFromZero),
       scaleConfig_(new CurveAxisScaleConfig(this)) {
   connect(scaleConfig_, SIGNAL(changed()), this, SLOT(scaleChanged()));
 }
@@ -94,6 +95,27 @@ const QString& CurveAxisConfig::getField() const {
   return field_;
 }
 
+void CurveAxisConfig::setLabelFromZero(bool labelFromZero) {
+  if (labelFromZero != labelFromZero_) {
+    labelFromZero_ = labelFromZero;
+
+    emit labelFromZeroChanged(labelFromZero);
+    emit changed();
+  }
+}
+
+bool CurveAxisConfig::isLabelFromZero() const {
+  return labelFromZero_;
+}
+
+bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
+  return (field == QLatin1String("stamp")) || field.endsWith(QLatin1String("/stamp"));
+}
+
+bool CurveAxisConfig::usesTimeScale() const {
+  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || isTimeFieldPath(field_);
+}
+
 CurveAxisScaleConfig* CurveAxisConfig::getScaleConfig() const {
   return scaleConfig_;
 }
@@ -107,6 +129,7 @@ void CurveAxisConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
   settings.setValue("field_type", fieldType_);
   settings.setValue("field", field_);
+  settings.setValue("label_from_zero", labelFromZero_);
 
   settings.beginGroup("scale");
   scaleConfig_->save(settings);
@@ -116,8 +139,10 @@ void CurveAxisConfig::save(QSettings& settings) const {
 void CurveAxisConfig::load(QSettings& settings) {
   setTopic(settings.value("topic").toString());
   setType(settings.value("type").toString());
-  setFieldType(static_cast<FieldType>(settings.value("field_type").toInt()));
+  const auto fieldType = static_cast<FieldType>(settings.value("field_type").toInt());
+  setFieldType(fieldType);
   setField(settings.value("field").toString());
+  setLabelFromZero(settings.value("label_from_zero", fieldType == MessageReceiptTime).toBool());
 
   settings.beginGroup("scale");
   scaleConfig_->load(settings);
@@ -129,6 +154,7 @@ void CurveAxisConfig::reset() {
   setType(QString());
   setFieldType(MessageData);
   setField(QString());
+  setLabelFromZero(false);
 
   scaleConfig_->reset();
 }
@@ -138,6 +164,7 @@ void CurveAxisConfig::write(QDataStream& stream) const {
   stream << type_;
   stream << (int)fieldType_;
   stream << field_;
+  stream << labelFromZero_;
 
   scaleConfig_->write(stream);
 }
@@ -147,6 +174,7 @@ void CurveAxisConfig::read(QDataStream& stream) {
   QString type;
   QString field;
   int fieldType = 0;
+  bool labelFromZero = false;
 
   stream >> topic;
   setTopic(topic);
@@ -156,6 +184,8 @@ void CurveAxisConfig::read(QDataStream& stream) {
   setFieldType(static_cast<FieldType>(fieldType));
   stream >> field;
   setField(field);
+  stream >> labelFromZero;
+  setLabelFromZero(labelFromZero);
 
   scaleConfig_->read(stream);
 }
@@ -169,6 +199,7 @@ CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
   setType(src.type_);
   setFieldType(src.fieldType_);
   setField(src.field_);
+  setLabelFromZero(src.labelFromZero_);
 
   *scaleConfig_ = *src.scaleConfig_;
 
