@@ -53,6 +53,8 @@ class CurveConfigWidget : public QWidget {
   void configAxisConfigTopicChanged(const QString& topic);
   void configAxisConfigTypeChanged(const QString& type);
 
+  void updateFadeHistoryApplicable();
+
   void lineEditTitleEditingFinished();
   void pushButtonCopyRightClicked();
   void pushButtonCopyLeftClicked();

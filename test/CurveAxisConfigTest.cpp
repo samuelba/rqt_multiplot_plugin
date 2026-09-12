@@ -88,6 +88,85 @@ TEST(CurveAxisConfig, usesTimeScaleWhenLabelFromZero) {
   EXPECT_TRUE(config.usesTimeScale());
 }
 
+TEST(CurveAxisConfig, arrayIndexIgnoresStaleTimeField) {
+  CurveAxisConfig config;
+  config.setField("header/stamp");
+  config.setLabelFromZero(true);
+  config.setFieldType(CurveAxisConfig::ArrayIndex);
+
+  EXPECT_FALSE(config.usesTimeScale());
+}
+
+TEST(CurveAxisConfig, receiptTimeUsesTimeScaleWithLeftoverField) {
+  CurveAxisConfig config;
+  config.setField("position/*");
+  config.setFieldType(CurveAxisConfig::MessageReceiptTime);
+
+  EXPECT_TRUE(config.usesTimeScale());
+}
+
+TEST(CurveAxisConfig, savesAndLoadsArrayIndex) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    CurveAxisConfig config;
+    config.setFieldType(CurveAxisConfig::ArrayIndex);
+    config.setField(QString());
+
+    QSettings settings(settingsPath(dir, "array.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+  }
+
+  CurveAxisConfig loaded;
+  QSettings settings(settingsPath(dir, "array.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::ArrayIndex);
+  EXPECT_TRUE(loaded.getField().isEmpty());
+  EXPECT_EQ(loaded.getFieldLabel(), QString("index"));
+}
+
+TEST(CurveAxisConfig, unknownFieldTypeDefaultsToMessageData) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  QSettings settings(settingsPath(dir, "unknown.ini"), QSettings::IniFormat);
+  settings.setValue("field_type", 99);
+  settings.sync();
+
+  CurveAxisConfig config;
+  config.load(settings);
+
+  EXPECT_EQ(config.getFieldType(), CurveAxisConfig::MessageData);
+}
+
+TEST(CurveAxisConfig, arrayIndexHasConfiguredSource) {
+  CurveAxisConfig config;
+  EXPECT_FALSE(config.hasConfiguredSource());
+
+  config.setFieldType(CurveAxisConfig::ArrayIndex);
+  EXPECT_TRUE(config.hasConfiguredSource());
+  EXPECT_EQ(config.getFieldLabel(), QString("index"));
+}
+
+TEST(CurveAxisConfig, writesAndReadsArrayIndex) {
+  CurveAxisConfig source;
+  source.setFieldType(CurveAxisConfig::ArrayIndex);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream stream(&buffer);
+  source.write(stream);
+
+  buffer.seek(0);
+  CurveAxisConfig loaded;
+  loaded.read(stream);
+
+  EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::ArrayIndex);
+}
+
 TEST(CurveAxisConfig, writesAndReadsLabelFromZero) {
   CurveAxisConfig source;
   source.setLabelFromZero(true);

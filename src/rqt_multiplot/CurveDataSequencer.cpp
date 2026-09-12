@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <algorithm>
+#include <vector>
+
 #include <QDebug>
 
 #include <rqt_multiplot/MessageFieldAccess.h>
@@ -150,8 +153,125 @@ void CurveDataSequencer::unsubscribe() {
   }
 }
 
+namespace {
+
+bool isSnapshotAxis(const CurveAxisConfig& axis) {
+  if (axis.getFieldType() == CurveAxisConfig::ArrayIndex) {
+    return true;
+  }
+  if (axis.getFieldType() != CurveAxisConfig::MessageData) {
+    return false;
+  }
+  return isWildcardFieldPath(axis.getField().toStdString());
+}
+
+bool extractAxisSeries(const Message& message, const CurveAxisConfig& axis, std::vector<double>& values) {
+  if (axis.getFieldType() == CurveAxisConfig::ArrayIndex) {
+    values.clear();
+    return true;
+  }
+  if (axis.getFieldType() != CurveAxisConfig::MessageData || message.isEmpty()) {
+    return false;
+  }
+  return tryGetNumericSeries(*message.getCompound(), axis.getField().toStdString(), values);
+}
+
+void fillIndexSeries(std::vector<double>& values, size_t count) {
+  values.resize(count);
+  for (size_t i = 0; i < count; ++i) {
+    values[i] = static_cast<double>(i);
+  }
+}
+
+}  // namespace
+
+bool CurveDataSequencer::hasSnapshotHint(const CurveConfig& config) {
+  const CurveAxisConfig* xAxisConfig = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* yAxisConfig = config.getAxisConfig(CurveConfig::Y);
+  if (xAxisConfig == nullptr || yAxisConfig == nullptr) {
+    return false;
+  }
+  return isSnapshotAxis(*xAxisConfig) || isSnapshotAxis(*yAxisConfig);
+}
+
+QString CurveDataSequencer::snapshotIncompatibilityReason(const CurveConfig& config) {
+  if (!hasSnapshotHint(config)) {
+    return {};
+  }
+
+  const CurveAxisConfig* xAxisConfig = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* yAxisConfig = config.getAxisConfig(CurveConfig::Y);
+  if (xAxisConfig == nullptr || yAxisConfig == nullptr) {
+    return QStringLiteral("Array curve is incomplete");
+  }
+  if (xAxisConfig->getTopic() != yAxisConfig->getTopic()) {
+    return QStringLiteral("Array curves require the same topic on both axes");
+  }
+  if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime ||
+      yAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime) {
+    return QStringLiteral("Array curves cannot use message receipt time");
+  }
+  if (xAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex && yAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
+    return QStringLiteral("Only one axis can be array index");
+  }
+  if (!isSnapshotAxis(*xAxisConfig) || !isSnapshotAxis(*yAxisConfig)) {
+    return QStringLiteral("Array index or * field must be paired with another * field or array index");
+  }
+  return {};
+}
+
+bool CurveDataSequencer::isSnapshotConfig(const CurveConfig& config) {
+  return hasSnapshotHint(config) && snapshotIncompatibilityReason(config).isEmpty();
+}
+
+bool CurveDataSequencer::tryBuildSnapshotSeries(const Message& message, const CurveConfig& config, QVector<QPointF>& points) {
+  points.clear();
+  if (!isSnapshotConfig(config) || message.isEmpty()) {
+    return false;
+  }
+
+  const CurveAxisConfig* xAxisConfig = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* yAxisConfig = config.getAxisConfig(CurveConfig::Y);
+
+  std::vector<double> xs;
+  std::vector<double> ys;
+  if (!extractAxisSeries(message, *xAxisConfig, xs) || !extractAxisSeries(message, *yAxisConfig, ys)) {
+    return false;
+  }
+
+  if (xAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
+    fillIndexSeries(xs, ys.size());
+  }
+  if (yAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
+    fillIndexSeries(ys, xs.size());
+  }
+
+  if (xs.size() != ys.size()) {
+    qWarning() << "Array snapshot size mismatch:" << xs.size() << "vs" << ys.size() << "- using the shorter series";
+  }
+
+  const auto count = std::min(xs.size(), ys.size());
+  points.reserve(static_cast<int>(count));
+  for (size_t i = 0; i < count; ++i) {
+    points.append(QPointF(xs[i], ys[i]));
+  }
+  return true;
+}
+
 void CurveDataSequencer::processMessage(const Message& message) {
   if (config_ == nullptr) {
+    return;
+  }
+
+  if (hasSnapshotHint(*config_)) {
+    if (!isSnapshotConfig(*config_)) {
+      return;
+    }
+    QVector<QPointF> points;
+    if (!tryBuildSnapshotSeries(message, *config_, points)) {
+      return;
+    }
+    emit seriesReceived(points);
     return;
   }
 
@@ -224,6 +344,10 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
       timeValue.time_ = stampField != nullptr ? getStamp(*stampField) : message.getReceiptTime();
     } else {
       timeValue.time_ = message.getReceiptTime();
+    }
+
+    if (axisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
+      return;
     }
 
     if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {

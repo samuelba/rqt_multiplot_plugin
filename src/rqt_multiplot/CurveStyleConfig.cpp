@@ -21,13 +21,19 @@
 #include <cmath>
 
 namespace rqt_multiplot {
+namespace {
+
+constexpr qint32 kStyleStreamMagic = 0x53544631;
+
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
 CurveStyleConfig::CurveStyleConfig(QObject* parent, Type type, bool linesInterpolate, Qt::Orientation sticksOrientation,
-                                   double sticksBaseline, bool stepsInvert, size_t penWidth, Qt::PenStyle penStyle, bool renderAntialias)
+                                   double sticksBaseline, bool stepsInvert, size_t penWidth, Qt::PenStyle penStyle, bool renderAntialias,
+                                   size_t fadeHistory)
     : Config(parent),
       type_(type),
       linesInterpolate_(linesInterpolate),
@@ -36,7 +42,8 @@ CurveStyleConfig::CurveStyleConfig(QObject* parent, Type type, bool linesInterpo
       stepsInvert_(stepsInvert),
       penWidth_(penWidth),
       penStyle_(penStyle),
-      renderAntialias_(renderAntialias) {}
+      renderAntialias_(renderAntialias),
+      fadeHistory_(fadeHistory) {}
 
 CurveStyleConfig::~CurveStyleConfig() = default;
 
@@ -148,6 +155,19 @@ bool CurveStyleConfig::isRenderAntialiased() const {
   return renderAntialias_;
 }
 
+void CurveStyleConfig::setFadeHistory(size_t frames) {
+  if (frames != fadeHistory_) {
+    fadeHistory_ = frames;
+
+    emit fadeHistoryChanged(frames);
+    emit changed();
+  }
+}
+
+size_t CurveStyleConfig::getFadeHistory() const {
+  return fadeHistory_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -163,6 +183,7 @@ void CurveStyleConfig::save(QSettings& settings) const {
   settings.setValue("pen_width", QVariant::fromValue<qulonglong>(penWidth_));
   settings.setValue("pen_style", (int)penStyle_);
   settings.setValue("render_antialias", renderAntialias_);
+  settings.setValue("fade_history", QVariant::fromValue<qulonglong>(fadeHistory_));
 }
 
 void CurveStyleConfig::load(QSettings& settings) {
@@ -176,6 +197,7 @@ void CurveStyleConfig::load(QSettings& settings) {
   setPenWidth(settings.value("pen_width", 1).toULongLong());
   setPenStyle(static_cast<Qt::PenStyle>(settings.value("pen_style", (int)Qt::SolidLine).toInt()));
   setRenderAntialias(settings.value("render_antialias", false).toBool());
+  setFadeHistory(settings.value("fade_history", 0).toULongLong());
 }
 
 void CurveStyleConfig::reset() {
@@ -189,9 +211,11 @@ void CurveStyleConfig::reset() {
   setPenWidth(1);
   setPenStyle(Qt::SolidLine);
   setRenderAntialias(false);
+  setFadeHistory(0);
 }
 
 void CurveStyleConfig::write(QDataStream& stream) const {
+  stream << kStyleStreamMagic;
   stream << (int)type_;
 
   stream << linesInterpolate_;
@@ -202,9 +226,11 @@ void CurveStyleConfig::write(QDataStream& stream) const {
   stream << (quint64)penWidth_;
   stream << (int)penStyle_;
   stream << renderAntialias_;
+  stream << (quint64)fadeHistory_;
 }
 
 void CurveStyleConfig::read(QDataStream& stream) {
+  qint32 first = 0;
   int type = 0;
   int sticksOrientation = 0;
   int penStyle = 0;
@@ -214,7 +240,13 @@ void CurveStyleConfig::read(QDataStream& stream) {
   double sticksBaseline = NAN;
   quint64 penWidth = 0;
 
-  stream >> type;
+  stream >> first;
+  const bool versioned = (first == kStyleStreamMagic);
+  if (versioned) {
+    stream >> type;
+  } else {
+    type = first;
+  }
   setType(static_cast<Type>(type));
 
   stream >> linesInterpolate;
@@ -232,6 +264,14 @@ void CurveStyleConfig::read(QDataStream& stream) {
   setPenStyle(static_cast<Qt::PenStyle>(penStyle));
   stream >> renderAntialias;
   setRenderAntialias(renderAntialias);
+
+  if (versioned) {
+    quint64 fadeHistory = 0;
+    stream >> fadeHistory;
+    setFadeHistory(fadeHistory);
+  } else {
+    setFadeHistory(0);
+  }
 }
 
 /*****************************************************************************/
@@ -249,6 +289,7 @@ CurveStyleConfig& CurveStyleConfig::operator=(const CurveStyleConfig& src) {
   setPenWidth(src.penWidth_);
   setPenStyle(src.penStyle_);
   setRenderAntialias(src.renderAntialias_);
+  setFadeHistory(src.fadeHistory_);
 
   return *this;
 }

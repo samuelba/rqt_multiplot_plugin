@@ -5,6 +5,7 @@
 
 #include "rqt_multiplot/MessageFieldAccess.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
@@ -351,6 +352,125 @@ bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::strin
   }
 
   value = getNumericValue(*current);
+  return true;
+}
+
+bool isWildcardFieldPath(const std::string& path) {
+  const auto parts = splitPath(path);
+  return std::count(parts.begin(), parts.end(), "*") == 1;
+}
+
+bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path) {
+  const auto parts = splitPath(path);
+  const auto wildcards = std::count(parts.begin(), parts.end(), "*");
+  if (wildcards > 1) {
+    return false;
+  }
+  if (fieldType.isNumeric) {
+    return true;
+  }
+  return fieldType.isNumericArray() && wildcards == 1;
+}
+
+bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values) {
+  values.clear();
+
+  const auto parts = splitPath(path);
+  if (std::count(parts.begin(), parts.end(), "*") != 1) {
+    return false;
+  }
+
+  std::vector<double> series;
+
+  const ros_babel_fish::Message* current = &message;
+  size_t wildcardIndex = 0;
+  for (size_t i = 0; i < parts.size(); ++i) {
+    if (parts[i] == "*") {
+      wildcardIndex = i;
+      break;
+    }
+
+    if (current->type() == ros_babel_fish::MessageTypes::Compound) {
+      const auto& compound = current->as<ros_babel_fish::CompoundMessage>();
+      if (!compound.containsKey(parts[i])) {
+        return false;
+      }
+      current = &compound[parts[i]];
+      continue;
+    }
+
+    if (current->type() == ros_babel_fish::MessageTypes::Array) {
+      size_t index = 0;
+      try {
+        index = static_cast<size_t>(std::stoul(parts[i]));
+      } catch (const std::exception&) {
+        return false;
+      }
+
+      const auto* element = compoundArrayAt(*current, index);
+      if (element == nullptr) {
+        return false;
+      }
+      current = element;
+      continue;
+    }
+
+    return false;
+  }
+
+  if (current->type() != ros_babel_fish::MessageTypes::Array) {
+    return false;
+  }
+
+  std::string suffix;
+  for (size_t i = wildcardIndex + 1; i < parts.size(); ++i) {
+    if (!suffix.empty()) {
+      suffix += "/";
+    }
+    suffix += parts[i];
+  }
+
+  const auto& array = current->as<ros_babel_fish::ArrayMessageBase>();
+  const bool isCompoundArray = array.elementType() == ros_babel_fish::MessageTypes::Compound;
+  const size_t count = array.size();
+  series.reserve(count);
+
+  if (!isCompoundArray) {
+    if (!suffix.empty() || !isNumericType(array.elementType())) {
+      return false;
+    }
+    for (size_t i = 0; i < count; ++i) {
+      double value = 0.0;
+      if (!tryPrimitiveArrayValue(*current, i, value)) {
+        return false;
+      }
+      series.push_back(value);
+    }
+    values = std::move(series);
+    return true;
+  }
+
+  for (size_t i = 0; i < count; ++i) {
+    const auto* element = compoundArrayAt(*current, i);
+    if (element == nullptr) {
+      return false;
+    }
+    if (suffix.empty()) {
+      if (!isNumericMessageType(*element)) {
+        return false;
+      }
+      series.push_back(getNumericValue(*element));
+      continue;
+    }
+
+    double value = 0.0;
+    if (!tryGetNumericValue(*element, suffix, value)) {
+      return false;
+    }
+    series.push_back(value);
+  }
+
+  values = std::move(series);
   return true;
 }
 

@@ -28,7 +28,7 @@ namespace rqt_multiplot {
 class CurveAxisConfig : public Config {
   Q_OBJECT
  public:
-  enum FieldType { MessageData, MessageReceiptTime };
+  enum FieldType { MessageData, MessageReceiptTime, ArrayIndex };
 
   explicit CurveAxisConfig(QObject* parent = nullptr, QString topic = QString(), QString type = QString(),
                            FieldType fieldType = MessageData, QString field = QString(), bool labelFromZero = false);
@@ -45,6 +45,8 @@ class CurveAxisConfig : public Config {
   void setLabelFromZero(bool labelFromZero);
   bool isLabelFromZero() const;
   bool usesTimeScale() const;
+  bool hasConfiguredSource() const;
+  QString getFieldLabel() const;
   static bool isTimeFieldPath(const QString& field);
   CurveAxisScaleConfig* getScaleConfig() const;
 

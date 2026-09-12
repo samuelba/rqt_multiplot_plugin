@@ -31,6 +31,7 @@ MessageFieldItem::MessageFieldItem(const MessageFieldType& dataType, MessageFiel
       appendChild(new MessageFieldItem(member.second, this, member.first));
     }
   } else if (dataType_.isArray() && dataType_.elementType) {
+    appendChild(new MessageFieldItem(*dataType_.elementType, this, QStringLiteral("*")));
     if (!dataType_.isDynamicArray) {
       for (size_t i = 0; i < dataType_.arraySize; ++i) {
         appendChild(new MessageFieldItem(*dataType_.elementType, this, QString::number(i)));
@@ -112,17 +113,21 @@ void MessageFieldItem::appendChild(MessageFieldItem* child) {
 
 void MessageFieldItem::update(const QString& path) {
   QStringList names = path.split("/");
+  const auto indexOffset = [](const QList<MessageFieldItem*>& children) {
+    return (!children.isEmpty() && children.first()->name_ == QLatin1String("*")) ? 1 : 0;
+  };
 
   if (dataType_.isArray() && dataType_.elementType && QRegularExpression("[1-9][0-9]*").match(names.first()).hasMatch()) {
     if (dataType_.isDynamicArray) {
-      if (children_.count() < 11) {
+      const int offset = indexOffset(children_);
+      if (children_.count() < offset + 11) {
         appendChild(new MessageFieldItem(*dataType_.elementType, this));
       }
 
-      children_[0]->name_ = names.first();
+      children_[offset]->name_ = names.first();
 
-      for (int i = 0; i <= 9 && i + 1 < children_.count(); ++i) {
-        children_[i + 1]->name_ = names.first() + QString::number(i);
+      for (int i = 0; i <= 9 && offset + i + 1 < children_.count(); ++i) {
+        children_[offset + i + 1]->name_ = names.first() + QString::number(i);
       }
     }
   }
@@ -131,9 +136,10 @@ void MessageFieldItem::update(const QString& path) {
     MessageFieldItem* child = children_[row];
 
     if (child->dataType_.isArray() && child->dataType_.isDynamicArray) {
-      if (child->children_.count() > 10) {
-        for (int i = 0; i <= 9 && i < child->children_.count(); ++i) {
-          child->children_[i]->name_ = QString::number(i);
+      const int offset = indexOffset(child->children_);
+      if (child->children_.count() > offset + 10) {
+        for (int i = 0; i <= 9 && offset + i < child->children_.count(); ++i) {
+          child->children_[offset + i]->name_ = QString::number(i);
         }
 
         delete child->children_.last();

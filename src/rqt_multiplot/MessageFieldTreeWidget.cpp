@@ -111,13 +111,14 @@ void MessageFieldTreeWidget::setCurrentItem(const QString& field) {
           continue;
         }
       } else if (fieldType.isArray()) {
-        bool indexOkay = false;
-        size_t index = fields.front().toUInt(&indexOkay);
         auto* spinBoxIndex = dynamic_cast<QSpinBox*>(itemWidget(item->child(0), 0));
+        const bool isWildcard = (fields.front() == QLatin1String("*"));
+        bool indexOkay = false;
+        const int index = fields.front().toInt(&indexOkay);
 
-        if (indexOkay && (spinBoxIndex != nullptr) && (index < static_cast<size_t>(spinBoxIndex->maximum()))) {
+        if ((spinBoxIndex != nullptr) && (isWildcard || (indexOkay && index >= 0 && index <= spinBoxIndex->maximum()))) {
           spinBoxIndex->blockSignals(true);
-          spinBoxIndex->setValue(static_cast<int>(index));
+          spinBoxIndex->setValue(isWildcard ? -1 : index);
           spinBoxIndex->blockSignals(false);
 
           item = item->child(0);
@@ -161,7 +162,8 @@ void MessageFieldTreeWidget::addField(const QString& name, const MessageFieldTyp
     }
   } else if (fieldType.isArray() && fieldType.elementType) {
     auto* spinBoxIndex = new QSpinBox(this);
-    spinBoxIndex->setMinimum(0);
+    spinBoxIndex->setMinimum(-1);
+    spinBoxIndex->setSpecialValueText("*");
     if (!fieldType.isDynamicArray && fieldType.arraySize > 0) {
       spinBoxIndex->setMaximum(static_cast<int>(fieldType.arraySize) - 1);
     } else {
@@ -188,6 +190,7 @@ void MessageFieldTreeWidget::addField(const QString& name, const MessageFieldTyp
         addField(member.first, member.second, memberItem);
       }
     } else if (fieldType.elementType->isNumeric) {
+      item->setFlags(item->flags() | Qt::ItemIsSelectable);
       memberItem->setFlags(memberItem->flags() | Qt::ItemIsSelectable);
     }
   } else if (fieldType.isNumeric) {
@@ -207,14 +210,20 @@ QTreeWidgetItem* MessageFieldTreeWidget::findChild(QTreeWidgetItem* item, int co
 
 void MessageFieldTreeWidget::currentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* /*previous*/) {
   QString field;
+  if (current != nullptr) {
+    const auto fieldType = current->data(1, Qt::UserRole).value<MessageFieldType>();
+    if (fieldType.isArray()) {
+      field = QStringLiteral("*");
+    }
+  }
 
   while (current != nullptr) {
     QString text = current->text(0);
 
     if (text.isEmpty()) {
       auto* spinBoxIndex = dynamic_cast<QSpinBox*>(itemWidget(current, 0));
-
-      text = QString::number(spinBoxIndex->value());
+      const int index = (spinBoxIndex != nullptr) ? spinBoxIndex->value() : 0;
+      text = (index < 0) ? QStringLiteral("*") : QString::number(index);
     }
 
     if (!field.isEmpty()) {

@@ -21,6 +21,20 @@
 #include <utility>
 
 namespace rqt_multiplot {
+namespace {
+
+CurveAxisConfig::FieldType parseFieldType(int raw) {
+  switch (raw) {
+    case CurveAxisConfig::MessageData:
+    case CurveAxisConfig::MessageReceiptTime:
+    case CurveAxisConfig::ArrayIndex:
+      return static_cast<CurveAxisConfig::FieldType>(raw);
+    default:
+      return CurveAxisConfig::MessageData;
+  }
+}
+
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -113,7 +127,24 @@ bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
 }
 
 bool CurveAxisConfig::usesTimeScale() const {
-  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || isTimeFieldPath(field_);
+  if (fieldType_ == ArrayIndex) {
+    return false;
+  }
+  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
+}
+
+bool CurveAxisConfig::hasConfiguredSource() const {
+  return fieldType_ == MessageReceiptTime || fieldType_ == ArrayIndex || !field_.isEmpty();
+}
+
+QString CurveAxisConfig::getFieldLabel() const {
+  if (fieldType_ == MessageReceiptTime) {
+    return QStringLiteral("receipt_time");
+  }
+  if (fieldType_ == ArrayIndex) {
+    return QStringLiteral("index");
+  }
+  return field_;
 }
 
 CurveAxisScaleConfig* CurveAxisConfig::getScaleConfig() const {
@@ -139,7 +170,7 @@ void CurveAxisConfig::save(QSettings& settings) const {
 void CurveAxisConfig::load(QSettings& settings) {
   setTopic(settings.value("topic").toString());
   setType(settings.value("type").toString());
-  const auto fieldType = static_cast<FieldType>(settings.value("field_type").toInt());
+  const auto fieldType = parseFieldType(settings.value("field_type").toInt());
   setFieldType(fieldType);
   setField(settings.value("field").toString());
   setLabelFromZero(settings.value("label_from_zero", fieldType == MessageReceiptTime).toBool());
@@ -181,7 +212,7 @@ void CurveAxisConfig::read(QDataStream& stream) {
   stream >> type;
   setType(type);
   stream >> fieldType;
-  setFieldType(static_cast<FieldType>(fieldType));
+  setFieldType(parseFieldType(fieldType));
   stream >> field;
   setField(field);
   stream >> labelFromZero;

@@ -59,6 +59,9 @@ CurveStyleConfigWidget::CurveStyleConfigWidget(QWidget* parent)
   connect(ui_->spinBoxPenWidth, SIGNAL(valueChanged(int)), this, SLOT(spinBoxPenWidthValueChanged(int)));
   connect(ui_->comboBoxPenStyle, SIGNAL(currentStyleChanged(int)), this, SLOT(comboBoxPenStyleCurrentStyleChanged(int)));
   connect(ui_->checkBoxRenderAntialias, SIGNAL(stateChanged(int)), this, SLOT(checkBoxRenderAntialiasStateChanged(int)));
+  connect(ui_->spinBoxFadeHistory, SIGNAL(valueChanged(int)), this, SLOT(spinBoxFadeHistoryValueChanged(int)));
+
+  setFadeHistoryApplicable(false);
 }
 
 CurveStyleConfigWidget::~CurveStyleConfigWidget() {
@@ -82,6 +85,7 @@ void CurveStyleConfigWidget::setConfig(CurveStyleConfig* config) {
       disconnect(config_, SIGNAL(penWidthChanged(size_t)), this, SLOT(configPenWidthChanged(size_t)));
       disconnect(config_, SIGNAL(penStyleChanged(int)), this, SLOT(configPenStyleChanged(int)));
       disconnect(config_, SIGNAL(renderAntialiasChanged(bool)), this, SLOT(configRenderAntialiasChanged(bool)));
+      disconnect(config_, SIGNAL(fadeHistoryChanged(size_t)), this, SLOT(configFadeHistoryChanged(size_t)));
     }
 
     config_ = config;
@@ -97,6 +101,7 @@ void CurveStyleConfigWidget::setConfig(CurveStyleConfig* config) {
       connect(config, SIGNAL(penWidthChanged(size_t)), this, SLOT(configPenWidthChanged(size_t)));
       connect(config, SIGNAL(penStyleChanged(int)), this, SLOT(configPenStyleChanged(int)));
       connect(config, SIGNAL(renderAntialiasChanged(bool)), this, SLOT(configRenderAntialiasChanged(bool)));
+      connect(config, SIGNAL(fadeHistoryChanged(size_t)), this, SLOT(configFadeHistoryChanged(size_t)));
 
       configTypeChanged(config->getType());
 
@@ -108,12 +113,22 @@ void CurveStyleConfigWidget::setConfig(CurveStyleConfig* config) {
       configPenWidthChanged(config->getPenWidth());
       configPenStyleChanged(config->getPenStyle());
       configRenderAntialiasChanged(config->isRenderAntialiased());
+      configFadeHistoryChanged(config->getFadeHistory());
     }
   }
 }
 
 CurveStyleConfig* CurveStyleConfigWidget::getConfig() const {
   return config_;
+}
+
+void CurveStyleConfigWidget::setFadeHistoryApplicable(bool applicable) {
+  ui_->labelFadeHistory->setEnabled(applicable);
+  ui_->spinBoxFadeHistory->setEnabled(applicable);
+}
+
+bool CurveStyleConfigWidget::isFadeHistoryApplicable() const {
+  return ui_->spinBoxFadeHistory->isEnabled();
 }
 
 /*****************************************************************************/
@@ -239,6 +254,16 @@ void CurveStyleConfigWidget::comboBoxPenStyleCurrentStyleChanged(int style) {
 void CurveStyleConfigWidget::checkBoxRenderAntialiasStateChanged(int state) {
   if (config_ != nullptr) {
     config_->setRenderAntialias(state == Qt::Checked);
+  }
+}
+
+void CurveStyleConfigWidget::configFadeHistoryChanged(size_t frames) {
+  ui_->spinBoxFadeHistory->setValue(static_cast<int>(frames));
+}
+
+void CurveStyleConfigWidget::spinBoxFadeHistoryValueChanged(int value) {
+  if (config_ != nullptr) {
+    config_->setFadeHistory(static_cast<size_t>(value));
   }
 }
 

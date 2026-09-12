@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <rqt_multiplot/CurveDataSequencer.h>
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveConfigWidget.h>
@@ -61,6 +62,9 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   connect(config_->getAxisConfig(CurveConfig::Y), SIGNAL(typeChanged(const QString&)), this,
           SLOT(configAxisConfigTypeChanged(const QString&)));
 
+  connect(config_->getAxisConfig(CurveConfig::X), SIGNAL(changed()), this, SLOT(updateFadeHistoryApplicable()));
+  connect(config_->getAxisConfig(CurveConfig::Y), SIGNAL(changed()), this, SLOT(updateFadeHistoryApplicable()));
+
   connect(ui_->lineEditTitle, SIGNAL(editingFinished()), this, SLOT(lineEditTitleEditingFinished()));
   connect(ui_->pushButtonCopyRight, SIGNAL(clicked()), this, SLOT(pushButtonCopyRightClicked()));
   connect(ui_->pushButtonCopyLeft, SIGNAL(clicked()), this, SLOT(pushButtonCopyLeftClicked()));
@@ -71,6 +75,7 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
 
   configTitleChanged(config_->getTitle());
   configSubscriberQueueSizeChanged(config_->getSubscriberQueueSize());
+  updateFadeHistoryApplicable();
 }
 
 CurveConfigWidget::~CurveConfigWidget() {
@@ -83,6 +88,7 @@ CurveConfigWidget::~CurveConfigWidget() {
 
 void CurveConfigWidget::setConfig(const CurveConfig& config) {
   *config_ = config;
+  updateFadeHistoryApplicable();
 }
 
 CurveConfig& CurveConfigWidget::getConfig() {
@@ -133,6 +139,13 @@ void CurveConfigWidget::configAxisConfigTypeChanged(const QString& type) {
   if (destination->getType().isEmpty()) {
     destination->setType(type);
   }
+}
+
+void CurveConfigWidget::updateFadeHistoryApplicable() {
+  ui_->curveStyleConfigWidget->setFadeHistoryApplicable(CurveDataSequencer::isSnapshotConfig(*config_));
+  const QString pairingError = CurveDataSequencer::snapshotIncompatibilityReason(*config_);
+  ui_->curveAxisConfigWidgetX->applySnapshotPairingError(pairingError);
+  ui_->curveAxisConfigWidgetY->applySnapshotPairingError(pairingError);
 }
 
 void CurveConfigWidget::lineEditTitleEditingFinished() {

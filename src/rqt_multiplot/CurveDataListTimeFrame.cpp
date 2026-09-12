@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QVector>
+
 #include "rqt_multiplot/CurveDataListTimeFrame.h"
 
 namespace rqt_multiplot {
@@ -76,6 +78,15 @@ void CurveDataListTimeFrame::appendPoint(const QPointF& point) {
 
   bounds_.setMinimum(QPointF(min_max_x.first->x(), min_max_y.first->y()));
   bounds_.setMaximum(QPointF(min_max_x.second->x(), min_max_y.second->y()));
+}
+
+void CurveDataListTimeFrame::replacePoints(const QVector<QPointF>& points) {
+  points_.clear();
+  bounds_.clear();
+  for (const auto& point : points) {
+    points_.append(point);
+    bounds_ += point;
+  }
 }
 
 void CurveDataListTimeFrame::clearPoints() {

@@ -18,6 +18,7 @@
 
 #include <QSignalBlocker>
 
+#include <rqt_multiplot/MessageFieldAccess.h>
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
@@ -71,6 +72,7 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent),
   connect(ui_->widgetField, SIGNAL(currentFieldChanged(const QString&)), this, SLOT(widgetFieldCurrentFieldChanged(const QString&)));
 
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
+  connect(ui_->checkBoxFieldArrayIndex, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldArrayIndexStateChanged(int)));
   connect(ui_->checkBoxLabelFromZero, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLabelFromZeroStateChanged(int)));
 
   if (ui_->comboBoxTopic->isUpdating()) {
@@ -214,7 +216,7 @@ bool CurveAxisConfigWidget::validateField() {
     return false;
   }
 
-  if (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime) {
+  if (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex) {
     ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
 
     return true;
@@ -229,19 +231,33 @@ bool CurveAxisConfigWidget::validateField() {
   MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
 
   if (fieldType.isValid()) {
-    if (fieldType.isNumeric) {
+    if (isPlottableFieldPath(fieldType, config_->getField().toStdString())) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
 
       return true;
-    } else {
-      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "Message field [" + config_->getField() + "] is not numeric");
+    }
+    if (fieldType.isNumericArray()) {
+      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error,
+                                            "Message field [" + config_->getField() + "] is an array; select a * series");
 
       return false;
     }
+    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "Message field [" + config_->getField() + "] is not numeric");
+
+    return false;
   } else {
     ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "No such message field [" + config_->getField() + "]");
 
     return false;
+  }
+}
+
+void CurveAxisConfigWidget::applySnapshotPairingError(const QString& error) {
+  if (!validateField()) {
+    return;
+  }
+  if (!error.isEmpty()) {
+    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, error);
   }
 }
 
@@ -261,7 +277,50 @@ bool CurveAxisConfigWidget::validateScale() {
   }
 }
 
+void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
+  const bool syntheticField = (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) ||
+                              (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
+  ui_->widgetField->setEnabled(!syntheticField);
+}
+
+void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType) {
+  const bool checked = (state == Qt::Checked);
+  if (checked && fieldType == CurveAxisConfig::ArrayIndex) {
+    const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
+    ui_->checkBoxFieldReceiptTime->setCheckState(Qt::Unchecked);
+  }
+  if (checked && fieldType == CurveAxisConfig::MessageReceiptTime) {
+    const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
+    ui_->checkBoxFieldArrayIndex->setCheckState(Qt::Unchecked);
+  }
+
+  updateFieldWidgetEnabled();
+
+  if (config_ == nullptr) {
+    return;
+  }
+
+  if (checked) {
+    config_->setFieldType(fieldType);
+    if (fieldType == CurveAxisConfig::MessageReceiptTime) {
+      config_->setLabelFromZero(true);
+    }
+    return;
+  }
+
+  if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked) {
+    config_->setFieldType(CurveAxisConfig::MessageData);
+  }
+}
+
 void CurveAxisConfigWidget::updateLabelFromZeroControl() {
+  const bool arrayIndex = (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+  if (arrayIndex) {
+    ui_->checkBoxLabelFromZero->setEnabled(false);
+    config_->setLabelFromZero(false);
+    return;
+  }
+
   const bool receiptTime = (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime);
   const MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
   const bool fieldIsTime = fieldType.isTime;
@@ -291,9 +350,12 @@ void CurveAxisConfigWidget::configTypeChanged(const QString& type) {
 }
 
 void CurveAxisConfigWidget::configFieldTypeChanged(int fieldType) {
-  const QSignalBlocker blocker(ui_->checkBoxFieldReceiptTime);
+  const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
+  const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
   ui_->checkBoxFieldReceiptTime->setCheckState((fieldType == CurveAxisConfig::MessageReceiptTime) ? Qt::Checked : Qt::Unchecked);
+  ui_->checkBoxFieldArrayIndex->setCheckState((fieldType == CurveAxisConfig::ArrayIndex) ? Qt::Checked : Qt::Unchecked);
 
+  updateFieldWidgetEnabled();
   updateLabelFromZeroControl();
   validateType();
 }
@@ -367,7 +429,7 @@ void CurveAxisConfigWidget::widgetFieldLoadingStarted() {
 }
 
 void CurveAxisConfigWidget::widgetFieldLoadingFinished() {
-  ui_->widgetField->setEnabled(ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked);
+  updateFieldWidgetEnabled();
   ui_->statusWidgetField->popCurrentRole();
 
   updateLabelFromZeroControl();
@@ -396,7 +458,7 @@ void CurveAxisConfigWidget::widgetFieldConnecting(const QString& topic) {
 }
 
 void CurveAxisConfigWidget::widgetFieldConnected(const QString& /*topic*/) {
-  ui_->widgetField->setEnabled(ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked);
+  updateFieldWidgetEnabled();
   ui_->statusWidgetField->popCurrentRole();
 
   updateLabelFromZeroControl();
@@ -422,15 +484,13 @@ void CurveAxisConfigWidget::widgetFieldCurrentFieldChanged(const QString& field)
 }
 
 void CurveAxisConfigWidget::checkBoxFieldReceiptTimeStateChanged(int state) {
-  ui_->widgetField->setEnabled(state != Qt::Checked);
+  setSyntheticFieldType(state, CurveAxisConfig::MessageReceiptTime);
+  updateLabelFromZeroControl();
+  validateField();
+}
 
-  if (config_ != nullptr) {
-    config_->setFieldType((state == Qt::Checked) ? CurveAxisConfig::MessageReceiptTime : CurveAxisConfig::MessageData);
-    if (state == Qt::Checked) {
-      config_->setLabelFromZero(true);
-    }
-  }
-
+void CurveAxisConfigWidget::checkBoxFieldArrayIndexStateChanged(int state) {
+  setSyntheticFieldType(state, CurveAxisConfig::ArrayIndex);
   updateLabelFromZeroControl();
   validateField();
 }

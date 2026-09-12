@@ -1,3 +1,6 @@
+#include <memory>
+#include <vector>
+
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/serialization.hpp>
 #include <std_msgs/msg/float64.hpp>
@@ -20,6 +23,9 @@ using rqt_multiplot::getStamp;
 using rqt_multiplot::hasHeader;
 using rqt_multiplot::isNumericMessageType;
 using rqt_multiplot::normalizeTypeName;
+using rqt_multiplot::isPlottableFieldPath;
+using rqt_multiplot::isWildcardFieldPath;
+using rqt_multiplot::tryGetNumericSeries;
 using rqt_multiplot::tryGetNumericValue;
 
 TEST(MessageFieldAccess, normalizesRos1TypeNames) {
@@ -151,6 +157,115 @@ TEST(MessageFieldAccess, readsCompoundArrayElements) {
   double value = 0.0;
   ASSERT_TRUE(tryGetNumericValue(*message, "poses/0/position/x", value));
   EXPECT_DOUBLE_EQ(value, 3.5);
+}
+
+TEST(MessageFieldAccess, detectsSingleWildcardSegment) {
+  EXPECT_TRUE(isWildcardFieldPath("position/*"));
+  EXPECT_TRUE(isWildcardFieldPath("poses/*/position/x"));
+  EXPECT_FALSE(isWildcardFieldPath("position/0"));
+  EXPECT_FALSE(isWildcardFieldPath("poses/*/position/*"));
+  EXPECT_FALSE(isWildcardFieldPath("linear/x"));
+}
+
+TEST(MessageFieldAccess, rejectsBareNumericArrayPath) {
+  rqt_multiplot::MessageFieldType element;
+  element.kind = rqt_multiplot::MessageFieldType::Builtin;
+  element.isNumeric = true;
+
+  rqt_multiplot::MessageFieldType array;
+  array.kind = rqt_multiplot::MessageFieldType::Array;
+  array.elementType = std::make_shared<rqt_multiplot::MessageFieldType>(element);
+
+  EXPECT_FALSE(isPlottableFieldPath(array, "position"));
+  EXPECT_TRUE(isPlottableFieldPath(array, "position/*"));
+
+  rqt_multiplot::MessageFieldType scalar;
+  scalar.kind = rqt_multiplot::MessageFieldType::Builtin;
+  scalar.isNumeric = true;
+  EXPECT_TRUE(isPlottableFieldPath(scalar, "position/0"));
+  EXPECT_TRUE(isPlottableFieldPath(scalar, "poses/*/position/x"));
+  EXPECT_FALSE(isPlottableFieldPath(scalar, "poses/*/position/*"));
+  EXPECT_FALSE(isPlottableFieldPath(rqt_multiplot::MessageFieldType(), "position"));
+}
+
+TEST(MessageFieldAccess, readsPrimitiveArraySeries) {
+  auto message = createMessagePrototype("sensor_msgs/msg/JointState");
+  ASSERT_NE(message, nullptr);
+
+  auto& position = (*message)["position"].as<ros_babel_fish::ArrayMessage<double>>();
+  position.push_back(1.25);
+  position.push_back(-0.5);
+  position.push_back(3.0);
+
+  std::vector<double> values;
+  ASSERT_TRUE(tryGetNumericSeries(*message, "position/*", values));
+  ASSERT_EQ(values.size(), 3u);
+  EXPECT_DOUBLE_EQ(values[0], 1.25);
+  EXPECT_DOUBLE_EQ(values[1], -0.5);
+  EXPECT_DOUBLE_EQ(values[2], 3.0);
+}
+
+TEST(MessageFieldAccess, readsFixedPrimitiveArraySeries) {
+  auto message = createMessagePrototype("geometry_msgs/msg/PoseWithCovariance");
+  ASSERT_NE(message, nullptr);
+
+  auto& covariance = (*message)["covariance"].as<ros_babel_fish::FixedLengthArrayMessage<double>>();
+  covariance.assign(0, 9.0);
+  covariance.assign(1, 8.5);
+  covariance.assign(2, 1.0);
+
+  std::vector<double> values;
+  ASSERT_TRUE(tryGetNumericSeries(*message, "covariance/*", values));
+  ASSERT_EQ(values.size(), 36u);
+  EXPECT_DOUBLE_EQ(values[0], 9.0);
+  EXPECT_DOUBLE_EQ(values[1], 8.5);
+  EXPECT_DOUBLE_EQ(values[2], 1.0);
+}
+
+TEST(MessageFieldAccess, readsCompoundArraySeries) {
+  auto message = createMessagePrototype("geometry_msgs/msg/PoseArray");
+  ASSERT_NE(message, nullptr);
+
+  auto& poses = (*message)["poses"].as<ros_babel_fish::CompoundArrayMessage>();
+  poses.appendEmpty()["position"]["x"] = 1.0;
+  poses.appendEmpty()["position"]["x"] = 2.5;
+  poses.appendEmpty()["position"]["y"] = 4.0;
+
+  std::vector<double> xs;
+  ASSERT_TRUE(tryGetNumericSeries(*message, "poses/*/position/x", xs));
+  ASSERT_EQ(xs.size(), 3u);
+  EXPECT_DOUBLE_EQ(xs[0], 1.0);
+  EXPECT_DOUBLE_EQ(xs[1], 2.5);
+  EXPECT_DOUBLE_EQ(xs[2], 0.0);
+
+  std::vector<double> ys;
+  ASSERT_TRUE(tryGetNumericSeries(*message, "poses/*/position/y", ys));
+  ASSERT_EQ(ys.size(), 3u);
+  EXPECT_DOUBLE_EQ(ys[2], 4.0);
+}
+
+TEST(MessageFieldAccess, rejectsInvalidSeriesPaths) {
+  auto joints = createMessagePrototype("sensor_msgs/msg/JointState");
+  ASSERT_NE(joints, nullptr);
+  (*joints)["position"].as<ros_babel_fish::ArrayMessage<double>>().push_back(1.0);
+
+  std::vector<double> values;
+  EXPECT_FALSE(tryGetNumericSeries(*joints, "position/*/0", values));
+  EXPECT_FALSE(tryGetNumericSeries(*joints, "name/*", values));
+  EXPECT_FALSE(tryGetNumericSeries(*joints, "poses/*/position/x", values));
+
+  auto poses = createMessagePrototype("geometry_msgs/msg/PoseArray");
+  ASSERT_NE(poses, nullptr);
+  EXPECT_FALSE(tryGetNumericSeries(*poses, "poses/*/position/*", values));
+}
+
+TEST(MessageFieldAccess, returnsEmptySeriesForEmptyArray) {
+  auto message = createMessagePrototype("sensor_msgs/msg/JointState");
+  ASSERT_NE(message, nullptr);
+
+  std::vector<double> values{1.0};
+  ASSERT_TRUE(tryGetNumericSeries(*message, "position/*", values));
+  EXPECT_TRUE(values.empty());
 }
 
 TEST(MessageFieldAccess, deserializesSerializedMessage) {

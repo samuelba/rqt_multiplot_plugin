@@ -7,6 +7,7 @@
 #define RQT_MULTIPLOT_MESSAGE_FIELD_ACCESS_H
 
 #include <string>
+#include <vector>
 
 #include <rclcpp/serialized_message.hpp>
 #include <rclcpp/time.hpp>
@@ -25,6 +26,9 @@ ros_babel_fish::Message* getMember(ros_babel_fish::Message& message, const std::
 bool isNumericMessageType(const ros_babel_fish::Message& message);
 double getNumericValue(const ros_babel_fish::Message& message);
 bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::string& path, double& value);
+bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values);
+bool isWildcardFieldPath(const std::string& path);
+bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path);
 rclcpp::Time getStamp(const ros_babel_fish::Message& message);
 bool hasHeader(const ros_babel_fish::Message& message);
 
