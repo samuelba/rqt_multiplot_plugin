@@ -124,18 +124,22 @@ double StatusWidget::getFrameRate(Role role) const {
 }
 
 void StatusWidget::setCurrentRole(Role role, const QString& toolTip) {
-  if (role != currentRole_) {
-    stop();
+  const bool roleChanged = role != currentRole_;
+  const bool toolTipChanged = toolTip != this->toolTip();
+  if (!roleChanged && !toolTipChanged) {
+    return;
+  }
 
+  if (roleChanged) {
+    stop();
     currentRole_ = role;
     setToolTip(toolTip);
-
     start();
-
-    emit currentRoleChanged(role);
   } else {
     setToolTip(toolTip);
   }
+
+  emit currentRoleChanged(currentRole_);
 }
 
 StatusWidget::Role StatusWidget::getCurrentRole() const {

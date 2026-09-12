@@ -1,14 +1,16 @@
 #include <cstdlib>
 
 #include <QApplication>
-#include <QEventLoop>
-#include <QTimer>
+#include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QObject>
 
 #include <gtest/gtest.h>
 
 #include <rqt_multiplot/CurveAxisConfig.h>
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/CurveConfigWidget.h>
+#include <rqt_multiplot/MessageFieldWidget.h>
 #include <rqt_multiplot/StatusWidget.h>
 
 namespace {
@@ -16,6 +18,7 @@ namespace {
 using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
 using rqt_multiplot::CurveConfigWidget;
+using rqt_multiplot::MessageFieldWidget;
 using rqt_multiplot::StatusWidget;
 
 constexpr auto kUnpairedArrayMessage = "Array index or * field must be paired with another * field or array index";
@@ -31,11 +34,35 @@ QApplication* ensureApplication() {
   return new QApplication(argc, argv);
 }
 
-void processEventsFor(int milliseconds) {
-  QEventLoop loop;
-  QTimer::singleShot(milliseconds, &loop, &QEventLoop::quit);
-  loop.exec();
-}
+class FieldDefinitionLoadWaiter : public QObject {
+ public:
+  explicit FieldDefinitionLoadWaiter(CurveConfigWidget& widget) {
+    const auto fieldWidgets = widget.findChildren<MessageFieldWidget*>();
+    subscribed_ = !fieldWidgets.isEmpty();
+    pending_ = fieldWidgets.size();
+    for (auto* fieldWidget : fieldWidgets) {
+      connect(fieldWidget, &MessageFieldWidget::loadingFinished, this, [this]() { --pending_; });
+      connect(fieldWidget, &MessageFieldWidget::loadingFailed, this, [this]() { --pending_; });
+    }
+  }
+
+  bool wait(int timeoutMs = 5000) {
+    if (!subscribed_) {
+      return false;
+    }
+
+    QElapsedTimer timer;
+    timer.start();
+    while (pending_ > 0 && timer.elapsed() < timeoutMs) {
+      QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    }
+    return pending_ == 0;
+  }
+
+ private:
+  bool subscribed_ = false;
+  int pending_ = 0;
+};
 
 void configureUnpairedArrayIndex(CurveConfig& config) {
   config.getAxisConfig(CurveConfig::X)->setTopic("/array");
@@ -68,8 +95,9 @@ TEST(CurveConfigWidget, unpairedArrayIndexStaysAnErrorAfterFieldLoad) {
   configureUnpairedArrayIndex(config);
 
   CurveConfigWidget widget;
+  FieldDefinitionLoadWaiter fieldLoadWaiter(widget);
   widget.setConfig(config);
-  processEventsFor(1500);
+  ASSERT_TRUE(fieldLoadWaiter.wait());
 
   EXPECT_EQ(widget.getAxisConfigWidget(CurveConfig::X)->getFieldStatusRole(), StatusWidget::Error);
   EXPECT_EQ(widget.getAxisConfigWidget(CurveConfig::X)->getFieldStatusMessage(), QString(kUnpairedArrayMessage));

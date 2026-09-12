@@ -349,6 +349,7 @@ if(BUILD_TESTING)
     test/PlotConfigTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
+    test/StatusWidgetTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
