@@ -55,5 +55,23 @@ jobs:
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
           source install/setup.bash
-          colcon test --packages-select rqt_multiplot --event-handlers console_direct+
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --ctest-args " -LE" linter
+          colcon test-result --verbose
+
+      - name: clang-format
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          source install/setup.bash
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --ctest-args " -L" clang_format
+          colcon test-result --verbose
+
+      - name: clang-tidy
+        continue-on-error: true
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          source install/setup.bash
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --ctest-args " -L" clang_tidy
           colcon test-result --verbose

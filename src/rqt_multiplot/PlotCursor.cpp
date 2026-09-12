@@ -174,8 +174,8 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
 QStringList PlotCursor::trackedReadoutLines() const {
   QStringList lines;
   for (const auto& tracked : trackedPoints_) {
-    lines.append(trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true),
-                                   formatCoordinate(tracked.position.y(), false)));
+    lines.append(
+        trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true), formatCoordinate(tracked.position.y(), false)));
   }
   return lines;
 }

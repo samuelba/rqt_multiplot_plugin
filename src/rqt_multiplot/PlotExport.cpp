@@ -41,8 +41,7 @@ QString fileSuffix(const QString& fileName) {
 
 }  // namespace
 
-void writeCurveTable(QTextStream& stream, const QStringList& titles, const QList<QStringList>& columns,
-                     CurveTableHeaderStyle headerStyle) {
+void writeCurveTable(QTextStream& stream, const QStringList& titles, const QList<QStringList>& columns, CurveTableHeaderStyle headerStyle) {
   if (headerStyle == CurveTableHeaderStyle::Comment) {
     stream << "# " << titles.join(", ") << "\n";
   } else {

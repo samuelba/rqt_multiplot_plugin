@@ -39,12 +39,9 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
       messageTopicRegistry_(new MessageTopicRegistry(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonCopyRight->setIcon(
-      QIcon(packageResourcePath("resource/22x22/arrow_right.png")));
-  ui_->pushButtonCopyLeft->setIcon(
-      QIcon(packageResourcePath("resource/22x22/arrow_left.png")));
-  ui_->pushButtonSwap->setIcon(
-      QIcon(packageResourcePath("resource/22x22/arrows_right_left.png")));
+  ui_->pushButtonCopyRight->setIcon(QIcon(packageResourcePath("resource/22x22/arrow_right.png")));
+  ui_->pushButtonCopyLeft->setIcon(QIcon(packageResourcePath("resource/22x22/arrow_left.png")));
+  ui_->pushButtonSwap->setIcon(QIcon(packageResourcePath("resource/22x22/arrows_right_left.png")));
 
   ui_->curveAxisConfigWidgetX->setConfig(config_->getAxisConfig(CurveConfig::X));
   ui_->curveAxisConfigWidgetY->setConfig(config_->getAxisConfig(CurveConfig::Y));

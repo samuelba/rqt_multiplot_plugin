@@ -44,13 +44,11 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
       maxHistoryLength_(maxHistoryLength) {
   ui_->setupUi(this);
 
-  ui_->pushButtonClearHistory->setIcon(
-      QIcon(packageResourcePath("resource/16x16/clear_history.png")));
+  ui_->pushButtonClearHistory->setIcon(QIcon(packageResourcePath("resource/16x16/clear_history.png")));
   ui_->pushButtonNew->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
   ui_->pushButtonOpen->setIcon(QIcon(packageResourcePath("resource/16x16/open.png")));
   ui_->pushButtonSave->setIcon(QIcon(packageResourcePath("resource/16x16/save.png")));
-  ui_->pushButtonSaveAs->setIcon(
-      QIcon(packageResourcePath("resource/16x16/save_as.png")));
+  ui_->pushButtonSaveAs->setIcon(QIcon(packageResourcePath("resource/16x16/save_as.png")));
 
   ui_->pushButtonClearHistory->setEnabled(false);
   ui_->pushButtonSave->setEnabled(false);

@@ -47,8 +47,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/16x16/run.png")));
   ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/16x16/pause.png")));
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
-  ui_->pushButtonImportExport->setIcon(
-      QIcon(packageResourcePath("resource/16x16/eject.png")));
+  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
 
   ui_->pushButtonPause->setEnabled(false);
 

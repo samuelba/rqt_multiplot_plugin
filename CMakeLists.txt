@@ -10,6 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
@@ -366,6 +367,19 @@ if(BUILD_TESTING)
       rosbag2_storage::rosbag2_storage
     )
   endif()
+
+  find_package(ament_cmake_clang_format REQUIRED)
+  ament_clang_format(
+    src include test
+    CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+  )
+
+  find_package(ament_cmake_clang_tidy REQUIRED)
+  ament_clang_tidy(
+    ${CMAKE_CURRENT_BINARY_DIR}
+    CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
+    TIMEOUT 1800
+  )
 endif()
 
 ament_package()

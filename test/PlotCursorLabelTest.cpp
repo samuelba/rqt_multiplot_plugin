@@ -13,10 +13,10 @@ namespace {
 
 using rqt_multiplot::kTrackPointSnapPixels;
 using rqt_multiplot::nearestPointByX;
-using rqt_multiplot::trackPointSnapDistance;
 using rqt_multiplot::trackedPointLabel;
 using rqt_multiplot::trackedPointLabels;
 using rqt_multiplot::trackedPointsReadoutRect;
+using rqt_multiplot::trackPointSnapDistance;
 
 TEST(PlotCursorLabel, snapDistanceScalesUnitsPerPixel) {
   EXPECT_DOUBLE_EQ(trackPointSnapDistance(0.5, kTrackPointSnapPixels), 8.0);
@@ -34,8 +34,7 @@ TEST(PlotCursorLabel, formatsCoordinatesWithoutTitle) {
 }
 
 TEST(PlotCursorLabel, prefixesCurveTitle) {
-  EXPECT_EQ(trackedPointLabel(QStringLiteral("Pan"), QStringLiteral("1.25"), QStringLiteral("-0.5")),
-            QStringLiteral("Pan: 1.25, -0.5"));
+  EXPECT_EQ(trackedPointLabel(QStringLiteral("Pan"), QStringLiteral("1.25"), QStringLiteral("-0.5")), QStringLiteral("Pan: 1.25, -0.5"));
 }
 
 TEST(PlotCursorLabel, joinsOneLinePerCurve) {

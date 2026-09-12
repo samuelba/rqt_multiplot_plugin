@@ -244,8 +244,8 @@ bool CurveAxisConfigWidget::validateType() {
 }
 
 bool CurveAxisConfigWidget::isSyntheticFieldType() const {
-  return (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime ||
-                                  config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+  return (config_ != nullptr) &&
+         (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex);
 }
 
 bool CurveAxisConfigWidget::applyFieldStatusAfterLocalOk() {
@@ -285,7 +285,7 @@ bool CurveAxisConfigWidget::validateField() {
     }
     if (fieldType.isNumericArray()) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Error,
-                                            "Message field [" + config_->getField() + "] is an array; select a * series");
+                                             "Message field [" + config_->getField() + "] is an array; select a * series");
 
       return false;
     }
@@ -321,8 +321,8 @@ bool CurveAxisConfigWidget::validateScale() {
 }
 
 void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
-  const bool syntheticField = (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) ||
-                              (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
+  const bool syntheticField =
+      (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) || (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
   ui_->widgetField->setEnabled(!syntheticField);
 }
 
