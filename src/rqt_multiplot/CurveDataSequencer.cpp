@@ -194,26 +194,34 @@ bool CurveDataSequencer::hasSnapshotHint(const CurveConfig& config) {
   return isSnapshotAxis(*xAxisConfig) || isSnapshotAxis(*yAxisConfig);
 }
 
-bool CurveDataSequencer::isSnapshotConfig(const CurveConfig& config) {
+QString CurveDataSequencer::snapshotIncompatibilityReason(const CurveConfig& config) {
+  if (!hasSnapshotHint(config)) {
+    return {};
+  }
+
   const CurveAxisConfig* xAxisConfig = config.getAxisConfig(CurveConfig::X);
   const CurveAxisConfig* yAxisConfig = config.getAxisConfig(CurveConfig::Y);
   if (xAxisConfig == nullptr || yAxisConfig == nullptr) {
-    return false;
+    return QStringLiteral("Array curve is incomplete");
   }
   if (xAxisConfig->getTopic() != yAxisConfig->getTopic()) {
-    return false;
-  }
-  if (!isSnapshotAxis(*xAxisConfig) || !isSnapshotAxis(*yAxisConfig)) {
-    return false;
+    return QStringLiteral("Array curves require the same topic on both axes");
   }
   if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime ||
       yAxisConfig->getFieldType() == CurveAxisConfig::MessageReceiptTime) {
-    return false;
+    return QStringLiteral("Array curves cannot use message receipt time");
   }
   if (xAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex && yAxisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
-    return false;
+    return QStringLiteral("Only one axis can be array index");
   }
-  return true;
+  if (!isSnapshotAxis(*xAxisConfig) || !isSnapshotAxis(*yAxisConfig)) {
+    return QStringLiteral("Array index or * field must be paired with another * field or array index");
+  }
+  return {};
+}
+
+bool CurveDataSequencer::isSnapshotConfig(const CurveConfig& config) {
+  return hasSnapshotHint(config) && snapshotIncompatibilityReason(config).isEmpty();
 }
 
 bool CurveDataSequencer::tryBuildSnapshotSeries(const Message& message, const CurveConfig& config, QVector<QPointF>& points) {

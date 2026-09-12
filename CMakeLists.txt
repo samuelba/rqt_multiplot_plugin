@@ -341,6 +341,7 @@ if(BUILD_TESTING)
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
+    test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp

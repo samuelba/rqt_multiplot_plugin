@@ -34,6 +34,7 @@ class CurveDataListTimeFrame : public CurveData {
   BoundingRectangle getBounds() const override;
 
   void appendPoint(const QPointF& point) override;
+  void replacePoints(const QVector<QPointF>& points) override;
   void clearPoints() override;
 
  private:

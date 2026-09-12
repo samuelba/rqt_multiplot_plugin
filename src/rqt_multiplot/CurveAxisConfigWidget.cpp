@@ -18,6 +18,7 @@
 
 #include <QSignalBlocker>
 
+#include <rqt_multiplot/MessageFieldAccess.h>
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
@@ -230,19 +231,33 @@ bool CurveAxisConfigWidget::validateField() {
   MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
 
   if (fieldType.isValid()) {
-    if (fieldType.isPlottable()) {
+    if (isPlottableFieldPath(fieldType, config_->getField().toStdString())) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
 
       return true;
-    } else {
-      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "Message field [" + config_->getField() + "] is not numeric");
+    }
+    if (fieldType.isNumericArray()) {
+      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error,
+                                            "Message field [" + config_->getField() + "] is an array; select a * series");
 
       return false;
     }
+    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "Message field [" + config_->getField() + "] is not numeric");
+
+    return false;
   } else {
     ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "No such message field [" + config_->getField() + "]");
 
     return false;
+  }
+}
+
+void CurveAxisConfigWidget::applySnapshotPairingError(const QString& error) {
+  if (!validateField()) {
+    return;
+  }
+  if (!error.isEmpty()) {
+    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, error);
   }
 }
 
@@ -299,6 +314,13 @@ void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::Fi
 }
 
 void CurveAxisConfigWidget::updateLabelFromZeroControl() {
+  const bool arrayIndex = (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+  if (arrayIndex) {
+    ui_->checkBoxLabelFromZero->setEnabled(false);
+    config_->setLabelFromZero(false);
+    return;
+  }
+
   const bool receiptTime = (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime);
   const MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
   const bool fieldIsTime = fieldType.isTime;

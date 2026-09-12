@@ -28,6 +28,7 @@ double getNumericValue(const ros_babel_fish::Message& message);
 bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::string& path, double& value);
 bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values);
 bool isWildcardFieldPath(const std::string& path);
+bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path);
 rclcpp::Time getStamp(const ros_babel_fish::Message& message);
 bool hasHeader(const ros_babel_fish::Message& message);
 

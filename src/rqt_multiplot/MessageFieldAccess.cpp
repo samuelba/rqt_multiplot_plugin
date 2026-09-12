@@ -360,6 +360,13 @@ bool isWildcardFieldPath(const std::string& path) {
   return std::count(parts.begin(), parts.end(), "*") == 1;
 }
 
+bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path) {
+  if (fieldType.isNumeric) {
+    return true;
+  }
+  return fieldType.isNumericArray() && isWildcardFieldPath(path);
+}
+
 bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values) {
   values.clear();
 
@@ -419,41 +426,40 @@ bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::stri
   }
 
   const auto& array = current->as<ros_babel_fish::ArrayMessageBase>();
-  const bool isCompoundArray = compoundArrayAt(*current, 0) != nullptr || array.elementType() == ros_babel_fish::MessageTypes::Compound;
+  const bool isCompoundArray = array.elementType() == ros_babel_fish::MessageTypes::Compound;
+  const size_t count = array.size();
+  series.reserve(count);
+
   if (!isCompoundArray) {
     if (!suffix.empty() || !isNumericType(array.elementType())) {
       return false;
     }
-  }
-
-  const size_t count = array.size();
-  series.reserve(count);
-
-  for (size_t i = 0; i < count; ++i) {
-    const auto* element = compoundArrayAt(*current, i);
-    if (element != nullptr) {
-      if (suffix.empty()) {
-        if (!isNumericMessageType(*element)) {
-          return false;
-        }
-        series.push_back(getNumericValue(*element));
-        continue;
-      }
-
+    for (size_t i = 0; i < count; ++i) {
       double value = 0.0;
-      if (!tryGetNumericValue(*element, suffix, value)) {
+      if (!tryPrimitiveArrayValue(*current, i, value)) {
         return false;
       }
       series.push_back(value);
+    }
+    values = std::move(series);
+    return true;
+  }
+
+  for (size_t i = 0; i < count; ++i) {
+    const auto* element = compoundArrayAt(*current, i);
+    if (element == nullptr) {
+      return false;
+    }
+    if (suffix.empty()) {
+      if (!isNumericMessageType(*element)) {
+        return false;
+      }
+      series.push_back(getNumericValue(*element));
       continue;
     }
 
-    if (!suffix.empty()) {
-      return false;
-    }
-
     double value = 0.0;
-    if (!tryPrimitiveArrayValue(*current, i, value)) {
+    if (!tryGetNumericValue(*element, suffix, value)) {
       return false;
     }
     series.push_back(value);

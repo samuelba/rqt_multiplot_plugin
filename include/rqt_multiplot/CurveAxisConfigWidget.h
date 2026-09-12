@@ -40,6 +40,7 @@ class CurveAxisConfigWidget : public QWidget {
   void updateTopics();
   void updateTypes();
   void updateFields();
+  void applySnapshotPairingError(const QString& error);
 
  private:
   Ui::CurveAxisConfigWidget* ui_;

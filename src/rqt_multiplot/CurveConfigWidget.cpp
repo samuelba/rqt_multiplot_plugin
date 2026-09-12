@@ -143,6 +143,9 @@ void CurveConfigWidget::configAxisConfigTypeChanged(const QString& type) {
 
 void CurveConfigWidget::updateFadeHistoryApplicable() {
   ui_->curveStyleConfigWidget->setFadeHistoryApplicable(CurveDataSequencer::isSnapshotConfig(*config_));
+  const QString pairingError = CurveDataSequencer::snapshotIncompatibilityReason(*config_);
+  ui_->curveAxisConfigWidgetX->applySnapshotPairingError(pairingError);
+  ui_->curveAxisConfigWidgetY->applySnapshotPairingError(pairingError);
 }
 
 void CurveConfigWidget::lineEditTitleEditingFinished() {

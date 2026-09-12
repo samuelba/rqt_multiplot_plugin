@@ -1,3 +1,4 @@
+#include <memory>
 #include <vector>
 
 #include <geometry_msgs/msg/twist.hpp>
@@ -22,6 +23,7 @@ using rqt_multiplot::getStamp;
 using rqt_multiplot::hasHeader;
 using rqt_multiplot::isNumericMessageType;
 using rqt_multiplot::normalizeTypeName;
+using rqt_multiplot::isPlottableFieldPath;
 using rqt_multiplot::isWildcardFieldPath;
 using rqt_multiplot::tryGetNumericSeries;
 using rqt_multiplot::tryGetNumericValue;
@@ -163,6 +165,25 @@ TEST(MessageFieldAccess, detectsSingleWildcardSegment) {
   EXPECT_FALSE(isWildcardFieldPath("position/0"));
   EXPECT_FALSE(isWildcardFieldPath("poses/*/position/*"));
   EXPECT_FALSE(isWildcardFieldPath("linear/x"));
+}
+
+TEST(MessageFieldAccess, rejectsBareNumericArrayPath) {
+  rqt_multiplot::MessageFieldType element;
+  element.kind = rqt_multiplot::MessageFieldType::Builtin;
+  element.isNumeric = true;
+
+  rqt_multiplot::MessageFieldType array;
+  array.kind = rqt_multiplot::MessageFieldType::Array;
+  array.elementType = std::make_shared<rqt_multiplot::MessageFieldType>(element);
+
+  EXPECT_FALSE(isPlottableFieldPath(array, "position"));
+  EXPECT_TRUE(isPlottableFieldPath(array, "position/*"));
+
+  rqt_multiplot::MessageFieldType scalar;
+  scalar.kind = rqt_multiplot::MessageFieldType::Builtin;
+  scalar.isNumeric = true;
+  EXPECT_TRUE(isPlottableFieldPath(scalar, "position/0"));
+  EXPECT_FALSE(isPlottableFieldPath(rqt_multiplot::MessageFieldType(), "position"));
 }
 
 TEST(MessageFieldAccess, readsPrimitiveArraySeries) {

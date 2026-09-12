@@ -125,6 +125,42 @@ TEST(CurveDataSequencer, rejectsDifferentTopicsForSnapshot) {
   config.getAxisConfig(CurveConfig::Y)->setField("position/*");
 
   EXPECT_FALSE(CurveDataSequencer::isSnapshotConfig(config));
+  EXPECT_FALSE(CurveDataSequencer::snapshotIncompatibilityReason(config).isEmpty());
+}
+
+TEST(CurveDataSequencer, validSnapshotHasNoIncompatibilityReason) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/*");
+
+  EXPECT_TRUE(CurveDataSequencer::snapshotIncompatibilityReason(config).isEmpty());
+}
+
+TEST(CurveDataSequencer, arrayIndexWithScalarIsIncompatible) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/0");
+
+  EXPECT_TRUE(CurveDataSequencer::hasSnapshotHint(config));
+  EXPECT_FALSE(CurveDataSequencer::isSnapshotConfig(config));
+  EXPECT_FALSE(CurveDataSequencer::snapshotIncompatibilityReason(config).isEmpty());
+
+  QVector<QPointF> points;
+  EXPECT_FALSE(CurveDataSequencer::tryBuildSnapshotSeries(jointStateMessage(), config, points));
+}
+
+TEST(CurveDataSequencer, timeSeriesHasNoIncompatibilityReason) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/0");
+
+  EXPECT_TRUE(CurveDataSequencer::snapshotIncompatibilityReason(config).isEmpty());
 }
 
 }  // namespace

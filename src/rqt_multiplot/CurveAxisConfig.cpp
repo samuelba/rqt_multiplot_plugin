@@ -127,7 +127,10 @@ bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
 }
 
 bool CurveAxisConfig::usesTimeScale() const {
-  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || isTimeFieldPath(field_);
+  if (fieldType_ == ArrayIndex) {
+    return false;
+  }
+  return labelFromZero_ || (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
 }
 
 bool CurveAxisConfig::hasConfiguredSource() const {

@@ -88,6 +88,23 @@ TEST(CurveAxisConfig, usesTimeScaleWhenLabelFromZero) {
   EXPECT_TRUE(config.usesTimeScale());
 }
 
+TEST(CurveAxisConfig, arrayIndexIgnoresStaleTimeField) {
+  CurveAxisConfig config;
+  config.setField("header/stamp");
+  config.setLabelFromZero(true);
+  config.setFieldType(CurveAxisConfig::ArrayIndex);
+
+  EXPECT_FALSE(config.usesTimeScale());
+}
+
+TEST(CurveAxisConfig, receiptTimeUsesTimeScaleWithLeftoverField) {
+  CurveAxisConfig config;
+  config.setField("position/*");
+  config.setFieldType(CurveAxisConfig::MessageReceiptTime);
+
+  EXPECT_TRUE(config.usesTimeScale());
+}
+
 TEST(CurveAxisConfig, savesAndLoadsArrayIndex) {
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());
