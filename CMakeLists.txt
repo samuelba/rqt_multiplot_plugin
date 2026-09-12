@@ -331,6 +331,7 @@ ament_export_targets(${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_test REQUIRED)
   find_package(builtin_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
   find_package(std_msgs REQUIRED)
@@ -374,12 +375,23 @@ if(BUILD_TESTING)
     CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
   )
 
-  find_package(ament_cmake_clang_tidy REQUIRED)
-  ament_clang_tidy(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
-    TIMEOUT 1800
+  ament_add_test(test_run_clang_tidy
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_clang_tidy.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 30
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO
   )
+
+  ament_add_test(clang_tidy
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_clang_tidy.py
+      --compile-commands ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+      --source-root ${CMAKE_CURRENT_SOURCE_DIR}
+      --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 1800
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO
+  )
+  set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linter")
 endif()
 
 ament_package()
