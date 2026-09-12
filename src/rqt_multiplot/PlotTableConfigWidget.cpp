@@ -193,8 +193,8 @@ void PlotTableConfigWidget::configForegroundColorChanged(const QColor& color) {
 }
 
 void PlotTableConfigWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
-  ui_->spinBoxRows->setValue(numRows);
-  ui_->spinBoxColumns->setValue(numColumns);
+  ui_->spinBoxRows->setValue(static_cast<int>(numRows));
+  ui_->spinBoxColumns->setValue(static_cast<int>(numColumns));
 }
 
 void PlotTableConfigWidget::configLinkScaleChanged(bool link) {

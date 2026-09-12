@@ -181,3 +181,44 @@ ros2 run rqt_multiplot publish_array_demo.py
 ## Bugs and feature requests
 
 Use the [issue tracker](https://github.com/samuelba/rqt_multiplot_plugin/issues).
+
+## Development
+
+### Formatting
+
+Check formatting:
+
+```bash
+colcon test --packages-select rqt_multiplot --ctest-args " -L" clang_format
+```
+
+Fix formatting issues:
+
+```bash
+find src include test \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0 \
+  | xargs -0 clang-format -i
+```
+
+### Linting
+
+Check linting:
+
+```bash
+colcon test --packages-select rqt_multiplot --ctest-args " -L" clang_tidy
+```
+
+### Building
+
+Build the package:
+
+```bash
+colcon build --packages-select rqt_multiplot
+```
+
+### Testing
+
+Run unit tests:
+
+```bash
+colcon test --packages-select rqt_multiplot --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
+```

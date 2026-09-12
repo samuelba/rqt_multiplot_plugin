@@ -21,7 +21,11 @@
 
 #include <QStringList>
 
+#if __has_include(<rqt_gui_cpp/plugin.hpp>)
+#include <rqt_gui_cpp/plugin.hpp>
+#else
 #include <rqt_gui_cpp/plugin.h>
+#endif
 
 namespace rqt_multiplot {
 class MultiplotWidget;

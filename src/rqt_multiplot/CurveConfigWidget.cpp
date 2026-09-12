@@ -127,7 +127,7 @@ void CurveConfigWidget::configTitleChanged(const QString& title) {
 }
 
 void CurveConfigWidget::configSubscriberQueueSizeChanged(size_t queueSize) {
-  ui_->spinBoxSubscriberQueueSize->setValue(queueSize);
+  ui_->spinBoxSubscriberQueueSize->setValue(static_cast<int>(queueSize));
 }
 
 void CurveConfigWidget::configAxisConfigTopicChanged(const QString& topic) {

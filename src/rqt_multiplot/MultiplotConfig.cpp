@@ -71,6 +71,10 @@ void MultiplotConfig::read(QDataStream& stream) {
 /*****************************************************************************/
 
 MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
+  if (this == &src) {
+    return *this;
+  }
+
   *tableConfig_ = *src.tableConfig_;
 
   return *this;

@@ -6,7 +6,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -357,6 +357,7 @@ if(BUILD_TESTING)
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
+  set_tests_properties(test_${PROJECT_NAME} PROPERTIES LABELS "unit_testing")
   if(TARGET test_${PROJECT_NAME})
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
@@ -381,6 +382,7 @@ if(BUILD_TESTING)
     TIMEOUT 30
     GENERATE_RESULT_FOR_RETURN_CODE_ZERO
   )
+  set_tests_properties(test_run_clang_tidy PROPERTIES LABELS "unit_testing_clang_tidy")
 
   ament_add_test(clang_tidy
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_clang_tidy.py
@@ -391,7 +393,7 @@ if(BUILD_TESTING)
     TIMEOUT 1800
     GENERATE_RESULT_FOR_RETURN_CODE_ZERO
   )
-  set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linter")
+  set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linting")
 endif()
 
 ament_package()

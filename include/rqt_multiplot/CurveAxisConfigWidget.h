@@ -39,8 +39,8 @@ class CurveAxisConfigWidget : public QWidget {
   void setConfig(CurveAxisConfig* config);
   CurveAxisConfig* getConfig() const;
 
-  void updateTopics();
-  void updateTypes();
+  static void updateTopics();
+  static void updateTypes();
   void updateFields();
   void applySnapshotPairingError(const QString& error);
   StatusWidget::Role getFieldStatusRole() const;

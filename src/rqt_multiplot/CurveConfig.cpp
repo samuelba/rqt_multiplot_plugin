@@ -215,6 +215,10 @@ void CurveConfig::read(QDataStream& stream) {
 /*****************************************************************************/
 
 CurveConfig& CurveConfig::operator=(const CurveConfig& src) {
+  if (this == &src) {
+    return *this;
+  }
+
   setTitle(src.title_);
 
   *axisConfig_[X] = *src.axisConfig_[X];

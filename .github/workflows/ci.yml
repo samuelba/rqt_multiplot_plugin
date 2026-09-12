@@ -57,7 +57,7 @@ jobs:
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
           source install/setup.bash
           colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
-            --ctest-args " -LE" linter
+            --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
           colcon test-result --verbose
 
       - name: clang-format
@@ -69,9 +69,8 @@ jobs:
           colcon test-result --verbose
 
       - name: clang-tidy
-        continue-on-error: true
-        env:
-          CLANG_TIDY_CHANGED_SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        # env:
+        #   CLANG_TIDY_CHANGED_SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
           source install/setup.bash

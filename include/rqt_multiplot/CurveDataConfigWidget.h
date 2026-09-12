@@ -34,7 +34,7 @@ class CurveDataConfigWidget : public QWidget {
   explicit CurveDataConfigWidget(QWidget* parent = nullptr);
   ~CurveDataConfigWidget() override;
 
-  void setConfig(CurveDataConfig* range);
+  void setConfig(CurveDataConfig* config);
   CurveDataConfig* getConfig() const;
 
  private:

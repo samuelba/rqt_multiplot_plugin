@@ -30,11 +30,12 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 float ColorOperations::intToHue(unsigned char val) {
-  return (float)BitOperations::revertByte(val) / std::numeric_limits<unsigned char>::max();
+  return static_cast<float>(BitOperations::revertByte(val)) / static_cast<float>(std::numeric_limits<unsigned char>::max());
 }
 
 unsigned char ColorOperations::hueToInt(float hue) {
-  return BitOperations::revertByte((unsigned int)round(hue / (2.0 * M_PI) * std::numeric_limits<unsigned char>::max()));
+  return BitOperations::revertByte(static_cast<unsigned int>(
+      std::round(static_cast<double>(hue) / (2.0 * M_PI) * static_cast<double>(std::numeric_limits<unsigned char>::max()))));
 }
 
 QColor ColorOperations::hsvToRgb(const QColor& hsv) {
@@ -43,12 +44,12 @@ QColor ColorOperations::hsvToRgb(const QColor& hsv) {
   rgb.setAlphaF(hsv.alphaF());
 
   if (hsv.blueF() > 0.0) {
-    float hue = hsv.redF() * 2.0 * M_PI / (60.0 * M_PI / 180.0);
-    int i = floor(hue);
-    float f = hue - i;
-    float p = hsv.blueF() * (1.0 - hsv.greenF());
-    float q = hsv.blueF() * (1.0 - hsv.greenF() * f);
-    float t = hsv.blueF() * (1.0 - hsv.greenF() * (1.0 - f));
+    const auto hue = static_cast<float>(hsv.redF() * 2.0 * M_PI / (60.0 * M_PI / 180.0));
+    const int i = static_cast<int>(std::floor(hue));
+    const float f = hue - static_cast<float>(i);
+    const auto p = static_cast<float>(hsv.blueF() * (1.0 - hsv.greenF()));
+    const auto q = static_cast<float>(hsv.blueF() * (1.0 - static_cast<double>(hsv.greenF()) * f));
+    const auto t = static_cast<float>(hsv.blueF() * (1.0 - hsv.greenF() * (1.0 - static_cast<double>(f))));
 
     switch (i) {
       case 0:

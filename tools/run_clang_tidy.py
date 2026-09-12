@@ -24,6 +24,16 @@ def is_generated_source(path: Path) -> bool:
     return name.startswith(GENERATED_PREFIXES) or name.endswith('.moc')
 
 
+def header_filter() -> str:
+    """Match package headers and exclude generated Qt moc_/ui_/qrc_ files.
+
+    Headers live under include/rqt_multiplot/ (package name), not the source
+    checkout directory name. Generated ui_*.h files are typically included from
+    the build directory as ui_Foo.h and must not match this filter.
+    """
+    return r'(?:^|/)(?:include|src)/rqt_multiplot/(?!moc_|ui_|qrc_)'
+
+
 def is_test_source(path: Path, source_root: Path) -> bool:
     if path.name in GTEST_NAMES:
         return True
@@ -84,7 +94,7 @@ def is_full_scan_ref(ref: Optional[str]) -> bool:
 def job_count(cpu_count: Optional[int], override: Optional[int]) -> int:
     if override is not None and override > 0:
         return override
-    return max(1, (cpu_count or 2) // 2)
+    return max(1, cpu_count or 1)
 
 
 def write_compile_commands(directory: Path, entries: Sequence[dict]) -> Path:
@@ -150,7 +160,7 @@ def build_command(
         '-j',
         str(jobs),
         '-header-filter',
-        f'include/{source_root.name}/',
+        header_filter(),
         '-quiet',
     ]
     if config_file is not None:

@@ -39,7 +39,7 @@ size_t CurveListWidget::getNumCurves() const {
 }
 
 CurveItemWidget* CurveListWidget::getCurveItem(size_t index) const {
-  QListWidgetItem* widgetItem = item(index);
+  QListWidgetItem* widgetItem = item(static_cast<int>(index));
 
   if (widgetItem != nullptr) {
     return dynamic_cast<CurveItemWidget*>(itemWidget(widgetItem));
@@ -66,7 +66,7 @@ void CurveListWidget::addCurve(CurveConfig* config) {
 }
 
 void CurveListWidget::removeCurve(size_t index) {
-  QListWidgetItem* widgetItem = item(index);
+  QListWidgetItem* widgetItem = item(static_cast<int>(index));
 
   if (widgetItem != nullptr) {
     delete widgetItem;
@@ -77,7 +77,7 @@ void CurveListWidget::removeCurve(size_t index) {
 
 void CurveListWidget::keyPressEvent(QKeyEvent* event) {
   if ((event->modifiers() == Qt::ControlModifier) && (event->key() == Qt::Key_A)) {
-    for (size_t index = 0; index < count(); ++index) {
+    for (int index = 0; index < count(); ++index) {
       item(index)->setSelected(true);
     }
   }

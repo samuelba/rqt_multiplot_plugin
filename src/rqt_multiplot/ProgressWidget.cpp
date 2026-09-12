@@ -50,7 +50,7 @@ ProgressWidget::~ProgressWidget() {
 
 void ProgressWidget::setCurrentProgress(double progress) {
   if (started_) {
-    ui_->progressBar->setValue(progress * 1e2);
+    ui_->progressBar->setValue(static_cast<int>(progress * 1e2));
   }
 }
 

@@ -165,7 +165,7 @@ void CurveStyleConfigWidget::configStepsInvertChanged(bool invert) {
 }
 
 void CurveStyleConfigWidget::configPenWidthChanged(size_t width) {
-  ui_->spinBoxPenWidth->setValue(width);
+  ui_->spinBoxPenWidth->setValue(static_cast<int>(width));
 }
 
 void CurveStyleConfigWidget::configPenStyleChanged(int style) {

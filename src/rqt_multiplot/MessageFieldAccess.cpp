@@ -287,6 +287,8 @@ const ros_babel_fish::Message* getMember(const ros_babel_fish::Message& message,
 }
 
 ros_babel_fish::Message* getMember(ros_babel_fish::Message& message, const std::string& path) {
+  // Non-const overload of the const accessor pair.
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<ros_babel_fish::Message*>(getMember(static_cast<const ros_babel_fish::Message&>(message), path));
 }
 

@@ -35,7 +35,7 @@ class MessageTypeComboBox : public MatchFilterComboBox {
   bool isUpdating() const;
   bool isCurrentTypeRegistered() const;
 
-  void updateTypes();
+  static void updateTypes();
 
  signals:
   void updateStarted();

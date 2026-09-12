@@ -48,7 +48,6 @@ void PlotMagnifier::rescale(double xFactor, double yFactor) {
     return;
   }
 
-  bool doReplot = false;
   bool autoReplot = plot()->autoReplot();
 
   plot()->setAutoReplot(false);
@@ -69,7 +68,6 @@ void PlotMagnifier::rescale(double xFactor, double yFactor) {
     double width = xScaleDiv.range() * fx;
 
     plot()->setAxisScale(QwtPlot::xBottom, center - 0.5 * width, center + 0.5 * width);
-    doReplot = true;
   }
 
 #if QWT_VERSION < 0x060100
@@ -80,24 +78,21 @@ void PlotMagnifier::rescale(double xFactor, double yFactor) {
     double width = yScaleDiv.range() * fy;
 
     plot()->setAxisScale(QwtPlot::yLeft, center - 0.5 * width, center + 0.5 * width);
-    doReplot = true;
   }
 
   plot()->setAutoReplot(autoReplot);
-
-  if (doReplot) {
-    plot()->replot();
-  }
+  plot()->replot();
 }
 
 void PlotMagnifier::widgetMousePressEvent(QMouseEvent* event) {
   QwtPlotMagnifier::widgetMousePressEvent(event);
 
 #if QWT_VERSION >= 0x060100
-  Qt::MouseButton button;
-  Qt::KeyboardModifiers buttonState;
+  Qt::MouseButton button{};
+  Qt::KeyboardModifiers buttonState{};
 #else
-  int button, buttonState;
+  int button = 0;
+  int buttonState = 0;
 #endif
 
   getMouseButton(button, buttonState);
@@ -106,7 +101,7 @@ void PlotMagnifier::widgetMousePressEvent(QMouseEvent* event) {
     return;
   }
 
-  if ((event->modifiers() & Qt::KeyboardModifierMask) != (int)(buttonState & Qt::KeyboardModifierMask)) {
+  if (static_cast<int>(event->modifiers() & Qt::KeyboardModifierMask) != static_cast<int>(buttonState & Qt::KeyboardModifierMask)) {
     return;
   }
 

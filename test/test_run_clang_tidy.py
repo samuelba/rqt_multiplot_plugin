@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -115,8 +116,8 @@ class ChangedSinceRefTest(unittest.TestCase):
 
 
 class JobCountTest(unittest.TestCase):
-    def test_defaults_to_half_the_cpus(self):
-        self.assertEqual(rct.job_count(cpu_count=8, override=None), 4)
+    def test_defaults_to_all_cpus(self):
+        self.assertEqual(rct.job_count(cpu_count=8, override=None), 8)
         self.assertEqual(rct.job_count(cpu_count=1, override=None), 1)
         self.assertEqual(rct.job_count(cpu_count=None, override=None), 1)
         self.assertEqual(rct.job_count(cpu_count=8, override=3), 3)
@@ -136,6 +137,32 @@ class JobCountTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(jobs, rct.job_count(os.cpu_count(), None))
+
+
+class HeaderFilterTest(unittest.TestCase):
+    def test_matches_package_headers_and_ignores_generated_qt_files(self):
+        pattern = re.compile(rct.header_filter())
+
+        self.assertRegex('/home/sam/projects/ros/plotting/rqt_multiplot_plugin/include/rqt_multiplot/PlotWidget.h', pattern)
+        self.assertRegex('/ws/src/rqt_multiplot/src/rqt_multiplot/PlotWidget.h', pattern)
+        self.assertIsNone(pattern.search('/ws/build/rqt_multiplot/ui_PlotWidget.h'))
+        self.assertIsNone(pattern.search('/ws/build/rqt_multiplot/moc_PlotWidget.cpp'))
+        self.assertIsNone(pattern.search('/ws/build/rqt_multiplot/include/rqt_multiplot/moc_PlotWidget.cpp'))
+        self.assertIsNone(pattern.search('/usr/include/qt5/QtWidgets/qwidget.h'))
+        self.assertIsNone(pattern.search('include/rqt_multiplot_plugin/PlotWidget.h'))
+
+    def test_build_command_uses_generated_file_excluding_header_filter(self):
+        cmd = rct.build_command(
+            '/usr/bin/run-clang-tidy',
+            Path('/tmp/build'),
+            2,
+            Path('/ws/src/rqt_multiplot_plugin'),
+            ['/ws/src/rqt_multiplot_plugin/src/rqt_multiplot/PlotWidget.cpp'],
+            None,
+        )
+
+        self.assertEqual(cmd[cmd.index('-header-filter') + 1], rct.header_filter())
+        self.assertNotIn('include/rqt_multiplot_plugin/', cmd)
 
 
 class WriteFilteredDatabaseTest(unittest.TestCase):

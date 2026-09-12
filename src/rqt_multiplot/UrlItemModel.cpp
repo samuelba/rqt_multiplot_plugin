@@ -137,14 +137,14 @@ int UrlItemModel::rowCount(const QModelIndex& parent) const {
         size_t numHosts = parentScheme->getNumHosts();
 
         if (numHosts == 0u) {
-          return parentScheme->getNumPaths(QModelIndex());
+          return static_cast<int>(parentScheme->getNumPaths(QModelIndex()));
         } else {
-          return numHosts;
+          return static_cast<int>(numHosts);
         }
       } else if (parentItem->getType() == UrlItem::Host) {
-        return parentScheme->getNumPaths(parentItem->getIndex());
+        return static_cast<int>(parentScheme->getNumPaths(parentItem->getIndex()));
       } else if (parentItem->getType() == UrlItem::Path) {
-        return parentScheme->getNumPaths(parentItem->getIndex(UrlItem::Host), parentItem->getIndex());
+        return static_cast<int>(parentScheme->getNumPaths(parentItem->getIndex(UrlItem::Host), parentItem->getIndex()));
       }
     } else {
       return schemes_.count();

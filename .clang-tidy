@@ -307,6 +307,10 @@ readability-uniqueptr-delete-release
 # Add all checks that should be treated as errors.
 # WarningsAsErrors: ''
 
+# Limit diagnostics to package headers. Generated Qt files (ui_*, moc_*, qrc_*)
+# live outside include/rqt_multiplot/ or use those prefixes and are excluded.
+HeaderFilterRegex: '(?:^|/)(?:include|src)/rqt_multiplot/(?!moc_|ui_|qrc_)'
+
 # Option for the checks.
 CheckOptions:
   - key:             cppcoreguidelines-init-variables.IncludeStyle

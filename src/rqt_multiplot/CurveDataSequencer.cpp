@@ -362,8 +362,8 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
       timeValue.value_ = message.getReceiptTime().seconds();
     }
 
-    if (timeValues_[axis].isEmpty() || (timeValue.time_ > timeValues_[axis].last().time_)) {
-      timeValues_[axis].append(timeValue);
+    if (timeValues_[axis].empty() || (timeValue.time_ > timeValues_[axis].back().time_)) {
+      timeValues_[axis].push_back(timeValue);
     }
   }
 
@@ -374,39 +374,39 @@ void CurveDataSequencer::interpolate() {
   TimeValueList& timeValuesX = timeValues_[CurveConfig::X];
   TimeValueList& timeValuesY = timeValues_[CurveConfig::Y];
 
-  while ((timeValuesX.count() > 1) && (timeValuesY.count() > 1)) {
-    while ((timeValuesX.count() > 1) && ((++timeValuesX.begin())->time_ < timeValuesY.front().time_)) {
-      timeValuesX.removeFirst();
+  while ((timeValuesX.size() > 1) && (timeValuesY.size() > 1)) {
+    while ((timeValuesX.size() > 1) && ((++timeValuesX.begin())->time_ < timeValuesY.front().time_)) {
+      timeValuesX.pop_front();
     }
 
-    while ((timeValuesY.count() > 1) && ((++timeValuesY.begin())->time_ < timeValuesX.front().time_)) {
-      timeValuesY.removeFirst();
+    while ((timeValuesY.size() > 1) && ((++timeValuesY.begin())->time_ < timeValuesX.front().time_)) {
+      timeValuesY.pop_front();
     }
 
-    if ((timeValuesY.front().time_ >= timeValuesX.front().time_) && (timeValuesX.count() > 1)) {
+    if ((timeValuesY.front().time_ >= timeValuesX.front().time_) && (timeValuesX.size() > 1)) {
       QPointF point;
 
-      const TimeValue& firstX = timeValuesX.first();
+      const TimeValue& firstX = timeValuesX.front();
       const TimeValue& secondX = *(++timeValuesX.begin());
 
       point.setX(firstX.value_ + (secondX.value_ - firstX.value_) * (timeValuesY.front().time_ - firstX.time_).seconds() /
                                      (secondX.time_ - firstX.time_).seconds());
       point.setY(timeValuesY.front().value_);
 
-      timeValuesY.removeFirst();
+      timeValuesY.pop_front();
 
       emit pointReceived(point);
-    } else if ((timeValuesX.front().time_ >= timeValuesY.front().time_) && (timeValuesY.count() > 1)) {
+    } else if ((timeValuesX.front().time_ >= timeValuesY.front().time_) && (timeValuesY.size() > 1)) {
       QPointF point;
 
-      const TimeValue& firstY = timeValuesY.first();
+      const TimeValue& firstY = timeValuesY.front();
       const TimeValue& secondY = *(++timeValuesY.begin());
 
       point.setX(timeValuesX.front().value_);
       point.setY(firstY.value_ + (secondY.value_ - firstY.value_) * (timeValuesX.front().time_ - firstY.time_).seconds() /
                                      (secondY.time_ - firstY.time_).seconds());
 
-      timeValuesX.removeFirst();
+      timeValuesX.pop_front();
 
       emit pointReceived(point);
     }

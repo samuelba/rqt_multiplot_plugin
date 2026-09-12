@@ -122,7 +122,7 @@ bool PlotLegend::eventFilter(QObject* object, QEvent* event) {
           widget->render(&pixmap, QPoint(), QRegion(), QWidget::DrawChildren);
 
           QPoint hotSpot = mouseEvent->pos();
-          hotSpot.setX(0.5 * pixmap.width());
+          hotSpot.setX(qRound(0.5 * pixmap.width()));
           hotSpot.setY(pixmap.height() + 5);
 
           auto* drag = new QDrag(this);

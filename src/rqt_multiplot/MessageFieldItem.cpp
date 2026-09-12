@@ -24,8 +24,8 @@
 
 namespace rqt_multiplot {
 
-MessageFieldItem::MessageFieldItem(const MessageFieldType& dataType, MessageFieldItem* parent, QString name)
-    : parent_(parent), name_(std::move(name)), dataType_(dataType) {
+MessageFieldItem::MessageFieldItem(MessageFieldType dataType, MessageFieldItem* parent, QString name)
+    : parent_(parent), name_(std::move(name)), dataType_(std::move(dataType)) {
   if (dataType_.isMessage()) {
     for (const auto& member : dataType_.members) {
       appendChild(new MessageFieldItem(member.second, this, member.first));
@@ -34,11 +34,11 @@ MessageFieldItem::MessageFieldItem(const MessageFieldType& dataType, MessageFiel
     appendChild(new MessageFieldItem(*dataType_.elementType, this, QStringLiteral("*")));
     if (!dataType_.isDynamicArray) {
       for (size_t i = 0; i < dataType_.arraySize; ++i) {
-        appendChild(new MessageFieldItem(*dataType_.elementType, this, QString::number(i)));
+        appendChild(new MessageFieldItem(*dataType_.elementType, this, QString::number(static_cast<int>(i))));
       }
     } else {
       for (size_t i = 0; i <= 9; ++i) {
-        appendChild(new MessageFieldItem(*dataType_.elementType, this, QString::number(i)));
+        appendChild(new MessageFieldItem(*dataType_.elementType, this, QString::number(static_cast<int>(i))));
       }
     }
   }
@@ -59,7 +59,7 @@ size_t MessageFieldItem::getNumChildren() const {
 }
 
 MessageFieldItem* MessageFieldItem::getChild(size_t row) const {
-  return children_.value(row);
+  return children_.value(static_cast<int>(row));
 }
 
 MessageFieldItem* MessageFieldItem::getChild(const QString& name) const {
@@ -89,6 +89,8 @@ MessageFieldItem* MessageFieldItem::getDescendant(const QString& path) const {
 
 int MessageFieldItem::getRow() const {
   if (parent_ != nullptr) {
+    // QList::indexOf requires a non-const pointer.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return parent_->children_.indexOf(const_cast<MessageFieldItem*>(this));
   }
 

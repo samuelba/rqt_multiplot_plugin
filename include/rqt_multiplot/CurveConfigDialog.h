@@ -31,7 +31,7 @@ class CurveConfigWidget;
 class CurveConfigDialog : public QDialog {
   Q_OBJECT
  public:
-  explicit CurveConfigDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = nullptr);
+  explicit CurveConfigDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = Qt::WindowFlags());
   ~CurveConfigDialog() override;
 
   CurveConfigWidget* getWidget() const;

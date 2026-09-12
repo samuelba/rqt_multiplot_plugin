@@ -19,6 +19,8 @@
 #include <QSignalBlocker>
 
 #include <rqt_multiplot/MessageFieldAccess.h>
+#include <rqt_multiplot/MessageTopicComboBox.h>
+#include <rqt_multiplot/MessageTypeComboBox.h>
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
@@ -172,11 +174,11 @@ QStringList CurveAxisConfigWidget::currentErrors() const {
 /*****************************************************************************/
 
 void CurveAxisConfigWidget::updateTopics() {
-  ui_->comboBoxTopic->updateTopics();
+  MessageTopicComboBox::updateTopics();
 }
 
 void CurveAxisConfigWidget::updateTypes() {
-  ui_->comboBoxType->updateTypes();
+  MessageTypeComboBox::updateTypes();
 }
 
 void CurveAxisConfigWidget::updateFields() {

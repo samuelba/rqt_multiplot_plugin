@@ -64,6 +64,8 @@ QStringList MatchFilterCompleter::splitPath(const QString& path) const {
     sourceModel->setParent(proxyModel_);
     proxyModel_->setSourceModel(sourceModel);
 
+    // QCompleter::splitPath is const, but setModel is not.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     const_cast<MatchFilterCompleter*>(this)->setModel(proxyModel_);
   }
 
