@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QPixmap>
+#include <QStringList>
+
 #include <rqt_multiplot/CurveDataSequencer.h>
 #include <rqt_multiplot/PackageResource.h>
 
@@ -65,6 +68,13 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   connect(config_->getAxisConfig(CurveConfig::X), SIGNAL(changed()), this, SLOT(updateFadeHistoryApplicable()));
   connect(config_->getAxisConfig(CurveConfig::Y), SIGNAL(changed()), this, SLOT(updateFadeHistoryApplicable()));
 
+  connect(ui_->curveAxisConfigWidgetX, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
+  connect(ui_->curveAxisConfigWidgetY, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
+
+  ui_->labelValidationErrorIcon->setPixmap(QPixmap(packageResourcePath("resource/22x22/error.png")));
+  ui_->widgetValidationError->setVisible(false);
+  ui_->lineValidationError->setVisible(false);
+
   connect(ui_->lineEditTitle, SIGNAL(editingFinished()), this, SLOT(lineEditTitleEditingFinished()));
   connect(ui_->pushButtonCopyRight, SIGNAL(clicked()), this, SLOT(pushButtonCopyRightClicked()));
   connect(ui_->pushButtonCopyLeft, SIGNAL(clicked()), this, SLOT(pushButtonCopyLeftClicked()));
@@ -97,6 +107,18 @@ CurveConfig& CurveConfigWidget::getConfig() {
 
 const CurveConfig& CurveConfigWidget::getConfig() const {
   return *config_;
+}
+
+CurveAxisConfigWidget* CurveConfigWidget::getAxisConfigWidget(CurveConfig::Axis axis) const {
+  return (axis == CurveConfig::X) ? ui_->curveAxisConfigWidgetX : ui_->curveAxisConfigWidgetY;
+}
+
+QString CurveConfigWidget::validationErrorText() const {
+  return ui_->labelValidationError->text();
+}
+
+bool CurveConfigWidget::isValidationErrorVisible() const {
+  return !ui_->widgetValidationError->isHidden();
 }
 
 /*****************************************************************************/
@@ -146,6 +168,29 @@ void CurveConfigWidget::updateFadeHistoryApplicable() {
   const QString pairingError = CurveDataSequencer::snapshotIncompatibilityReason(*config_);
   ui_->curveAxisConfigWidgetX->applySnapshotPairingError(pairingError);
   ui_->curveAxisConfigWidgetY->applySnapshotPairingError(pairingError);
+  updateValidationErrorBanner();
+}
+
+void CurveConfigWidget::updateValidationErrorBanner() {
+  QStringList errors;
+  const auto appendUnique = [&errors](const QString& error) {
+    if (!error.isEmpty() && !errors.contains(error)) {
+      errors.append(error);
+    }
+  };
+
+  for (const QString& error : ui_->curveAxisConfigWidgetX->currentErrors()) {
+    appendUnique(error);
+  }
+  for (const QString& error : ui_->curveAxisConfigWidgetY->currentErrors()) {
+    appendUnique(error);
+  }
+  appendUnique(CurveDataSequencer::snapshotIncompatibilityReason(*config_));
+
+  ui_->labelValidationError->setText(errors.join(QStringLiteral("\n")));
+  const bool visible = !errors.isEmpty();
+  ui_->widgetValidationError->setVisible(visible);
+  ui_->lineValidationError->setVisible(visible);
 }
 
 void CurveConfigWidget::lineEditTitleEditingFinished() {

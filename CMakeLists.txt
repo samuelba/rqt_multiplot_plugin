@@ -340,6 +340,7 @@ if(BUILD_TESTING)
     test/CurveAxisConfigTest.cpp
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
+    test/CurveConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
