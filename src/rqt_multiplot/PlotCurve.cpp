@@ -48,12 +48,15 @@ PlotCurve::PlotCurve(QObject* parent)
   qRegisterMetaType<QVector<QPointF>>("QVector<QPointF>");
 
   connect(dataSequencer_, SIGNAL(pointReceived(const QPointF&)), this, SLOT(dataSequencerPointReceived(const QPointF&)));
-  connect(dataSequencer_, SIGNAL(seriesReceived(const QVector<QPointF>&)), this, SLOT(dataSequencerSeriesReceived(const QVector<QPointF>&)));
+  connect(dataSequencer_, SIGNAL(seriesReceived(const QVector<QPointF>&)), this,
+          SLOT(dataSequencerSeriesReceived(const QVector<QPointF>&)));
 
   setData(data_);
 }
 
 PlotCurve::~PlotCurve() {
+  pause();
+  detach();
   clearGhosts();
 }
 
@@ -170,6 +173,9 @@ BoundingRectangle PlotCurve::getPreferredScale() const {
 /*****************************************************************************/
 
 void PlotCurve::attach(QwtPlot* plot) {
+  if (plot != nullptr) {
+    plot->setAutoDelete(false);
+  }
   QwtPlotCurve::attach(plot);
   for (auto* ghost : ghosts_) {
     ghost->attach(plot);
@@ -178,9 +184,13 @@ void PlotCurve::attach(QwtPlot* plot) {
 
 void PlotCurve::detach() {
   for (auto* ghost : ghosts_) {
-    ghost->detach();
+    if (ghost->plot() != nullptr) {
+      ghost->detach();
+    }
   }
-  QwtPlotCurve::detach();
+  if (plot() != nullptr) {
+    QwtPlotCurve::detach();
+  }
 }
 
 void PlotCurve::run() {

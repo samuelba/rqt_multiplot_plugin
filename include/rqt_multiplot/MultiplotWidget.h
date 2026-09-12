@@ -46,6 +46,7 @@ class MultiplotWidget : public QWidget {
   void setConfigHistory(const QStringList& history);
   QStringList getConfigHistory() const;
   void runPlots();
+  void pausePlots();
 
   void loadConfig(const QString& url);
   void readBag(const QString& url);

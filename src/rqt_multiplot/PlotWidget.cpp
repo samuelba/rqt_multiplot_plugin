@@ -92,12 +92,12 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
-  ui_->pushButtonImportExport->setIcon(
-      QIcon(packageResourcePath("resource/16x16/eject.png")));
+  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
   ui_->pushButtonState->setIcon(normalIcon_);
 
   ui_->plot->setAutoReplot(false);
+  ui_->plot->setAutoDelete(false);
   dynamic_cast<QFrame*>(ui_->plot->canvas())->setFrameStyle(QFrame::NoFrame);
 
   ui_->plot->enableAxis(QwtPlot::xTop);
@@ -164,6 +164,13 @@ PlotWidget::PlotWidget(QWidget* parent)
 }
 
 PlotWidget::~PlotWidget() {
+  timer_->stop();
+  pause();
+  for (auto* curve : curves_) {
+    curve->detach();
+    delete curve;
+  }
+  curves_.clear();
   delete ui_;
 }
 

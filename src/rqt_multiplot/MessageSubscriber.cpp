@@ -27,7 +27,9 @@ namespace rqt_multiplot {
 
 MessageSubscriber::MessageSubscriber(QObject* parent) : QObject(parent), queueSize_(100) {}
 
-MessageSubscriber::~MessageSubscriber() = default;
+MessageSubscriber::~MessageSubscriber() {
+  unsubscribe();
+}
 
 const QString& MessageSubscriber::getTopic() const {
   return topic_;
