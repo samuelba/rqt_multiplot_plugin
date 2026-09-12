@@ -22,9 +22,11 @@
   <depend>rosbag2_storage_mcap</depend>
   <depend>rqt_gui</depend>
   <depend>rqt_gui_cpp</depend>
-  <depend>qtbase5-dev</depend>
-  <depend>libqt5-svg-dev</depend>
-  <depend>libqwt-qt5-dev</depend>
+  <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">qtbase5-dev</depend>
+  <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">libqt5-svg-dev</depend>
+  <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">libqwt-qt5-dev</depend>
+  <depend condition="$ROS_DISTRO != 'jazzy' and $ROS_DISTRO != 'kilted'">qt6-base-dev</depend>
+  <depend condition="$ROS_DISTRO != 'jazzy' and $ROS_DISTRO != 'kilted'">qt6-svg-dev</depend>
 
   <exec_depend>geometry_msgs</exec_depend>
   <exec_depend>rclpy</exec_depend>

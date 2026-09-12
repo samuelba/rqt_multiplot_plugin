@@ -24,6 +24,8 @@
 #include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_scale_div.h>
 
+#include <rqt_multiplot/PlotMouseBindings.h>
+
 #include "rqt_multiplot/PlotMagnifier.h"
 
 namespace rqt_multiplot {
@@ -32,7 +34,7 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotMagnifier::PlotMagnifier(QwtPlotCanvas* canvas) : QwtPlotMagnifier(canvas), magnifying_(false) {}
+PlotMagnifier::PlotMagnifier(QwtPlotCanvas* canvas) : QwtPlotMagnifier(canvas), magnifying_(false), dragStarted_(false) {}
 
 PlotMagnifier::~PlotMagnifier() = default;
 
@@ -106,7 +108,8 @@ void PlotMagnifier::widgetMousePressEvent(QMouseEvent* event) {
   }
 
   magnifying_ = true;
-  position_ = event->pos();
+  dragStarted_ = false;
+  position_ = mouseEventPosition(*event);
 }
 
 void PlotMagnifier::widgetMouseMoveEvent(QMouseEvent* event) {
@@ -114,8 +117,15 @@ void PlotMagnifier::widgetMouseMoveEvent(QMouseEvent* event) {
     return;
   }
 
-  int dx = event->pos().x() - position_.x();
-  int dy = event->pos().y() - position_.y();
+  const QPoint eventPosition = mouseEventPosition(*event);
+  if (!dragStarted_) {
+    if (isStationaryClick(position_, eventPosition)) {
+      return;
+    }
+    dragStarted_ = true;
+  }
+  int dx = eventPosition.x() - position_.x();
+  int dy = eventPosition.y() - position_.y();
 
   double fx = 1.0;
   double fy = 1.0;
@@ -138,13 +148,14 @@ void PlotMagnifier::widgetMouseMoveEvent(QMouseEvent* event) {
 
   rescale(fx, fy);
 
-  position_ = event->pos();
+  position_ = eventPosition;
 }
 
 void PlotMagnifier::widgetMouseReleaseEvent(QMouseEvent* event) {
   QwtPlotMagnifier::widgetMouseReleaseEvent(event);
 
   magnifying_ = false;
+  dragStarted_ = false;
 }
 
 }  // namespace rqt_multiplot

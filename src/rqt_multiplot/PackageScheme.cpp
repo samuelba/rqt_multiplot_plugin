@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <rqt_multiplot/AmentIndex.h>
 
 #include "rqt_multiplot/PackageScheme.h"
 
@@ -156,7 +156,7 @@ QString PackageScheme::getFilePath(const QString& host, const QString& path) con
     }
   } else {
     try {
-      packagePath = QString::fromStdString(ament_index_cpp::get_package_share_directory(host.toStdString()));
+      packagePath = QString::fromStdString(packageSharePath(host.toStdString()));
     } catch (const std::exception&) {
       packagePath.clear();
     }

@@ -10,6 +10,8 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 
 **License:** GNU Lesser General Public License v3.0 (LGPL-3.0)
 
+**ROS2 distributions:** Jazzy, Kilted, Lyrical, Rolling
+
 ## Features
 
 - **Multiple plots and curves** — rows × columns of plots; each plot can hold many curves
@@ -33,11 +35,13 @@ Also: run / pause / clear, message receipt time, start time from 0, circular and
 sudo apt-get update
 sudo apt-get install ros-jazzy-rqt-multiplot
 sudo apt-get install ros-kilted-rqt-multiplot
+sudo apt-get install ros-lyrical-rqt-multiplot
+sudo apt-get install ros-rolling-rqt-multiplot
 ```
 
 ### Building from source
 
-Tested on ROS 2 Jazzy and Kilted. Put this repository in a colcon workspace `src` folder (clone or symlink), then:
+Tested on ROS 2 Jazzy, Kilted, Lyrical, and Rolling. Put this repository in a colcon workspace `src` folder (clone or symlink), then:
 
 ```shell
 cd ~/colcon_ws
@@ -183,6 +187,20 @@ ros2 run rqt_multiplot publish_array_demo.py
 Use the [issue tracker](https://github.com/samuelba/rqt_multiplot_plugin/issues).
 
 ## Development
+
+### Distrobox
+
+[Distrobox](https://distrobox.it/) can be used to develop and test the package in a containerized environment for different ROS2 distributions.
+
+Pre-built images with all build, test, and runtime dependencies live under [`distrobox/`](distrobox/). Build and create a container:
+
+```shell
+cd distrobox
+./update.sh jazzy
+distrobox enter rqt-multiplot-jazzy
+```
+
+Supported distros: `jazzy`, `kilted`, `lyrical`, `rolling`. Inside the container, build from your colcon workspace as usual.
 
 ### Formatting
 

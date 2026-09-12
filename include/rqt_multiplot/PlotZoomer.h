@@ -19,6 +19,7 @@
 #ifndef RQT_MULTIPLOT_PLOT_ZOOMER_H
 #define RQT_MULTIPLOT_PLOT_ZOOMER_H
 
+#include <QPoint>
 #include <QRect>
 #include <QRegion>
 
@@ -45,6 +46,7 @@ class PlotZoomer : public QwtPlotZoomer {
 
  private:
   QPoint position_;
+  bool pressRecorded_{false};
 
   QRect selectionRect() const;
 };

@@ -54,7 +54,7 @@ bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
       if (isPanMouse(mouseEvent->button(), mouseEvent->modifiers())) {
-        position_ = mouseEvent->pos();
+        position_ = mouseEventPosition(*mouseEvent);
 
         xMap_ = canvas_->plot()->canvasMap(QwtPlot::xBottom);
         yMap_ = canvas_->plot()->canvasMap(QwtPlot::yLeft);
@@ -82,8 +82,9 @@ bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
     } else if (panning_ && (event->type() == QEvent::MouseMove)) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
-      double dx = mouseEvent->pos().x() - position_.x();
-      double dy = mouseEvent->pos().y() - position_.y();
+      const QPoint eventPosition = mouseEventPosition(*mouseEvent);
+      double dx = eventPosition.x() - position_.x();
+      double dy = eventPosition.y() - position_.y();
 
       QPointF minimum(xMap_.invTransform(xMap_.transform(bounds_.getMinimum().x()) - dx),
                       yMap_.invTransform(yMap_.transform(bounds_.getMinimum().y()) - dy));

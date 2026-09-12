@@ -39,7 +39,7 @@ void MatchFilterCompleterModel::setFilterMatchFlags(Qt::MatchFlags flags) {
   if (flags != filterMatchFlags_) {
     filterMatchFlags_ = flags;
 
-    invalidateFilter();
+    refreshFilter();
   }
 }
 
@@ -51,7 +51,7 @@ void MatchFilterCompleterModel::setFilterKey(const QString& key) {
   if (key != filterKey_) {
     filterKey_ = key;
 
-    invalidateFilter();
+    refreshFilter();
   }
 }
 
@@ -62,6 +62,15 @@ const QString& MatchFilterCompleterModel::getFilterKey() const {
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
+
+void MatchFilterCompleterModel::refreshFilter() {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
+  beginFilterChange();
+  endFilterChange();
+#else
+  invalidateFilter();
+#endif
+}
 
 bool MatchFilterCompleterModel::filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const {
   if (static_cast<bool>(filterMatchFlags_ & Qt::MatchRegularExpression)) {

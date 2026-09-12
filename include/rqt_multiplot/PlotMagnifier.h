@@ -33,6 +33,7 @@ class PlotMagnifier : public QwtPlotMagnifier {
   ~PlotMagnifier() override;
 
  protected:
+  using QwtPlotMagnifier::rescale;
   void rescale(double xFactor, double yFactor);
 
   void widgetMousePressEvent(QMouseEvent* event) override;
@@ -41,6 +42,7 @@ class PlotMagnifier : public QwtPlotMagnifier {
 
  private:
   bool magnifying_;
+  bool dragStarted_;
 
   QPoint position_;
 };

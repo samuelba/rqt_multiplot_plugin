@@ -33,7 +33,7 @@ MessageTypeComboBox::MessageTypeComboBox(QWidget* parent)
   connect(registry_, SIGNAL(updateStarted()), this, SLOT(registryUpdateStarted()));
   connect(registry_, SIGNAL(updateFinished()), this, SLOT(registryUpdateFinished()));
 
-  connect(this, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(currentIndexChanged(const QString&)));
+  connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)));
 
   if (rqt_multiplot::MessageTypeRegistry::isUpdating()) {
     registryUpdateStarted();
@@ -146,9 +146,9 @@ void MessageTypeComboBox::registryUpdateFinished() {
   setEnabled(true);
 }
 
-void MessageTypeComboBox::currentIndexChanged(const QString& text) {
-  if (currentIndex() >= 0) {
-    setCurrentType(text);
+void MessageTypeComboBox::currentIndexChanged(int index) {
+  if (index >= 0) {
+    setCurrentType(itemText(index));
   }
 }
 

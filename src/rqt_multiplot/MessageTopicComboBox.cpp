@@ -33,7 +33,7 @@ MessageTopicComboBox::MessageTopicComboBox(QWidget* parent)
   connect(registry_, SIGNAL(updateStarted()), this, SLOT(registryUpdateStarted()));
   connect(registry_, SIGNAL(updateFinished()), this, SLOT(registryUpdateFinished()));
 
-  connect(this, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(currentIndexChanged(const QString&)));
+  connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)));
 
   if (rqt_multiplot::MessageTopicRegistry::isUpdating()) {
     registryUpdateStarted();
@@ -156,9 +156,9 @@ void MessageTopicComboBox::registryUpdateFinished() {
   setEnabled(true);
 }
 
-void MessageTopicComboBox::currentIndexChanged(const QString& text) {
-  if (currentIndex() >= 0) {
-    setCurrentTopic(text);
+void MessageTopicComboBox::currentIndexChanged(int index) {
+  if (index >= 0) {
+    setCurrentTopic(itemText(index));
   }
 }
 

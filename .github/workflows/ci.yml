@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [jazzy, kilted]
+        ros_distro: [jazzy, kilted, lyrical, rolling]
     container:
       image: ros:${{ matrix.ros_distro }}
     env:
