@@ -8,7 +8,7 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 
 **Maintainer:** Samuel Bachmann
 
-**License:** GNU Lesser General Public License (LGPL)
+**License:** GNU Lesser General Public License v3.0 (LGPL-3.0)
 
 ## Features
 
@@ -17,7 +17,7 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer
 - **Export** — PNG, SVG, PDF images; TXT or CSV curve data
 - **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`)
-- **Array snapshots** — plot a whole array vs index (or vs another array field); the curve is replaced on each message
+- **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 
 Also: run / pause / clear, message receipt time, start time from 0, circular and time-frame buffers, and drag-and-drop of curves between plot legends.
 
@@ -111,26 +111,10 @@ Pick topic, message type, and field for each axis. X and Y can come from differe
 Useful curve options:
 
 - **Message receipt time** — plot against the time the message arrived
-- **Array index** — X (or Y) is `0..n-1` for the other axis’s array
-- **Wildcard field** — `position/*` or `poses/*/position/x` plots every element; the series is replaced on each message
 - **Start time from 0** — shift timestamps so the first sample is zero
 - **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
 
-Array snapshots need the same topic on both axes. A field path with `*` cannot be mixed with receipt time or a single scalar index. Indexed paths such as `position/0` stay ordinary time series.
-
-Live topics for trying this:
-
-```shell
-ros2 run rqt_multiplot publish_array_demo.py
-```
-
-| Topic | Type | Try |
-| --- | --- | --- |
-| `/array_demo/floats` | `std_msgs/Float32MultiArray` | X array index, Y `data/*` |
-| `/array_demo/joints` | `sensor_msgs/JointState` | Y `position/*` (length 4 ↔ 8) |
-| `/array_demo/covariance` | `geometry_msgs/PoseWithCovariance` | Y `covariance/*` |
-| `/array_demo/poses` | `geometry_msgs/PoseArray` | X `poses/*/position/x`, Y `poses/*/position/y` |
-| `/array_demo/scan` | `sensor_msgs/LaserScan` | Y `ranges/*` |
+Whole-array fields use a different curve mode. See [Array curves](#array-curves).
 
 ### Import a bag
 
@@ -144,6 +128,55 @@ From the plot table or a single plot:
 
 - Image: PNG, SVG, PDF
 - Data: TXT (comment header) or CSV
+
+## Array curves
+
+A normal curve appends one point per message. An **array curve** replaces the whole series from that message: one point per element.
+
+Both axes must use the same topic.
+
+- **Array index** — X or Y is `0..n-1` for the other axis’s array
+- **Wildcard field** — `position/*` or `poses/*/position/x` plots every element
+- **Array fade** — keep the last *n* snapshots and fade them. Disabled on time-series curves
+
+A `*` path cannot mix with receipt time or a single scalar. `position/0` stays a time series.
+
+![Array fade history](images/array_fade_history.gif)
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/array_fade_history.png" alt="Faded array snapshots" />
+      <br/>Sticks and lines with faded past snapshots
+    </td>
+    <td align="center" width="50%">
+      <img src="images/array_index_curve.png" alt="Array index versus data" />
+      <br/>X array index, Y <code>data/*</code>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/array_index_curve_2.png" alt="Array index versus position" />
+      <br/>X array index, Y <code>position/*</code>
+    </td>
+    <td align="center" width="50%">
+      <img src="images/array_vs_array_curve.png" alt="Velocity versus position arrays" />
+      <br/>X <code>velocity/*</code>, Y <code>position/*</code>
+    </td>
+  </tr>
+</table>
+
+```shell
+ros2 run rqt_multiplot publish_array_demo.py
+```
+
+| Topic | Type | Try |
+| --- | --- | --- |
+| `/array_demo/floats` | `std_msgs/Float32MultiArray` | X array index, Y `data/*` |
+| `/array_demo/joints` | `sensor_msgs/JointState` | Y `position/*` (length 4 ↔ 8) |
+| `/array_demo/covariance` | `geometry_msgs/PoseWithCovariance` | Y `covariance/*` |
+| `/array_demo/poses` | `geometry_msgs/PoseArray` | X `poses/*/position/x`, Y `poses/*/position/y` |
+| `/array_demo/scan` | `sensor_msgs/LaserScan` | Y `ranges/*` |
 
 ## Bugs and feature requests
 
