@@ -25,6 +25,7 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
       ROS_DISTRO: ${{ matrix.ros_distro }}
+      CLANG_TIDY_VERSION: '18'
     steps:
       - name: Install git
         run: |
@@ -46,6 +47,11 @@ jobs:
             --dependency-types build_export \
             --dependency-types exec \
             --dependency-types test
+
+      - name: Install pinned clang tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends clang-format-18 clang-tidy-18
 
       - name: Build
         run: |

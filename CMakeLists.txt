@@ -412,6 +412,7 @@ if(BUILD_TESTING)
   ament_clang_format(
     src include test
     CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+    CLANG_FORMAT_VERSION 18
   )
 
   ament_add_test(test_run_clang_tidy
