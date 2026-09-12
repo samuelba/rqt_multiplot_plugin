@@ -19,9 +19,11 @@
 #ifndef RQT_MULTIPLOT_CURVE_AXIS_CONFIG_WIDGET_H
 #define RQT_MULTIPLOT_CURVE_AXIS_CONFIG_WIDGET_H
 
+#include <QStringList>
 #include <QWidget>
 
 #include <rqt_multiplot/CurveAxisConfig.h>
+#include <rqt_multiplot/StatusWidget.h>
 
 namespace Ui {
 class CurveAxisConfigWidget;
@@ -41,16 +43,25 @@ class CurveAxisConfigWidget : public QWidget {
   void updateTypes();
   void updateFields();
   void applySnapshotPairingError(const QString& error);
+  StatusWidget::Role getFieldStatusRole() const;
+  QString getFieldStatusMessage() const;
+  QStringList currentErrors() const;
+
+ signals:
+  void validationChanged();
 
  private:
   Ui::CurveAxisConfigWidget* ui_;
 
   CurveAxisConfig* config_;
+  QString pairingError_;
 
   bool validateTopic();
   bool validateType();
   bool validateField();
   bool validateScale();
+  bool applyFieldStatusAfterLocalOk();
+  bool isSyntheticFieldType() const;
   void updateLabelFromZeroControl();
   void updateFieldWidgetEnabled();
   void setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType);

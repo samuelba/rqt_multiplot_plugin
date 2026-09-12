@@ -340,6 +340,7 @@ if(BUILD_TESTING)
     test/CurveAxisConfigTest.cpp
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
+    test/CurveConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
@@ -348,6 +349,7 @@ if(BUILD_TESTING)
     test/PlotConfigTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
+    test/StatusWidgetTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test

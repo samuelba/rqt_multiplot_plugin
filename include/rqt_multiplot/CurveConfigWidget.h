@@ -21,6 +21,7 @@
 
 #include <QWidget>
 
+#include <rqt_multiplot/CurveAxisConfigWidget.h>
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageTopicRegistry.h>
 
@@ -38,6 +39,9 @@ class CurveConfigWidget : public QWidget {
   void setConfig(const CurveConfig& config);
   CurveConfig& getConfig();
   const CurveConfig& getConfig() const;
+  CurveAxisConfigWidget* getAxisConfigWidget(CurveConfig::Axis axis) const;
+  QString validationErrorText() const;
+  bool isValidationErrorVisible() const;
 
  private:
   Ui::CurveConfigWidget* ui_;
@@ -54,6 +58,7 @@ class CurveConfigWidget : public QWidget {
   void configAxisConfigTypeChanged(const QString& type);
 
   void updateFadeHistoryApplicable();
+  void updateValidationErrorBanner();
 
   void lineEditTitleEditingFinished();
   void pushButtonCopyRightClicked();

@@ -71,6 +71,12 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent),
           SLOT(widgetFieldConnectionTimeout(const QString&, double)));
   connect(ui_->widgetField, SIGNAL(currentFieldChanged(const QString&)), this, SLOT(widgetFieldCurrentFieldChanged(const QString&)));
 
+  const auto emitValidationChanged = [this](StatusWidget::Role) { emit validationChanged(); };
+  connect(ui_->statusWidgetTopic, &StatusWidget::currentRoleChanged, this, emitValidationChanged);
+  connect(ui_->statusWidgetType, &StatusWidget::currentRoleChanged, this, emitValidationChanged);
+  connect(ui_->statusWidgetField, &StatusWidget::currentRoleChanged, this, emitValidationChanged);
+  connect(ui_->statusWidgetScale, &StatusWidget::currentRoleChanged, this, emitValidationChanged);
+
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
   connect(ui_->checkBoxFieldArrayIndex, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldArrayIndexStateChanged(int)));
   connect(ui_->checkBoxLabelFromZero, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLabelFromZeroStateChanged(int)));
@@ -133,6 +139,32 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
 
 CurveAxisConfig* CurveAxisConfigWidget::getConfig() const {
   return config_;
+}
+
+StatusWidget::Role CurveAxisConfigWidget::getFieldStatusRole() const {
+  return ui_->statusWidgetField->getCurrentRole();
+}
+
+QString CurveAxisConfigWidget::getFieldStatusMessage() const {
+  return ui_->statusWidgetField->toolTip();
+}
+
+QStringList CurveAxisConfigWidget::currentErrors() const {
+  QStringList errors;
+  const auto appendError = [&errors](StatusWidget* status) {
+    if (status->getCurrentRole() != StatusWidget::Error) {
+      return;
+    }
+    const QString message = status->toolTip();
+    if (!message.isEmpty() && !errors.contains(message)) {
+      errors.append(message);
+    }
+  };
+  appendError(ui_->statusWidgetTopic);
+  appendError(ui_->statusWidgetType);
+  appendError(ui_->statusWidgetField);
+  appendError(ui_->statusWidgetScale);
+  return errors;
 }
 
 /*****************************************************************************/
@@ -211,15 +243,32 @@ bool CurveAxisConfigWidget::validateType() {
   }
 }
 
-bool CurveAxisConfigWidget::validateField() {
-  if ((config_ == nullptr) || ui_->widgetField->isLoading()) {
+bool CurveAxisConfigWidget::isSyntheticFieldType() const {
+  return (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime ||
+                                  config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+}
+
+bool CurveAxisConfigWidget::applyFieldStatusAfterLocalOk() {
+  if (!pairingError_.isEmpty()) {
+    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, pairingError_);
     return false;
   }
 
-  if (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex) {
-    ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
+  ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
+  return true;
+}
 
-    return true;
+bool CurveAxisConfigWidget::validateField() {
+  if (config_ == nullptr) {
+    return false;
+  }
+
+  if (!isSyntheticFieldType() && ui_->widgetField->isLoading()) {
+    return false;
+  }
+
+  if (isSyntheticFieldType()) {
+    return applyFieldStatusAfterLocalOk();
   }
 
   if (config_->getField().isEmpty()) {
@@ -232,9 +281,7 @@ bool CurveAxisConfigWidget::validateField() {
 
   if (fieldType.isValid()) {
     if (isPlottableFieldPath(fieldType, config_->getField().toStdString())) {
-      ui_->statusWidgetField->setCurrentRole(StatusWidget::Okay, "Message field okay");
-
-      return true;
+      return applyFieldStatusAfterLocalOk();
     }
     if (fieldType.isNumericArray()) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Error,
@@ -253,12 +300,8 @@ bool CurveAxisConfigWidget::validateField() {
 }
 
 void CurveAxisConfigWidget::applySnapshotPairingError(const QString& error) {
-  if (!validateField()) {
-    return;
-  }
-  if (!error.isEmpty()) {
-    ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, error);
-  }
+  pairingError_ = error;
+  validateField();
 }
 
 bool CurveAxisConfigWidget::validateScale() {
