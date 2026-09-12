@@ -125,6 +125,9 @@ PlotWidget::PlotWidget(QWidget* parent)
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
 
   auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
+  if (canvas != nullptr) {
+    canvas->setContextMenuPolicy(Qt::NoContextMenu);
+  }
   cursor_ = new PlotCursor(canvas);
   magnifier_ = new PlotMagnifier(canvas);
   panner_ = new PlotPanner(canvas);
@@ -877,6 +880,8 @@ void PlotWidget::plotZoomed(const QRectF& /*bounds*/) {
 
 void PlotWidget::plotZoomResetRequested() {
   setUserScaleLocked(false);
+  rescale_ = true;
+  requestReplot();
 }
 
 }  // namespace rqt_multiplot

@@ -42,7 +42,7 @@ class CurveDataVector : public CurveData {
  private:
   class XCoordinateRef {
    public:
-    inline XCoordinateRef(double x = 0.0, size_t index = 0) : x_(x), index_(index){};
+    inline XCoordinateRef(double x = 0.0, size_t index = 0) : x_(x), index_(index) {};
 
     inline XCoordinateRef(const XCoordinateRef& src) = default;
     inline XCoordinateRef& operator=(const XCoordinateRef& src) = default;

@@ -22,6 +22,8 @@
 
 #include <qwt/qwt_plot_canvas.h>
 
+#include <rqt_multiplot/PlotMouseBindings.h>
+
 #include "rqt_multiplot/PlotZoomer.h"
 
 namespace rqt_multiplot {
@@ -72,22 +74,25 @@ QRegion PlotZoomer::rubberBandMask() const {
 }
 
 void PlotZoomer::widgetMousePressEvent(QMouseEvent* event) {
-  if (mouseMatch(MouseSelect2, event)) {
-    position_ = event->pos();
+  if (isZoomResetMouse(event->button())) {
+    position_ = mouseEventPosition(*event);
+    pressRecorded_ = true;
   }
 
   QwtPlotZoomer::widgetMousePressEvent(event);
 }
 
 void PlotZoomer::widgetMouseReleaseEvent(QMouseEvent* event) {
-  if (mouseMatch(MouseSelect2, event)) {
-    if (position_ == event->pos()) {
+  if (isZoomResetMouse(event->button())) {
+    if (pressRecorded_ && isZoomResetClick(event->button(), position_, mouseEventPosition(*event))) {
       zoom(0);
       emit zoomResetRequested();
     }
-  } else {
-    QwtPlotZoomer::widgetMouseReleaseEvent(event);
+    pressRecorded_ = false;
+    return;
   }
+
+  QwtPlotZoomer::widgetMouseReleaseEvent(event);
 }
 
 }  // namespace rqt_multiplot

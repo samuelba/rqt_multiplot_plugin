@@ -46,7 +46,7 @@ class UrlComboBox : public QComboBox {
 
  private slots:
   void activated(int index);
-  void currentIndexChanged(const QString& text);
+  void currentIndexChanged(int index);
   void lineEditEditingFinished();
 };
 }  // namespace rqt_multiplot

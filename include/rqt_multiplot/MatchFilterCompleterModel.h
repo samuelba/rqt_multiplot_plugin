@@ -39,6 +39,8 @@ class MatchFilterCompleterModel : public QSortFilterProxyModel {
   bool filterAcceptsRow(int sourceRow, const QModelIndex& sourceParent) const override;
 
  private:
+  void refreshFilter();
+
   Qt::MatchFlags filterMatchFlags_;
   QString filterKey_;
 };

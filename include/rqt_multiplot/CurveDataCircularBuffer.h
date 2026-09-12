@@ -44,7 +44,7 @@ class CurveDataCircularBuffer : public CurveData {
 
   class XCoordinateRef {
    public:
-    inline XCoordinateRef(double x = 0.0, size_t index = 0) : x_(x), index_(index){};
+    inline XCoordinateRef(double x = 0.0, size_t index = 0) : x_(x), index_(index) {};
 
     inline XCoordinateRef(const XCoordinateRef& src) = default;
 
@@ -68,7 +68,7 @@ class CurveDataCircularBuffer : public CurveData {
 
   class Point {
    public:
-    inline Point(const QPointF& point = QPointF(0.0, 0.0)) : x_(point.x()), y_(point.y()){};
+    inline Point(const QPointF& point = QPointF(0.0, 0.0)) : x_(point.x()), y_(point.y()) {};
 
     double x_;
     double y_;

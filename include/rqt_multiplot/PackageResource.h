@@ -6,16 +6,14 @@
 #ifndef RQT_MULTIPLOT_PACKAGE_RESOURCE_H
 #define RQT_MULTIPLOT_PACKAGE_RESOURCE_H
 
-#include <string>
-
 #include <QString>
 
-#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <rqt_multiplot/AmentIndex.h>
 
 namespace rqt_multiplot {
 
 inline QString packageShareDirectory() {
-  return QString::fromStdString(ament_index_cpp::get_package_share_directory("rqt_multiplot"));
+  return QString::fromStdString(packageSharePath("rqt_multiplot"));
 }
 
 inline QString packageResourcePath(const QString& relativePath) {

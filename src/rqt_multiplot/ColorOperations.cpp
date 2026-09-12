@@ -100,7 +100,8 @@ QColor ColorOperations::intToRgb(unsigned char val) {
 }
 
 QColor ColorOperations::invertRgb(const QColor& rgb) {
-  return QColor::fromRgbF(1.0 - rgb.redF(), 1.0 - rgb.greenF(), 1.0 - rgb.blueF(), rgb.alphaF());
+  return QColor::fromRgbF(static_cast<float>(1.0 - rgb.redF()), static_cast<float>(1.0 - rgb.greenF()),
+                          static_cast<float>(1.0 - rgb.blueF()), static_cast<float>(rgb.alphaF()));
 }
 
 }  // namespace rqt_multiplot

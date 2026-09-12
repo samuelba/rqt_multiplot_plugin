@@ -35,6 +35,37 @@ class FilterCompileCommandsTest(unittest.TestCase):
             # Assert
             self.assertEqual([entry['file'] for entry in filtered], [str(real_src)])
 
+    def test_drops_fetched_dependencies_and_autogen_sources(self):
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = root / 'src' / 'PlotWidget.cpp'
+            src.parent.mkdir(parents=True)
+            src.write_text('int a;\n')
+            db = [
+                {'file': str(src), 'directory': tmp, 'command': 'c++'},
+                {
+                    'file': str(root / 'build' / '_deps' / 'qwt-src' / 'src' / 'qwt_plot.cpp'),
+                    'directory': tmp,
+                    'command': 'c++',
+                },
+                {
+                    'file': str(root / 'build' / 'qwt_qt6_autogen' / 'mocs_compilation.cpp'),
+                    'directory': tmp,
+                    'command': 'c++',
+                },
+            ]
+            (root / 'build' / '_deps' / 'qwt-src' / 'src').mkdir(parents=True)
+            (root / 'build' / '_deps' / 'qwt-src' / 'src' / 'qwt_plot.cpp').write_text('int b;\n')
+            (root / 'build' / 'qwt_qt6_autogen').mkdir(parents=True)
+            (root / 'build' / 'qwt_qt6_autogen' / 'mocs_compilation.cpp').write_text('int c;\n')
+
+            # Act
+            filtered = rct.filter_compile_commands(db, root)
+
+            # Assert
+            self.assertEqual([entry['file'] for entry in filtered], [str(src)])
+
     def test_drops_package_tests_and_gtest_sources(self):
         # Arrange
         with tempfile.TemporaryDirectory() as tmp:
@@ -137,6 +168,19 @@ class JobCountTest(unittest.TestCase):
 
         # Assert
         self.assertEqual(jobs, rct.job_count(os.cpu_count(), None))
+
+
+class FindRunClangTidyTest(unittest.TestCase):
+    def test_prefers_pinned_version(self):
+        with patch.dict(os.environ, {'CLANG_TIDY_VERSION': '18'}, clear=False):
+            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-18' else None):
+                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-18')
+
+    def test_defaults_to_clang_tidy_18(self):
+        env = {key: value for key, value in os.environ.items() if key != 'CLANG_TIDY_VERSION'}
+        with patch.dict(os.environ, env, clear=True):
+            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-18' else None):
+                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-18')
 
 
 class HeaderFilterTest(unittest.TestCase):

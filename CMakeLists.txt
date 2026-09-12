@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.16)
 project(rqt_multiplot)
 
 if(NOT CMAKE_CXX_STANDARD)
@@ -22,27 +22,54 @@ find_package(ros_babel_fish REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
 find_package(rqt_gui_cpp REQUIRED)
-find_package(Qt5Widgets REQUIRED)
-find_package(Qt5Svg REQUIRED)
 
-find_path(
-  QWT_INCLUDE_DIRS
-  NAMES
-    qwt_plot.h
-  PATHS
-    /usr/include/qwt
-    /usr/local/include/qwt
-)
+# Follow the Qt major version already selected by qt_gui_cpp / rqt_gui_cpp.
+# Preferring Qt6 here would break jazzy/kilted hosts that also have Qt6 installed.
+if(TARGET Qt6::Core OR QT_VERSION_MAJOR EQUAL 6)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
+  set(QT_VERSION_MAJOR 6)
+else()
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Svg)
+  set(QT_VERSION_MAJOR 5)
+endif()
 
-find_library(
-  QWT_LIBRARIES
-  NAMES
-    qwt-qt5
-    qwt
-)
-
-if(NOT QWT_INCLUDE_DIRS OR NOT QWT_LIBRARIES)
-  message(FATAL_ERROR "Qwt (Qt5) not found")
+if(QT_VERSION_MAJOR EQUAL 6)
+  find_path(
+    QWT_INCLUDE_DIRS
+    NAMES
+      qwt_plot.h
+    PATHS
+      /usr/include/qwt
+      /usr/include/qwt6
+      /usr/include/qt6/qwt
+      /usr/local/include/qwt
+  )
+  find_library(
+    QWT_LIBRARIES
+    NAMES
+      qwt-qt6
+  )
+  if(NOT QWT_INCLUDE_DIRS OR NOT QWT_LIBRARIES)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchQwtQt6.cmake")
+  endif()
+else()
+  find_path(
+    QWT_INCLUDE_DIRS
+    NAMES
+      qwt_plot.h
+    PATHS
+      /usr/include/qwt
+      /usr/local/include/qwt
+  )
+  find_library(
+    QWT_LIBRARIES
+    NAMES
+      qwt-qt5
+      qwt
+  )
+  if(NOT QWT_INCLUDE_DIRS OR NOT QWT_LIBRARIES)
+    message(FATAL_ERROR "Qwt (Qt5) not found")
+  endif()
 endif()
 
 set(rqt_multiplot_SRCS
@@ -266,8 +293,8 @@ set(rqt_multiplot_UIS
   src/rqt_multiplot/ProgressWidget.ui
 )
 
-qt5_wrap_cpp(rqt_multiplot_MOCS ${rqt_multiplot_HDRS})
-qt5_wrap_ui(rqt_multiplot_UIS_H ${rqt_multiplot_UIS})
+qt_wrap_cpp(rqt_multiplot_MOCS ${rqt_multiplot_HDRS})
+qt_wrap_ui(rqt_multiplot_UIS_H ${rqt_multiplot_UIS})
 
 add_library(${PROJECT_NAME} SHARED
   ${rqt_multiplot_SRCS}
@@ -279,22 +306,27 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
   ${Boost_INCLUDE_DIRS}
-  ${QWT_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   ${pluginlib_TARGETS}
   ${qt_gui_cpp_TARGETS}
   ${rqt_gui_cpp_TARGETS}
-  Qt5::Widgets
-  Qt5::Svg
+  Qt${QT_VERSION_MAJOR}::Widgets
+  Qt${QT_VERSION_MAJOR}::Svg
   ament_index_cpp::ament_index_cpp
   rclcpp::rclcpp
   ros_babel_fish::ros_babel_fish
   rosbag2_cpp::rosbag2_cpp
   rosbag2_storage::rosbag2_storage
-  ${QWT_LIBRARIES}
 )
+
+if(TARGET qwt_qt6)
+  target_link_libraries(${PROJECT_NAME} PRIVATE qwt_qt6)
+else()
+  target_include_directories(${PROJECT_NAME} PUBLIC ${QWT_INCLUDE_DIRS})
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${QWT_LIBRARIES})
+endif()
 
 install(
   TARGETS ${PROJECT_NAME}
@@ -353,27 +385,34 @@ if(BUILD_TESTING)
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp
+    test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
+    test/AmentIndexTest.cpp
+    test/MatchFilterCompleterModelTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
   set_tests_properties(test_${PROJECT_NAME} PROPERTIES LABELS "unit_testing")
   if(TARGET test_${PROJECT_NAME})
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
-      Qt5::Core
-      Qt5::Widgets
+      Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Widgets
       ${geometry_msgs_TARGETS}
       ${std_msgs_TARGETS}
       rosbag2_cpp::rosbag2_cpp
       rosbag2_storage::rosbag2_storage
     )
+    if(TARGET qwt_qt6)
+      target_link_libraries(test_${PROJECT_NAME} qwt_qt6)
+    endif()
   endif()
 
   find_package(ament_cmake_clang_format REQUIRED)
   ament_clang_format(
     src include test
     CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+    CLANG_FORMAT_VERSION 18
   )
 
   ament_add_test(test_run_clang_tidy

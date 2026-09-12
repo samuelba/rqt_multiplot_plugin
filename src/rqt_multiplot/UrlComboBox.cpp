@@ -28,7 +28,7 @@ namespace rqt_multiplot {
 
 UrlComboBox::UrlComboBox(QWidget* parent) : QComboBox(parent), completer_(new UrlCompleter(this)) {
   connect(this, SIGNAL(activated(int)), this, SLOT(activated(int)));
-  connect(this, SIGNAL(currentIndexChanged(const QString&)), this, SLOT(currentIndexChanged(const QString&)));
+  connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)));
 }
 
 UrlComboBox::~UrlComboBox() = default;
@@ -84,7 +84,8 @@ void UrlComboBox::activated(int index) {
   }
 }
 
-void UrlComboBox::currentIndexChanged(const QString& text) {
+void UrlComboBox::currentIndexChanged(int index) {
+  const QString text = itemText(index);
   if (currentUrl_ != text) {
     currentUrl_ = text;
 

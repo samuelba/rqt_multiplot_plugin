@@ -67,9 +67,9 @@ void MultiplotPlugin::saveSettings(qt_gui_cpp::Settings& /*pluginSettings*/, qt_
   size_t maxConfigHistoryLength = widget_->getMaxConfigHistoryLength();
   QStringList configHistory = widget_->getConfigHistory();
 
-  instanceSettings.remove("history");
-
+  // Avoid Settings::remove(): broken in ros-lyrical-qt-gui-cpp 2.11.1.
   instanceSettings.setValue("history/max_length", static_cast<unsigned int>(maxConfigHistoryLength));
+  instanceSettings.setValue("history/count", configHistory.count());
 
   for (int i = 0; i < configHistory.count(); ++i) {
     instanceSettings.setValue("history/config_" + QString::number(i), configHistory[i]);
@@ -88,8 +88,15 @@ void MultiplotPlugin::restoreSettings(const qt_gui_cpp::Settings&
 
   maxConfigHistoryLength = instanceSettings.value("history/max_length", static_cast<unsigned int>(maxConfigHistoryLength)).toUInt();
 
-  while (instanceSettings.contains("history/config_" + QString::number(configHistory.count()))) {
-    configHistory.append(instanceSettings.value("history/config_" + QString::number(configHistory.count())).toString());
+  const int savedCount = instanceSettings.value("history/count", -1).toInt();
+  if (savedCount < 0) {
+    while (instanceSettings.contains("history/config_" + QString::number(configHistory.count()))) {
+      configHistory.append(instanceSettings.value("history/config_" + QString::number(configHistory.count())).toString());
+    }
+  } else {
+    for (int i = static_cast<int>(configHistory.count()); i < savedCount; ++i) {
+      configHistory.append(instanceSettings.value("history/config_" + QString::number(i)).toString());
+    }
   }
 
   widget_->setMaxConfigHistoryLength(maxConfigHistoryLength);

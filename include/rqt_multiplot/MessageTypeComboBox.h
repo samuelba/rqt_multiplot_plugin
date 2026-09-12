@@ -52,7 +52,7 @@ class MessageTypeComboBox : public MatchFilterComboBox {
   void registryUpdateStarted();
   void registryUpdateFinished();
 
-  void currentIndexChanged(const QString& text);
+  void currentIndexChanged(int index);
   void lineEditEditingFinished();
 };
 }  // namespace rqt_multiplot

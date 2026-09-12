@@ -63,7 +63,7 @@ class CurveDataSequencer : public QObject {
   class TimeValue {
    public:
     inline explicit TimeValue(const rclcpp::Time& time = rclcpp::Time(0, 0, RCL_ROS_TIME), double value = 0.0)
-        : time_(time), value_(value){};
+        : time_(time), value_(value) {};
 
     inline bool operator==(const TimeValue& timeValue) const { return (time_ == timeValue.time_); };
 

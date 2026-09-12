@@ -34,6 +34,14 @@ def header_filter() -> str:
     return r'(?:^|/)(?:include|src)/rqt_multiplot/(?!moc_|ui_|qrc_)'
 
 
+def is_package_source(path: Path, source_root: Path) -> bool:
+    try:
+        relative = path.resolve().relative_to(source_root.resolve())
+    except ValueError:
+        return False
+    return bool(relative.parts) and relative.parts[0] == 'src'
+
+
 def is_test_source(path: Path, source_root: Path) -> bool:
     if path.name in GTEST_NAMES:
         return True
@@ -52,6 +60,8 @@ def filter_compile_commands(entries: Sequence[dict], source_root: Path) -> List[
     for entry in entries:
         path = Path(entry['file'])
         if not path.is_file():
+            continue
+        if not is_package_source(path, source_root):
             continue
         if is_generated_source(path):
             continue
@@ -104,8 +114,12 @@ def write_compile_commands(directory: Path, entries: Sequence[dict]) -> Path:
 
 
 def find_run_clang_tidy() -> Optional[str]:
-    names = ['run-clang-tidy']
-    names.extend(f'run-clang-tidy-{version}' for version in range(21, 13, -1))
+    pinned_version = os.environ.get('CLANG_TIDY_VERSION', '18')
+    names = []
+    if pinned_version:
+        names.append(f'run-clang-tidy-{pinned_version}')
+    names.append('run-clang-tidy')
+    names.extend(f'run-clang-tidy-{version}' for version in range(21, 13, -1) if f'run-clang-tidy-{version}' not in names)
     for name in names:
         found = shutil.which(name)
         if found:

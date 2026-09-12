@@ -121,7 +121,7 @@ bool PlotLegend::eventFilter(QObject* object, QEvent* event) {
           pixmap.fill(Qt::transparent);
           widget->render(&pixmap, QPoint(), QRegion(), QWidget::DrawChildren);
 
-          QPoint hotSpot = mouseEvent->pos();
+          QPoint hotSpot;
           hotSpot.setX(qRound(0.5 * pixmap.width()));
           hotSpot.setY(pixmap.height() + 5);
 

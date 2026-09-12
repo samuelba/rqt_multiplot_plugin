@@ -31,6 +31,7 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
+#include <qwt/qwt_scale_map.h>
 #include <qwt/qwt_scale_widget.h>
 #include <qwt/qwt_text.h>
 

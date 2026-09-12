@@ -20,8 +20,7 @@
 #include <sstream>
 #include <string>
 
-#include <ament_index_cpp/get_resource.hpp>
-#include <ament_index_cpp/get_resources.hpp>
+#include <rqt_multiplot/AmentIndex.h>
 
 #include "rqt_multiplot/MessageFieldAccess.h"
 #include "rqt_multiplot/MessageTypeRegistry.h"
@@ -73,10 +72,10 @@ void MessageTypeRegistry::Impl::run() {
   types_.clear();
   mutex_.unlock();
 
-  const auto resources = ament_index_cpp::get_resources("rosidl_interfaces");
+  const auto resources = resourcesByName("rosidl_interfaces");
   for (const auto& [package, prefix] : resources) {
     std::string content;
-    if (!ament_index_cpp::get_resource("rosidl_interfaces", package, content)) {
+    if (!readIndexResource("rosidl_interfaces", package, content)) {
       continue;
     }
 
