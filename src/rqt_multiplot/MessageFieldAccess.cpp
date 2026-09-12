@@ -361,10 +361,15 @@ bool isWildcardFieldPath(const std::string& path) {
 }
 
 bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path) {
+  const auto parts = splitPath(path);
+  const auto wildcards = std::count(parts.begin(), parts.end(), "*");
+  if (wildcards > 1) {
+    return false;
+  }
   if (fieldType.isNumeric) {
     return true;
   }
-  return fieldType.isNumericArray() && isWildcardFieldPath(path);
+  return fieldType.isNumericArray() && wildcards == 1;
 }
 
 bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values) {

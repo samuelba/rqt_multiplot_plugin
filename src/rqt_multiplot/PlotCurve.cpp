@@ -42,7 +42,8 @@ PlotCurve::PlotCurve(QObject* parent)
       broker_(nullptr),
       data_(new CurveDataVector()),
       dataSequencer_(new CurveDataSequencer(this)),
-      paused_(true) {
+      paused_(true),
+      snapshotDataBackend_(false) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
   qRegisterMetaType<QVector<QPointF>>("QVector<QPointF>");
 
@@ -218,8 +219,37 @@ QVector<QPointF> PlotCurve::copyPoints(const CurveData& data) {
   return points;
 }
 
+void PlotCurve::createDataBackend() {
+  const bool snapshot = (config_ != nullptr) && CurveDataSequencer::isSnapshotConfig(*config_);
+  snapshotDataBackend_ = snapshot;
+
+  if (snapshot || (config_ == nullptr)) {
+    data_ = new CurveDataVector();
+  } else {
+    CurveDataConfig* dataConfig = config_->getDataConfig();
+    switch (dataConfig->getType()) {
+      case CurveDataConfig::List:
+        data_ = new CurveDataList();
+        break;
+      case CurveDataConfig::CircularBuffer:
+        data_ = new CurveDataCircularBuffer(dataConfig->getCircularBufferCapacity());
+        break;
+      case CurveDataConfig::TimeFrame:
+        data_ = new CurveDataListTimeFrame(dataConfig->getTimeFrameLength());
+        break;
+      case CurveDataConfig::Vector:
+      default:
+        data_ = new CurveDataVector();
+        break;
+    }
+  }
+
+  setData(data_);
+}
+
 void PlotCurve::updateSnapshotHistoryCapacity() {
-  const size_t capacity = (config_ != nullptr) ? config_->getStyleConfig()->getFadeHistory() : 0;
+  const bool snapshot = (config_ != nullptr) && CurveDataSequencer::isSnapshotConfig(*config_);
+  const size_t capacity = snapshot ? config_->getStyleConfig()->getFadeHistory() : 0;
   snapshotHistory_.setCapacity(capacity);
   syncGhosts();
 }
@@ -290,6 +320,11 @@ void PlotCurve::configTitleChanged(const QString& title) {
 }
 
 void PlotCurve::configAxisConfigChanged() {
+  const bool snapshot = (config_ != nullptr) && CurveDataSequencer::isSnapshotConfig(*config_);
+  if (snapshot != snapshotDataBackend_) {
+    createDataBackend();
+  }
+  updateSnapshotHistoryCapacity();
   emit preferredScaleChanged(getPreferredScale());
 }
 
@@ -334,22 +369,7 @@ void PlotCurve::configStyleConfigChanged() {
 }
 
 void PlotCurve::configDataConfigChanged() {
-  CurveDataConfig* config = config_->getDataConfig();
-
-  if (config->getType() == CurveDataConfig::List) {
-    data_ = new CurveDataList();
-  }
-  if (config->getType() == CurveDataConfig::CircularBuffer) {
-    data_ = new CurveDataCircularBuffer(config->getCircularBufferCapacity());
-  }
-  if (config->getType() == CurveDataConfig::TimeFrame) {
-    data_ = new CurveDataListTimeFrame(config->getTimeFrameLength());
-  } else {
-    data_ = new CurveDataVector();
-  }
-
-  setData(data_);
-
+  createDataBackend();
   emit replotRequested();
 }
 

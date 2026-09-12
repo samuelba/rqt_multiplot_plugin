@@ -41,6 +41,18 @@ TEST(SnapshotHistory, clearingCapacityDropsFrames) {
   EXPECT_TRUE(history.frames().isEmpty());
 }
 
+TEST(SnapshotHistory, recordsEmptyFramesWhenCapacityAllows) {
+  SnapshotHistory history;
+  history.setCapacity(2);
+  history.push(QVector<QPointF>{QPointF(0.0, 1.0)});
+  history.push({});
+  history.push(QVector<QPointF>{QPointF(0.0, 2.0)});
+
+  ASSERT_EQ(history.frames().size(), 2);
+  EXPECT_DOUBLE_EQ(history.frames()[0][0].y(), 2.0);
+  EXPECT_TRUE(history.frames()[1].isEmpty());
+}
+
 TEST(SnapshotHistory, clearRemovesFrames) {
   SnapshotHistory history;
   history.setCapacity(2);

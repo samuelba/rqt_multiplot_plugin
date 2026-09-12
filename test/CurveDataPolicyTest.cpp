@@ -33,16 +33,16 @@ TEST(CurveDataListTimeFrame, replacePointsKeepsFullIndexSnapshot) {
   EXPECT_DOUBLE_EQ(data.getPoint(20).y(), 10.0);
 }
 
-TEST(CurveDataCircularBuffer, replacePointsKeepsFullIndexSnapshot) {
+TEST(CurveDataCircularBuffer, replacePointsKeepsConfiguredCapacity) {
   CurveDataCircularBuffer data(5);
   data.appendPoint(QPointF(0.0, 1.0));
 
-  const auto snapshot = indexSeries(12);
-  data.replacePoints(snapshot);
+  data.replacePoints(indexSeries(12));
 
-  ASSERT_EQ(data.getNumPoints(), 12u);
-  EXPECT_DOUBLE_EQ(data.getPoint(0).x(), 0.0);
-  EXPECT_DOUBLE_EQ(data.getPoint(11).x(), 11.0);
+  EXPECT_EQ(data.getCapacity(), 5u);
+  ASSERT_EQ(data.getNumPoints(), 5u);
+  EXPECT_DOUBLE_EQ(data.getPoint(0).x(), 7.0);
+  EXPECT_DOUBLE_EQ(data.getPoint(4).x(), 11.0);
 }
 
 TEST(CurveDataCircularBuffer, replacePointsCanClearSeries) {

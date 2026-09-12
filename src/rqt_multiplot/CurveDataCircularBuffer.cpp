@@ -16,8 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <QVector>
-
 #include "rqt_multiplot/CurveDataCircularBuffer.h"
 
 namespace rqt_multiplot {
@@ -113,22 +111,6 @@ void CurveDataCircularBuffer::appendPoint(const QPointF& point) {
   points_.back().xMaxHandle_ = xMax_.push(point.x());
   points_.back().yMinHandle_ = yMin_.push(point.y());
   points_.back().yMaxHandle_ = yMax_.push(point.y());
-}
-
-void CurveDataCircularBuffer::replacePoints(const QVector<QPointF>& points) {
-  const auto needed = static_cast<size_t>(points.size());
-  if (needed > getCapacity()) {
-    points_.set_capacity(needed);
-    xMin_.reserve(needed);
-    xMax_.reserve(needed);
-    yMin_.reserve(needed);
-    yMax_.reserve(needed);
-  }
-
-  clearPoints();
-  for (const auto& point : points) {
-    appendPoint(point);
-  }
 }
 
 void CurveDataCircularBuffer::clearPoints() {

@@ -183,6 +183,8 @@ TEST(MessageFieldAccess, rejectsBareNumericArrayPath) {
   scalar.kind = rqt_multiplot::MessageFieldType::Builtin;
   scalar.isNumeric = true;
   EXPECT_TRUE(isPlottableFieldPath(scalar, "position/0"));
+  EXPECT_TRUE(isPlottableFieldPath(scalar, "poses/*/position/x"));
+  EXPECT_FALSE(isPlottableFieldPath(scalar, "poses/*/position/*"));
   EXPECT_FALSE(isPlottableFieldPath(rqt_multiplot::MessageFieldType(), "position"));
 }
 

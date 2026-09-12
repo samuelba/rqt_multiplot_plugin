@@ -21,6 +21,11 @@
 #include <cmath>
 
 namespace rqt_multiplot {
+namespace {
+
+constexpr qint32 kStyleStreamMagic = 0x53544631;
+
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -210,6 +215,7 @@ void CurveStyleConfig::reset() {
 }
 
 void CurveStyleConfig::write(QDataStream& stream) const {
+  stream << kStyleStreamMagic;
   stream << (int)type_;
 
   stream << linesInterpolate_;
@@ -224,6 +230,7 @@ void CurveStyleConfig::write(QDataStream& stream) const {
 }
 
 void CurveStyleConfig::read(QDataStream& stream) {
+  qint32 first = 0;
   int type = 0;
   int sticksOrientation = 0;
   int penStyle = 0;
@@ -233,7 +240,13 @@ void CurveStyleConfig::read(QDataStream& stream) {
   double sticksBaseline = NAN;
   quint64 penWidth = 0;
 
-  stream >> type;
+  stream >> first;
+  const bool versioned = (first == kStyleStreamMagic);
+  if (versioned) {
+    stream >> type;
+  } else {
+    type = first;
+  }
   setType(static_cast<Type>(type));
 
   stream >> linesInterpolate;
@@ -251,9 +264,14 @@ void CurveStyleConfig::read(QDataStream& stream) {
   setPenStyle(static_cast<Qt::PenStyle>(penStyle));
   stream >> renderAntialias;
   setRenderAntialias(renderAntialias);
-  quint64 fadeHistory = 0;
-  stream >> fadeHistory;
-  setFadeHistory(fadeHistory);
+
+  if (versioned) {
+    quint64 fadeHistory = 0;
+    stream >> fadeHistory;
+    setFadeHistory(fadeHistory);
+  } else {
+    setFadeHistory(0);
+  }
 }
 
 /*****************************************************************************/

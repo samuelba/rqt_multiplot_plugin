@@ -30,7 +30,7 @@ size_t SnapshotHistory::getCapacity() const {
 }
 
 void SnapshotHistory::push(const QVector<QPointF>& snapshot) {
-  if (capacity_ == 0 || snapshot.isEmpty()) {
+  if (capacity_ == 0) {
     return;
   }
 

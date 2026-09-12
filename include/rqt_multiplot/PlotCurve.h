@@ -73,7 +73,9 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   QList<QwtPlotCurve*> ghosts_;
 
   bool paused_;
+  bool snapshotDataBackend_;
 
+  void createDataBackend();
   void updateSnapshotHistoryCapacity();
   void syncGhosts();
   void restyleGhosts();
