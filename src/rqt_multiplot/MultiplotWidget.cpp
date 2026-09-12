@@ -103,6 +103,10 @@ void MultiplotWidget::runPlots() {
   ui_->plotTableConfigWidget->runPlots();
 }
 
+void MultiplotWidget::pausePlots() {
+  ui_->plotTableWidget->pausePlots();
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/

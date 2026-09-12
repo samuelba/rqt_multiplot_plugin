@@ -57,7 +57,11 @@ void MultiplotPlugin::initPlugin(qt_gui_cpp::PluginContext& context) {
   parseArguments(context.argv());
 }
 
-void MultiplotPlugin::shutdownPlugin() {}
+void MultiplotPlugin::shutdownPlugin() {
+  if (widget_ != nullptr) {
+    widget_->pausePlots();
+  }
+}
 
 void MultiplotPlugin::saveSettings(qt_gui_cpp::Settings& /*pluginSettings*/, qt_gui_cpp::Settings& instanceSettings) const {
   size_t maxConfigHistoryLength = widget_->getMaxConfigHistoryLength();

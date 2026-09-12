@@ -347,6 +347,7 @@ if(BUILD_TESTING)
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotCurveTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp

@@ -34,7 +34,9 @@ namespace rqt_multiplot {
 
 CurveDataSequencer::CurveDataSequencer(QObject* parent) : QObject(parent), config_(nullptr), broker_(nullptr) {}
 
-CurveDataSequencer::~CurveDataSequencer() = default;
+CurveDataSequencer::~CurveDataSequencer() {
+  unsubscribe();
+}
 
 /*****************************************************************************/
 /* Accessors                                                                 */
@@ -326,8 +328,8 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
           fieldParts.removeLast();
 
           QString parentField = fieldParts.join("/");
-          const ros_babel_fish::Message* parent = parentField.isEmpty() ? message.getCompound().get()
-                                                                        : getMember(*message.getCompound(), parentField.toStdString());
+          const ros_babel_fish::Message* parent =
+              parentField.isEmpty() ? message.getCompound().get() : getMember(*message.getCompound(), parentField.toStdString());
 
           if (parent != nullptr && hasHeader(*parent)) {
             timeFields_[axis] = parentField.isEmpty() ? QString("header/stamp") : parentField + "/header/stamp";
