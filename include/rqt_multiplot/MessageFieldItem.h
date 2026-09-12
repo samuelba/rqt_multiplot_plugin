@@ -27,7 +27,7 @@
 namespace rqt_multiplot {
 class MessageFieldItem {
  public:
-  explicit MessageFieldItem(const MessageFieldType& dataType, MessageFieldItem* parent = nullptr, QString name = QString());
+  explicit MessageFieldItem(MessageFieldType dataType, MessageFieldItem* parent = nullptr, QString name = QString());
   ~MessageFieldItem();
 
   MessageFieldItem* getParent() const;

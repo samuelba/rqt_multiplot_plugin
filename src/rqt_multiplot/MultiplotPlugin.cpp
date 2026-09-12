@@ -69,9 +69,9 @@ void MultiplotPlugin::saveSettings(qt_gui_cpp::Settings& /*pluginSettings*/, qt_
 
   instanceSettings.remove("history");
 
-  instanceSettings.setValue("history/max_length", (unsigned int)maxConfigHistoryLength);
+  instanceSettings.setValue("history/max_length", static_cast<unsigned int>(maxConfigHistoryLength));
 
-  for (size_t i = 0; i < configHistory.count(); ++i) {
+  for (int i = 0; i < configHistory.count(); ++i) {
     instanceSettings.setValue("history/config_" + QString::number(i), configHistory[i]);
   }
 }
@@ -86,7 +86,7 @@ void MultiplotPlugin::restoreSettings(const qt_gui_cpp::Settings&
   // appending more.
   QStringList configHistory = widget_->getConfigHistory();
 
-  maxConfigHistoryLength = instanceSettings.value("history/max_length", (unsigned int)maxConfigHistoryLength).toUInt();
+  maxConfigHistoryLength = instanceSettings.value("history/max_length", static_cast<unsigned int>(maxConfigHistoryLength)).toUInt();
 
   while (instanceSettings.contains("history/config_" + QString::number(configHistory.count()))) {
     configHistory.append(instanceSettings.value("history/config_" + QString::number(configHistory.count())).toString());

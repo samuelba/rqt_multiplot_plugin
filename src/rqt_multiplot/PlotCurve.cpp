@@ -282,9 +282,9 @@ void PlotCurve::styleGhost(QwtPlotCurve* ghost, size_t age, size_t count) const 
 }
 
 void PlotCurve::restyleGhosts() {
-  const size_t count = static_cast<size_t>(snapshotHistory_.frames().size());
+  const auto count = static_cast<size_t>(snapshotHistory_.frames().size());
   for (int i = 0; i < ghosts_.size(); ++i) {
-    styleGhost(ghosts_[i], static_cast<size_t>(i + 1), count);
+    styleGhost(ghosts_[i], static_cast<size_t>(i) + 1U, count);
   }
 }
 
@@ -314,9 +314,9 @@ void PlotCurve::syncGhosts() {
     ghosts_.append(ghost);
   }
 
-  const size_t count = static_cast<size_t>(frames.size());
+  const auto count = static_cast<size_t>(frames.size());
   for (int i = 0; i < frames.size(); ++i) {
-    styleGhost(ghosts_[i], static_cast<size_t>(i + 1), count);
+    styleGhost(ghosts_[i], static_cast<size_t>(i) + 1U, count);
     ghosts_[i]->setSamples(frames[i]);
   }
 }
@@ -367,7 +367,7 @@ void PlotCurve::configStyleConfigChanged() {
 
   QPen pen = QwtPlotCurve::pen();
 
-  pen.setWidth(styleConfig->getPenWidth());
+  pen.setWidth(static_cast<int>(styleConfig->getPenWidth()));
   pen.setStyle(styleConfig->getPenStyle());
 
   setPen(pen);

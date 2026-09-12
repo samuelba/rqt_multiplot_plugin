@@ -7,8 +7,8 @@
 
 namespace {
 
-using rqt_multiplot::SnapshotHistory;
 using rqt_multiplot::snapshotFadeAlpha;
+using rqt_multiplot::SnapshotHistory;
 
 TEST(SnapshotHistory, fadeAlphaIsFullForCurrentAndDecaysWithAge) {
   EXPECT_EQ(snapshotFadeAlpha(255, 0, 5), 255);

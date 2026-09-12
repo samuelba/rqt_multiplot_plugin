@@ -35,12 +35,9 @@ ProgressWidget::ProgressWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::P
   ui_->progressBar->setMaximum(100);
   ui_->progressBar->setValue(0);
 
-  ui_->widgetStatus->setIcon(StatusWidget::Okay,
-                             QPixmap(packageResourcePath("resource/16x16/okay.png")));
-  ui_->widgetStatus->setIcon(StatusWidget::Error,
-                             QPixmap(packageResourcePath("resource/16x16/error.png")));
-  ui_->widgetStatus->setFrames(
-      StatusWidget::Busy, QPixmap(packageResourcePath("resource/16x16/busy.png")), 8);
+  ui_->widgetStatus->setIcon(StatusWidget::Okay, QPixmap(packageResourcePath("resource/16x16/okay.png")));
+  ui_->widgetStatus->setIcon(StatusWidget::Error, QPixmap(packageResourcePath("resource/16x16/error.png")));
+  ui_->widgetStatus->setFrames(StatusWidget::Busy, QPixmap(packageResourcePath("resource/16x16/busy.png")), 8);
 }
 
 ProgressWidget::~ProgressWidget() {
@@ -53,7 +50,7 @@ ProgressWidget::~ProgressWidget() {
 
 void ProgressWidget::setCurrentProgress(double progress) {
   if (started_) {
-    ui_->progressBar->setValue(progress * 1e2);
+    ui_->progressBar->setValue(static_cast<int>(progress * 1e2));
   }
 }
 

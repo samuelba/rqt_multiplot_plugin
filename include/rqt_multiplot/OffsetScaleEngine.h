@@ -20,7 +20,7 @@ class OffsetScaleEngine : public QwtLinearScaleEngine {
   double offset() const;
 
   void autoScale(int maxNumSteps, double& x1, double& x2, double& stepSize) const override;
-  QwtScaleDiv divideScale(double x1, double x2, int maxMajorSteps, int maxMinorSteps, double stepSize = 0.0) const override;
+  QwtScaleDiv divideScale(double x1, double x2, int maxMajorSteps, int maxMinorSteps, double stepSize) const override;
 
  private:
   double offset_;

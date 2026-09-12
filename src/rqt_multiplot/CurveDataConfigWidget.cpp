@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <limits>
+
 #include <ui_CurveDataConfigWidget.h>
 
 #include "rqt_multiplot/CurveDataConfigWidget.h"
@@ -92,7 +94,9 @@ void CurveDataConfigWidget::configTypeChanged(int type) {
 }
 
 void CurveDataConfigWidget::configCircularBufferCapacityChanged(size_t capacity) {
-  ui_->spinBoxCircularBufferCapacity->setValue(capacity);
+  const int maxValue = std::numeric_limits<int>::max();
+  const auto maxCapacity = static_cast<size_t>(maxValue);
+  ui_->spinBoxCircularBufferCapacity->setValue(capacity > maxCapacity ? maxValue : static_cast<int>(capacity));
 }
 
 void CurveDataConfigWidget::configTimeFrameLengthChanged(double length) {

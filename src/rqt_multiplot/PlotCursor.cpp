@@ -88,7 +88,7 @@ void PlotCursor::setActive(bool active, const QPointF& position) {
     emit currentPositionChanged(position);
   } else if (!active && isActive()) {
     remove();
-    end();
+    end(true);
 
     setTrackerMode(QwtPicker::AlwaysOn);
   }
@@ -174,8 +174,8 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
 QStringList PlotCursor::trackedReadoutLines() const {
   QStringList lines;
   for (const auto& tracked : trackedPoints_) {
-    lines.append(trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true),
-                                   formatCoordinate(tracked.position.y(), false)));
+    lines.append(
+        trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true), formatCoordinate(tracked.position.y(), false)));
   }
   return lines;
 }
@@ -410,7 +410,7 @@ void PlotCursor::plotXAxisScaleDivChanged() {
     } else {
       QPoint newPosition = pickedPoints()[0];
 
-      newPosition.setX(plot()->canvasMap(xAxis()).transform(currentPosition_.x()));
+      newPosition.setX(qRound(plot()->canvasMap(xAxis()).transform(currentPosition_.x())));
 
       blockSignals(true);
       move(newPosition);
@@ -436,7 +436,7 @@ void PlotCursor::plotYAxisScaleDivChanged() {
     } else {
       QPoint newPosition = pickedPoints()[0];
 
-      newPosition.setY(plot()->canvasMap(yAxis()).transform(currentPosition_.y()));
+      newPosition.setY(qRound(plot()->canvasMap(yAxis()).transform(currentPosition_.y())));
 
       blockSignals(true);
       move(newPosition);

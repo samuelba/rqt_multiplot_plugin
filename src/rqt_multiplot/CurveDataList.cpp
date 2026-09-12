@@ -37,7 +37,7 @@ size_t CurveDataList::getNumPoints() const {
 }
 
 QPointF CurveDataList::getPoint(size_t index) const {
-  return points_[index];
+  return points_[static_cast<int>(index)];
 }
 
 BoundingRectangle CurveDataList::getBounds() const {

@@ -37,7 +37,7 @@ size_t CurveDataVector::getNumPoints() const {
 }
 
 QPointF CurveDataVector::getPoint(size_t index) const {
-  return points_[index];
+  return points_[static_cast<int>(index)];
 }
 
 QVector<size_t> CurveDataVector::getPointsInDistance(double x, double maxDistance) const {

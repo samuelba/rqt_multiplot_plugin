@@ -62,11 +62,11 @@ const QString& PlotConfig::getTitle() const {
 }
 
 void PlotConfig::setNumCurves(size_t numCurves) {
-  while (curveConfig_.count() > numCurves) {
+  while (curveConfig_.count() > static_cast<int>(numCurves)) {
     removeCurve(curveConfig_.count() - 1);
   }
 
-  while (curveConfig_.count() < numCurves) {
+  while (curveConfig_.count() < static_cast<int>(numCurves)) {
     addCurve();
   }
 }
@@ -76,8 +76,8 @@ size_t PlotConfig::getNumCurves() const {
 }
 
 CurveConfig* PlotConfig::getCurveConfig(size_t index) const {
-  if (index < curveConfig_.count()) {
-    return curveConfig_[index];
+  if (index < static_cast<size_t>(curveConfig_.count())) {
+    return curveConfig_[static_cast<int>(index)];
   } else {
     return nullptr;
   }
@@ -110,14 +110,14 @@ double PlotConfig::getPlotRate() const {
 
 CurveConfig* PlotConfig::addCurve() {
   auto* curveConfig = new CurveConfig(this);
-  curveConfig->getColorConfig()->setAutoColorIndex(curveConfig_.count());
+  curveConfig->getColorConfig()->setAutoColorIndex(static_cast<size_t>(curveConfig_.count()));
 
   curveConfig_.append(curveConfig);
 
   connect(curveConfig, SIGNAL(changed()), this, SLOT(curveConfigChanged()));
   connect(curveConfig, SIGNAL(destroyed()), this, SLOT(curveConfigDestroyed()));
 
-  emit curveAdded(curveConfig_.count() - 1);
+  emit curveAdded(static_cast<size_t>(curveConfig_.count() - 1));
   emit changed();
 
   return curveConfig;
@@ -136,8 +136,8 @@ void PlotConfig::removeCurve(size_t index) {
     return;
   }
 
-  CurveConfig* curveConfig = curveConfig_[index];
-  curveConfig_.remove(index);
+  CurveConfig* curveConfig = curveConfig_[static_cast<int>(index)];
+  curveConfig_.remove(static_cast<int>(index));
 
   disconnect(curveConfig, SIGNAL(changed()), this, SLOT(curveConfigChanged()));
   disconnect(curveConfig, SIGNAL(destroyed()), this, SLOT(curveConfigDestroyed()));
@@ -172,7 +172,7 @@ void PlotConfig::clearCurves() {
 QVector<CurveConfig*> PlotConfig::findCurves(const QString& title) const {
   QVector<CurveConfig*> curves;
 
-  for (size_t i = 0; i < curveConfig_.count(); ++i) {
+  for (int i = 0; i < curveConfig_.count(); ++i) {
     if (curveConfig_[i]->getTitle() == title) {
       curves.append(curveConfig_[i]);
     }
@@ -186,8 +186,8 @@ void PlotConfig::save(QSettings& settings) const {
 
   settings.beginGroup("curves");
 
-  for (size_t index = 0; index < curveConfig_.count(); ++index) {
-    settings.beginGroup("curve_" + QString::number(index));
+  for (int index = 0; index < curveConfig_.count(); ++index) {
+    settings.beginGroup("curve_" + QString::number(static_cast<int>(index)));
     curveConfig_[index]->save(settings);
     settings.endGroup();
   }
@@ -216,8 +216,8 @@ void PlotConfig::load(QSettings& settings) {
   for (auto& group : groups) {
     CurveConfig* curveConfig = nullptr;
 
-    if (index < curveConfig_.count()) {
-      curveConfig = curveConfig_[index];
+    if (index < static_cast<size_t>(curveConfig_.count())) {
+      curveConfig = curveConfig_[static_cast<int>(index)];
     } else {
       curveConfig = addCurve();
     }
@@ -231,7 +231,7 @@ void PlotConfig::load(QSettings& settings) {
 
   settings.endGroup();
 
-  while (index < curveConfig_.count()) {
+  while (index < static_cast<size_t>(curveConfig_.count())) {
     removeCurve(index);
   }
 
@@ -260,8 +260,8 @@ void PlotConfig::reset() {
 void PlotConfig::write(QDataStream& stream) const {
   stream << title_;
 
-  stream << (quint64)getNumCurves();
-  for (size_t index = 0; index < curveConfig_.count(); ++index) {
+  stream << static_cast<quint64>(getNumCurves());
+  for (int index = 0; index < curveConfig_.count(); ++index) {
     curveConfig_[index]->write(stream);
   }
 
@@ -281,7 +281,7 @@ void PlotConfig::read(QDataStream& stream) {
 
   stream >> numCurves;
   setNumCurves(numCurves);
-  for (size_t index = 0; index < curveConfig_.count(); ++index) {
+  for (int index = 0; index < curveConfig_.count(); ++index) {
     curveConfig_[index]->read(stream);
   }
 
@@ -297,6 +297,10 @@ void PlotConfig::read(QDataStream& stream) {
 /*****************************************************************************/
 
 PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
+  if (this == &src) {
+    return *this;
+  }
+
   setTitle(src.title_);
 
   while (curveConfig_.count() < src.curveConfig_.count()) {
@@ -306,7 +310,7 @@ PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
     removeCurve(curveConfig_.count() - 1);
   }
 
-  for (size_t index = 0; index < curveConfig_.count(); ++index) {
+  for (int index = 0; index < curveConfig_.count(); ++index) {
     *curveConfig_[index] = *src.curveConfig_[index];
   }
 
@@ -323,7 +327,7 @@ PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
 /*****************************************************************************/
 
 void PlotConfig::curveConfigChanged() {
-  for (size_t index = 0; index < curveConfig_.count(); ++index) {
+  for (int index = 0; index < curveConfig_.count(); ++index) {
     if (curveConfig_[index] == sender()) {
       emit curveConfigChanged(index);
 
@@ -335,7 +339,7 @@ void PlotConfig::curveConfigChanged() {
 }
 
 void PlotConfig::curveConfigDestroyed() {
-  const int index = curveConfig_.indexOf(static_cast<CurveConfig*>(sender()));
+  const int index = curveConfig_.indexOf(dynamic_cast<CurveConfig*>(sender()));
 
   if (index < 0) {
     return;

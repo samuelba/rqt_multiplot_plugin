@@ -34,7 +34,7 @@ class PlotAxesConfigWidget : public QWidget {
   explicit PlotAxesConfigWidget(QWidget* parent = nullptr);
   ~PlotAxesConfigWidget() override;
 
-  void setConfig(PlotAxesConfig* range);
+  void setConfig(PlotAxesConfig* config);
   PlotAxesConfig* getConfig() const;
 
  private:

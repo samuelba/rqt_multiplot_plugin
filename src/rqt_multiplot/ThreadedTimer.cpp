@@ -49,7 +49,7 @@ int ThreadedTimer::getTimerId() const {
 }
 
 void ThreadedTimer::setRate(double rate) {
-  timer_->setInterval(1e3 / rate);
+  timer_->setInterval(static_cast<int>(1e3 / rate));
 }
 
 double ThreadedTimer::getRate() const {

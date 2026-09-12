@@ -22,9 +22,9 @@ using rqt_multiplot::getNumericValue;
 using rqt_multiplot::getStamp;
 using rqt_multiplot::hasHeader;
 using rqt_multiplot::isNumericMessageType;
-using rqt_multiplot::normalizeTypeName;
 using rqt_multiplot::isPlottableFieldPath;
 using rqt_multiplot::isWildcardFieldPath;
+using rqt_multiplot::normalizeTypeName;
 using rqt_multiplot::tryGetNumericSeries;
 using rqt_multiplot::tryGetNumericValue;
 

@@ -73,7 +73,7 @@ class PlotCursor : public QwtPlotPicker {
 
   void begin() override;
   void move(const QPoint& point) override;
-  bool end(bool ok = true) override;
+  bool end(bool ok) override;
 
   bool eventFilter(QObject* object, QEvent* event) override;
 

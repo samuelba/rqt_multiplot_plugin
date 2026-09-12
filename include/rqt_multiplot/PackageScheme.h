@@ -43,7 +43,7 @@ class PackageScheme : public UrlScheme {
   QVariant getHostData(const QModelIndex& index, int role) const override;
 
   size_t getNumPaths(const QModelIndex& hostIndex, const QModelIndex& parent) const override;
-  QModelIndex getPathIndex(const QModelIndex& hostIndex, size_t row, const QModelIndex& parent = QModelIndex()) const override;
+  QModelIndex getPathIndex(const QModelIndex& hostIndex, size_t row, const QModelIndex& parent) const override;
   QVariant getPathData(const QModelIndex& index, int role) const override;
 
   QString getHost(const QModelIndex& hostIndex) const override;

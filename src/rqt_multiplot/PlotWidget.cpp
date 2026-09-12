@@ -118,7 +118,7 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->horizontalSpacerRight->changeSize(ui_->plot->axisWidget(QwtPlot::yRight)->width() - 5, 20);
 
-  timer_->setInterval(1e3 / 30.0);
+  timer_->setInterval(static_cast<int>(1e3 / 30.0));
   timer_->start();
 
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
@@ -235,7 +235,7 @@ void PlotWidget::setBroker(MessageBroker* broker) {
   if (broker != broker_) {
     broker_ = broker;
 
-    for (size_t index = 0; index < curves_.count(); ++index) {
+    for (int index = 0; index < curves_.count(); ++index) {
       curves_[index]->setBroker(broker);
     }
   }
@@ -252,7 +252,7 @@ PlotCursor* PlotWidget::getCursor() const {
 BoundingRectangle PlotWidget::getPreferredScale() const {
   BoundingRectangle bounds;
 
-  for (size_t index = 0; index < curves_.count(); ++index) {
+  for (int index = 0; index < curves_.count(); ++index) {
     bounds += curves_[index]->getPreferredScale();
   }
 
@@ -343,7 +343,7 @@ void PlotWidget::run() {
   if (paused_) {
     paused_ = false;
 
-    for (size_t index = 0; index < curves_.count(); ++index) {
+    for (int index = 0; index < curves_.count(); ++index) {
       curves_[index]->run();
     }
 
@@ -355,7 +355,7 @@ void PlotWidget::run() {
 
 void PlotWidget::pause() {
   if (!paused_) {
-    for (size_t index = 0; index < curves_.count(); ++index) {
+    for (int index = 0; index < curves_.count(); ++index) {
       curves_[index]->pause();
     }
 
@@ -368,7 +368,7 @@ void PlotWidget::pause() {
 }
 
 void PlotWidget::clear() {
-  for (size_t index = 0; index < curves_.count(); ++index) {
+  for (int index = 0; index < curves_.count(); ++index) {
     curves_[index]->clear();
   }
 
@@ -412,7 +412,7 @@ void PlotWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   renderer.setDiscardFlag(QwtPlotRenderer::DiscardBackground, true);
   renderer.setDiscardFlag(QwtPlotRenderer::DiscardCanvasBackground, true);
 
-  size_t textHeight = 0;
+  qreal textHeight = 0;
 
   if (config_ != nullptr) {
     textHeight = painter.fontMetrics().boundingRect(config_->getTitle()).height();
@@ -433,7 +433,7 @@ void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
 void PlotWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
   formattedData.clear();
 
-  for (size_t index = 0; index < curves_.count(); ++index) {
+  for (int index = 0; index < curves_.count(); ++index) {
     QStringList formattedX;
     QStringList formattedY;
 
@@ -447,7 +447,7 @@ void PlotWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
 void PlotWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles) {
   formattedAxisTitles.clear();
 
-  for (size_t index = 0; index < curves_.count(); ++index) {
+  for (int index = 0; index < curves_.count(); ++index) {
     CurveAxisConfig* xAxisConfig = curves_[index]->getConfig()->getAxisConfig(CurveConfig::X);
     CurveAxisConfig* yAxisConfig = curves_[index]->getConfig()->getAxisConfig(CurveConfig::Y);
 
@@ -688,7 +688,7 @@ void PlotWidget::configCurveAdded(size_t index) {
 
   connect(curve, SIGNAL(replotRequested()), this, SLOT(curveReplotRequested()));
 
-  curves_.insert(index, curve);
+  curves_.insert(static_cast<int>(index), curve);
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
@@ -698,11 +698,11 @@ void PlotWidget::configCurveAdded(size_t index) {
 }
 
 void PlotWidget::configCurveRemoved(size_t index) {
-  curves_[index]->detach();
+  curves_[static_cast<int>(index)]->detach();
 
-  delete curves_[index];
+  delete curves_[static_cast<int>(index)];
 
-  curves_.remove(index);
+  curves_.remove(static_cast<int>(index));
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
@@ -712,7 +712,7 @@ void PlotWidget::configCurveRemoved(size_t index) {
 }
 
 void PlotWidget::configCurvesCleared() {
-  for (size_t index = 0; index < curves_.count(); ++index) {
+  for (int index = 0; index < curves_.count(); ++index) {
     curves_[index]->detach();
 
     delete curves_[index];
@@ -752,7 +752,7 @@ void PlotWidget::configLegendConfigChanged() {
 }
 
 void PlotWidget::configPlotRateChanged(double rate) {
-  timer_->setInterval(1e3 / rate);
+  timer_->setInterval(static_cast<int>(1e3 / rate));
 }
 
 void PlotWidget::curveReplotRequested() {
@@ -764,7 +764,7 @@ void PlotWidget::curveReplotRequested() {
 void PlotWidget::lineEditTitleTextChanged(const QString& text) {
   QFontMetrics fontMetrics(ui_->lineEditTitle->font());
 
-  ui_->lineEditTitle->setMinimumWidth(std::max(100, fontMetrics.width(text) + 10));
+  ui_->lineEditTitle->setMinimumWidth(std::max(100, fontMetrics.horizontalAdvance(text) + 10));
 }
 
 void PlotWidget::lineEditTitleEditingFinished() {

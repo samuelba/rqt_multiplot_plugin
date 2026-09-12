@@ -10,9 +10,9 @@ namespace {
 
 using rqt_multiplot::CurveTableHeaderStyle;
 using rqt_multiplot::DataExportFormat;
-using rqt_multiplot::ImageExportFormat;
 using rqt_multiplot::dataFormatFromPath;
 using rqt_multiplot::ensureFileSuffix;
+using rqt_multiplot::ImageExportFormat;
 using rqt_multiplot::imageFormatFromPath;
 using rqt_multiplot::suffixFromNameFilter;
 using rqt_multiplot::writeCurveTable;

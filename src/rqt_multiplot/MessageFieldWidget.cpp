@@ -121,13 +121,14 @@ void MessageFieldWidget::connectTopic(const QString& topic, double timeout) {
       setEnabled(true);
     }
 
-    if (registry_->subscribe(topic, this, SLOT(subscriberMessageReceived(const QString&, const Message&)))) {
+    if (registry_->subscribe(topic, this, SLOT(subscriberMessageReceived(const QString&, const Message&)), MessageBroker::PropertyMap(),
+                             Qt::AutoConnection)) {
       setEnabled(false);
 
       isConnecting_ = true;
       subscribedTopic_ = topic;
       if (timeout > 0.0) {
-        connectionTimer_->start(timeout * 1e3);
+        connectionTimer_->start(static_cast<int>(timeout * 1e3));
       }
       emit connecting(topic);
 
@@ -137,7 +138,7 @@ void MessageFieldWidget::connectTopic(const QString& topic, double timeout) {
 }
 
 void MessageFieldWidget::disconnect() {
-  registry_->unsubscribe(subscribedTopic_, this);
+  registry_->unsubscribe(subscribedTopic_, this, nullptr);
 
   isConnecting_ = false;
   subscribedTopic_.clear();

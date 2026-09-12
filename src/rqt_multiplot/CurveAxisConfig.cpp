@@ -226,6 +226,10 @@ void CurveAxisConfig::read(QDataStream& stream) {
 /*****************************************************************************/
 
 CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
+  if (this == &src) {
+    return *this;
+  }
+
   setTopic(src.topic_);
   setType(src.type_);
   setFieldType(src.fieldType_);

@@ -19,6 +19,8 @@
 #include <QSignalBlocker>
 
 #include <rqt_multiplot/MessageFieldAccess.h>
+#include <rqt_multiplot/MessageTopicComboBox.h>
+#include <rqt_multiplot/MessageTypeComboBox.h>
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_CurveAxisConfigWidget.h>
@@ -172,11 +174,11 @@ QStringList CurveAxisConfigWidget::currentErrors() const {
 /*****************************************************************************/
 
 void CurveAxisConfigWidget::updateTopics() {
-  ui_->comboBoxTopic->updateTopics();
+  MessageTopicComboBox::updateTopics();
 }
 
 void CurveAxisConfigWidget::updateTypes() {
-  ui_->comboBoxType->updateTypes();
+  MessageTypeComboBox::updateTypes();
 }
 
 void CurveAxisConfigWidget::updateFields() {
@@ -244,8 +246,8 @@ bool CurveAxisConfigWidget::validateType() {
 }
 
 bool CurveAxisConfigWidget::isSyntheticFieldType() const {
-  return (config_ != nullptr) && (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime ||
-                                  config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+  return (config_ != nullptr) &&
+         (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex);
 }
 
 bool CurveAxisConfigWidget::applyFieldStatusAfterLocalOk() {
@@ -285,7 +287,7 @@ bool CurveAxisConfigWidget::validateField() {
     }
     if (fieldType.isNumericArray()) {
       ui_->statusWidgetField->setCurrentRole(StatusWidget::Error,
-                                            "Message field [" + config_->getField() + "] is an array; select a * series");
+                                             "Message field [" + config_->getField() + "] is an array; select a * series");
 
       return false;
     }
@@ -321,8 +323,8 @@ bool CurveAxisConfigWidget::validateScale() {
 }
 
 void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
-  const bool syntheticField = (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) ||
-                              (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
+  const bool syntheticField =
+      (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) || (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
   ui_->widgetField->setEnabled(!syntheticField);
 }
 

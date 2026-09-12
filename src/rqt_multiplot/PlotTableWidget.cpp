@@ -102,7 +102,7 @@ size_t PlotTableWidget::getNumColumns() const {
 }
 
 PlotWidget* PlotTableWidget::getPlotWidget(size_t row, size_t column) const {
-  return plotWidgets_[row][column];
+  return plotWidgets_[static_cast<int>(row)][static_cast<int>(column)];
 }
 
 MessageSubscriberRegistry* PlotTableWidget::getRegistry() const {
@@ -118,40 +118,40 @@ BagReader* PlotTableWidget::getBagReader() const {
 /*****************************************************************************/
 
 void PlotTableWidget::runPlots() {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->run();
     }
   }
 }
 
 void PlotTableWidget::pausePlots() {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->pause();
     }
   }
 }
 
 void PlotTableWidget::clearPlots() {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->clear();
     }
   }
 }
 
 void PlotTableWidget::requestReplot() {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->requestReplot();
     }
   }
 }
 
 void PlotTableWidget::forceReplot() {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->forceReplot();
     }
   }
@@ -170,14 +170,14 @@ void PlotTableWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
     plotBounds = QRectF(0, 0, painter.device()->width(), painter.device()->height());
   }
 
-  const double plotWidth = (plotBounds.width() - 20.0 * (numColumns - 1.0)) / numColumns;
-  const double plotHeight = (plotBounds.height() - 20.0 * (numRows - 1.0)) / numRows;
+  const double plotWidth = (plotBounds.width() - 20.0 * (static_cast<double>(numColumns) - 1.0)) / static_cast<double>(numColumns);
+  const double plotHeight = (plotBounds.height() - 20.0 * (static_cast<double>(numRows) - 1.0)) / static_cast<double>(numRows);
 
   double y = plotBounds.y();
-  for (size_t row = 0; row < plotWidgets_.count(); ++row, y += plotHeight + 20.0) {
+  for (int row = 0; row < plotWidgets_.count(); ++row, y += plotHeight + 20.0) {
     double x = plotBounds.x();
 
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column, x += plotWidth + 20.0) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column, x += plotWidth + 20.0) {
       plotWidgets_[row][column]->renderToPainter(painter, QRectF(x, y, plotWidth, plotHeight));
     }
   }
@@ -191,8 +191,8 @@ void PlotTableWidget::renderToPixmap(QPixmap& pixmap) {
 void PlotTableWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles) {
   formattedAxisTitles.clear();
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       QStringList formattedCurveAxisTitles;
 
       plotWidgets_[row][column]->writeFormattedCurveAxisTitles(formattedCurveAxisTitles);
@@ -205,8 +205,8 @@ void PlotTableWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTi
 void PlotTableWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
   formattedData.clear();
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       QList<QStringList> formattedCurveData;
 
       plotWidgets_[row][column]->writeFormattedCurveData(formattedCurveData);
@@ -219,8 +219,8 @@ void PlotTableWidget::writeFormattedCurveData(QList<QStringList>& formattedData)
 void PlotTableWidget::loadFromBagFile(const QString& fileName) {
   clearPlots();
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->setBroker(bagReader_);
     }
   }
@@ -250,8 +250,8 @@ void PlotTableWidget::saveToTextFile(const QString& fileName) {
 }
 
 bool PlotTableWidget::anyPlotUserScaleLocked() const {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       if (plotWidgets_[row][column]->isUserScaleLocked()) {
         return true;
       }
@@ -267,8 +267,8 @@ void PlotTableWidget::updatePlotScale(const BoundingRectangle& bounds, PlotWidge
   if (!bounds.isValid()) {
     BoundingRectangle currentBounds;
 
-    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+    for (int row = 0; row < plotWidgets_.count(); ++row) {
+      for (int column = 0; column < plotWidgets_[row].count(); ++column) {
         currentBounds += plotWidgets_[row][column]->getCurrentScale();
       }
     }
@@ -284,8 +284,8 @@ void PlotTableWidget::updatePlotScale(const BoundingRectangle& bounds, PlotWidge
     }
   }
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       if (excluded != plotWidgets_[row][column]) {
         plotWidgets_[row][column]->setCurrentScale(validBounds);
       }
@@ -326,17 +326,17 @@ void PlotTableWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
     numColumns = 0;
   }
 
-  QVector<QVector<PlotWidget*> > plotWidgets(numRows);
+  QVector<QVector<PlotWidget*> > plotWidgets(static_cast<int>(numRows));
   auto* layout = new QGridLayout();
 
   layout->setHorizontalSpacing(20);
   layout->setVerticalSpacing(20);
 
-  for (size_t row = 0; row < numRows; ++row) {
-    plotWidgets[row].resize(numColumns);
+  for (int row = 0; row < static_cast<int>(numRows); ++row) {
+    plotWidgets[row].resize(static_cast<int>(numColumns));
 
-    for (size_t column = 0; column < numColumns; ++column) {
-      if ((row < oldNumRows) && (column < oldNumColumns)) {
+    for (int column = 0; column < static_cast<int>(numColumns); ++column) {
+      if ((row < static_cast<int>(oldNumRows)) && (column < static_cast<int>(oldNumColumns))) {
         plotWidgets[row][column] = plotWidgets_[row][column];
       } else {
         plotWidgets[row][column] = new PlotWidget(this);
@@ -353,7 +353,7 @@ void PlotTableWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
         connect(plotWidgets[row][column], SIGNAL(stateChanged(int)), this, SLOT(plotStateChanged(int)));
       }
 
-      plotWidgets[row][column]->setConfig(config_->getPlotConfig(row, column));
+      plotWidgets[row][column]->setConfig(config_->getPlotConfig(static_cast<size_t>(row), static_cast<size_t>(column)));
       plotWidgets[row][column]->setBroker(registry_);
 
       if (config_->isScaleLinked()) {
@@ -366,15 +366,15 @@ void PlotTableWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
     }
   }
 
-  if ((numRows == 1) && (numColumns == 1)) {
+  if ((numRows == 1u) && (numColumns == 1u)) {
     plotWidgets[0][0]->setCanChangeState(false);
   } else {
     plotWidgets[0][0]->setCanChangeState(true);
   }
 
-  for (size_t row = 0; row < oldNumRows; ++row) {
-    for (size_t column = 0; column < oldNumColumns; ++column) {
-      if ((row >= numRows) || (column >= numColumns)) {
+  for (int row = 0; row < static_cast<int>(oldNumRows); ++row) {
+    for (int column = 0; column < static_cast<int>(oldNumColumns); ++column) {
+      if ((row >= static_cast<int>(numRows)) || (column >= static_cast<int>(numColumns))) {
         delete plotWidgets_[row][column];
       }
     }
@@ -393,8 +393,8 @@ void PlotTableWidget::configLinkScaleChanged(bool link) {
   if (link) {
     BoundingRectangle bounds;
 
-    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+    for (int row = 0; row < plotWidgets_.count(); ++row) {
+      for (int column = 0; column < plotWidgets_[row].count(); ++column) {
         bounds += plotWidgets_[row][column]->getPreferredScale();
       }
     }
@@ -404,8 +404,8 @@ void PlotTableWidget::configLinkScaleChanged(bool link) {
 }
 
 void PlotTableWidget::configTrackPointsChanged(bool track) {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->getCursor()->setTrackPoints(track);
     }
   }
@@ -422,8 +422,8 @@ void PlotTableWidget::bagReaderReadingProgressChanged(double progress) {
 void PlotTableWidget::bagReaderReadingFinished() {
   pausePlots();
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->setBroker(registry_);
     }
   }
@@ -434,8 +434,8 @@ void PlotTableWidget::bagReaderReadingFinished() {
 void PlotTableWidget::bagReaderReadingFailed(const QString& /*error*/) {
   pausePlots();
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       plotWidgets_[row][column]->setBroker(registry_);
     }
   }
@@ -455,8 +455,8 @@ void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds)
   if (config_->isScaleLinked()) {
     BoundingRectangle preferredBounds;
 
-    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+    for (int row = 0; row < plotWidgets_.count(); ++row) {
+      for (int column = 0; column < plotWidgets_[row].count(); ++column) {
         preferredBounds += plotWidgets_[row][column]->getPreferredScale();
       }
     }
@@ -476,8 +476,8 @@ void PlotTableWidget::plotUserScaleLockedChanged(bool locked) {
     return;
   }
 
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       if (sender() != plotWidgets_[row][column]) {
         plotWidgets_[row][column]->setUserScaleLocked(locked);
       }
@@ -493,8 +493,8 @@ void PlotTableWidget::plotCurrentScaleChanged(const BoundingRectangle& bounds) {
 
 void PlotTableWidget::plotCursorActiveChanged(bool active) {
   if ((config_ != nullptr) && config_->isCursorLinked()) {
-    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+    for (int row = 0; row < plotWidgets_.count(); ++row) {
+      for (int column = 0; column < plotWidgets_[row].count(); ++column) {
         if (sender() != plotWidgets_[row][column]) {
           plotWidgets_[row][column]->getCursor()->setActive(active);
         }
@@ -505,8 +505,8 @@ void PlotTableWidget::plotCursorActiveChanged(bool active) {
 
 void PlotTableWidget::plotCursorCurrentPositionChanged(const QPointF& position) {
   if ((config_ != nullptr) && config_->isCursorLinked()) {
-    for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-      for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+    for (int row = 0; row < plotWidgets_.count(); ++row) {
+      for (int column = 0; column < plotWidgets_[row].count(); ++column) {
         if (sender() != plotWidgets_[row][column]) {
           plotWidgets_[row][column]->getCursor()->setCurrentPosition(position);
         }
@@ -520,8 +520,8 @@ void PlotTableWidget::plotPausedChanged(bool /*paused*/) {
 }
 
 void PlotTableWidget::plotStateChanged(int state) {
-  for (size_t row = 0; row < plotWidgets_.count(); ++row) {
-    for (size_t column = 0; column < plotWidgets_[row].count(); ++column) {
+  for (int row = 0; row < plotWidgets_.count(); ++row) {
+    for (int column = 0; column < plotWidgets_[row].count(); ++column) {
       if (state == PlotWidget::Maximized) {
         if (sender() != plotWidgets_[row][column]) {
           plotWidgets_[row][column]->hide();

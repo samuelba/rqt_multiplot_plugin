@@ -79,7 +79,7 @@ int MessageFieldItemModel::rowCount(const QModelIndex& parent) const {
     }
 
     if (parentItem != nullptr) {
-      return parentItem->getNumChildren();
+      return static_cast<int>(parentItem->getNumChildren());
     }
   }
 
@@ -91,10 +91,10 @@ int MessageFieldItemModel::columnCount(const QModelIndex& parent) const {
     auto* parentItem = static_cast<MessageFieldItem*>(parent.internalPointer());
 
     if (parentItem != nullptr) {
-      return rqt_multiplot::MessageFieldItem::getNumColumns();
+      return static_cast<int>(rqt_multiplot::MessageFieldItem::getNumColumns());
     }
   } else if (rootItem_ != nullptr) {
-    return rqt_multiplot::MessageFieldItem::getNumColumns();
+    return static_cast<int>(rqt_multiplot::MessageFieldItem::getNumColumns());
   }
 
   return 0;

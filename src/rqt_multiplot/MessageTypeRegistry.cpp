@@ -20,8 +20,8 @@
 #include <sstream>
 #include <string>
 
-#include <ament_index_cpp/get_resources.hpp>
 #include <ament_index_cpp/get_resource.hpp>
+#include <ament_index_cpp/get_resources.hpp>
 
 #include "rqt_multiplot/MessageFieldAccess.h"
 #include "rqt_multiplot/MessageTypeRegistry.h"

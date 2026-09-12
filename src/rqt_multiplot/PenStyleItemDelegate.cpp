@@ -37,7 +37,7 @@ PenStyleItemDelegate::~PenStyleItemDelegate() = default;
 void PenStyleItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
   QVariant data = index.model()->data(index, Qt::UserRole);
 
-  if (option.state & static_cast<int>(QStyle::State_Selected != 0u != 0u)) {
+  if ((option.state & QStyle::State_Selected) != 0) {
     painter->fillRect(option.rect, option.palette.highlight());
   }
 
@@ -46,7 +46,7 @@ void PenStyleItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& 
 
     QPen pen = painter->pen();
 
-    if (option.state & static_cast<int>(QStyle::State_Selected != 0u != 0u)) {
+    if ((option.state & QStyle::State_Selected) != 0) {
       pen.setColor(option.palette.color(QPalette::HighlightedText));
     } else {
       pen.setColor(option.palette.color(QPalette::Text));

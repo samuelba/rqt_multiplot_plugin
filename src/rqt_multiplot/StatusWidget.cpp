@@ -71,7 +71,7 @@ void StatusWidget::setFrames(Role role, const QPixmap& frames, size_t numFrames,
   size_t frameHeight = frames.height() / numFrames;
 
   for (size_t i = 0; i < numFrames; ++i) {
-    QPixmap frame = frames.copy(0, i * frameHeight, frames.width(), frameHeight);
+    QPixmap frame = frames.copy(0, static_cast<int>(i * frameHeight), frames.width(), static_cast<int>(frameHeight));
     frameList.append(frame);
   }
 
@@ -111,7 +111,7 @@ void StatusWidget::setFrameRate(Role role, double frameRate) {
 
     if ((role == currentRole_) && timer_->isActive()) {
       if (frameRate > 0.0) {
-        timer_->setInterval(1.0 / frameRate * 1e3);
+        timer_->setInterval(static_cast<int>(1.0 / frameRate * 1e3));
       } else {
         timer_->stop();
       }
@@ -179,7 +179,7 @@ void StatusWidget::start() {
     labelIcon_->setPixmap(frames_[currentRole_].front());
 
     if (frameRates_[currentRole_] > 0.0) {
-      timer_->start(1.0 / frameRates_[currentRole_] * 1e3);
+      timer_->start(static_cast<int>(1.0 / frameRates_[currentRole_] * 1e3));
     }
   }
 }
@@ -187,12 +187,12 @@ void StatusWidget::start() {
 void StatusWidget::step() {
   ++currentFrame_;
 
-  if (currentFrame_ >= frames_[currentRole_].length()) {
+  if (currentFrame_ >= static_cast<size_t>(frames_[currentRole_].length())) {
     currentFrame_ = 0;
   }
 
   if (!frames_[currentRole_].isEmpty()) {
-    labelIcon_->setPixmap(frames_[currentRole_].at(currentFrame_));
+    labelIcon_->setPixmap(frames_[currentRole_].at(static_cast<int>(currentFrame_)));
   }
 }
 

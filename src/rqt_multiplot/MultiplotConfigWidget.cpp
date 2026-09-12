@@ -44,13 +44,11 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
       maxHistoryLength_(maxHistoryLength) {
   ui_->setupUi(this);
 
-  ui_->pushButtonClearHistory->setIcon(
-      QIcon(packageResourcePath("resource/16x16/clear_history.png")));
+  ui_->pushButtonClearHistory->setIcon(QIcon(packageResourcePath("resource/16x16/clear_history.png")));
   ui_->pushButtonNew->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
   ui_->pushButtonOpen->setIcon(QIcon(packageResourcePath("resource/16x16/open.png")));
   ui_->pushButtonSave->setIcon(QIcon(packageResourcePath("resource/16x16/save.png")));
-  ui_->pushButtonSaveAs->setIcon(
-      QIcon(packageResourcePath("resource/16x16/save_as.png")));
+  ui_->pushButtonSaveAs->setIcon(QIcon(packageResourcePath("resource/16x16/save_as.png")));
 
   ui_->pushButtonClearHistory->setEnabled(false);
   ui_->pushButtonSave->setEnabled(false);
@@ -129,7 +127,7 @@ void MultiplotConfigWidget::setMaxConfigUrlHistoryLength(size_t length) {
   if (length != maxHistoryLength_) {
     maxHistoryLength_ = length;
 
-    while (ui_->configComboBox->count() > length) {
+    while (ui_->configComboBox->count() > static_cast<int>(length)) {
       ui_->configComboBox->removeItem(ui_->configComboBox->count() - 1);
     }
   }
@@ -142,7 +140,7 @@ size_t MultiplotConfigWidget::getMaxConfigUrlHistoryLength() const {
 void MultiplotConfigWidget::setConfigUrlHistory(const QStringList& history) {
   ui_->configComboBox->clear();
 
-  for (size_t i = 0; (i < history.count()) && (i < maxHistoryLength_); ++i) {
+  for (int i = 0; (i < history.count()) && (i < static_cast<int>(maxHistoryLength_)); ++i) {
     ui_->configComboBox->addItem(history[i]);
   }
 }
@@ -150,7 +148,7 @@ void MultiplotConfigWidget::setConfigUrlHistory(const QStringList& history) {
 QStringList MultiplotConfigWidget::getConfigUrlHistory() const {
   QStringList history;
 
-  for (size_t i = 0; i < ui_->configComboBox->count(); ++i) {
+  for (int i = 0; i < ui_->configComboBox->count(); ++i) {
     history.append(ui_->configComboBox->itemText(i));
   }
 
@@ -292,8 +290,6 @@ bool MultiplotConfigWidget::confirmSave(bool canCancel) {
         }
       case QMessageBox::Discard:
         return true;
-      case QMessageBox::Cancel:
-        return false;
       default:
         return false;
     }
@@ -309,7 +305,7 @@ void MultiplotConfigWidget::addConfigUrlToHistory(const QString& url) {
     ui_->configComboBox->blockSignals(true);
 
     if (index < 0) {
-      while (ui_->configComboBox->count() + 1 > maxHistoryLength_) {
+      while (ui_->configComboBox->count() + 1 > static_cast<int>(maxHistoryLength_)) {
         ui_->configComboBox->removeItem(ui_->configComboBox->count() - 1);
       }
     } else {

@@ -19,7 +19,8 @@
 #ifndef RQT_MULTIPLOT_CURVE_DATA_SEQUENCER_H
 #define RQT_MULTIPLOT_CURVE_DATA_SEQUENCER_H
 
-#include <QLinkedList>
+#include <list>
+
 #include <QMap>
 #include <QObject>
 #include <QPointF>
@@ -64,8 +65,6 @@ class CurveDataSequencer : public QObject {
     inline explicit TimeValue(const rclcpp::Time& time = rclcpp::Time(0, 0, RCL_ROS_TIME), double value = 0.0)
         : time_(time), value_(value){};
 
-    inline TimeValue(const TimeValue& src) = default;
-
     inline bool operator==(const TimeValue& timeValue) const { return (time_ == timeValue.time_); };
 
     inline bool operator>(const TimeValue& timeValue) const { return (time_ > timeValue.time_); };
@@ -76,7 +75,7 @@ class CurveDataSequencer : public QObject {
     double value_;
   };
 
-  using TimeValueList = QLinkedList<TimeValue>;
+  using TimeValueList = std::list<TimeValue>;
 
   CurveConfig* config_;
 

@@ -65,7 +65,7 @@ size_t PackageScheme::getNumHosts() const {
 }
 
 QModelIndex PackageScheme::getHostIndex(size_t row) const {
-  return packageListModel_->index(row);
+  return packageListModel_->index(static_cast<int>(row));
 }
 
 QVariant PackageScheme::getHostData(const QModelIndex& index, int role) const {
@@ -82,14 +82,14 @@ size_t PackageScheme::getNumPaths(const QModelIndex& hostIndex, const QModelInde
         fileSystemModel_->fetchMore(packagePathIndex);
       }
 
-      return fileSystemModel_->rowCount(packagePathIndex);
+      return static_cast<size_t>(fileSystemModel_->rowCount(packagePathIndex));
     }
   } else {
     if (fileSystemModel_->canFetchMore(parent)) {
       fileSystemModel_->fetchMore(parent);
     }
 
-    return fileSystemModel_->rowCount(parent);
+    return static_cast<size_t>(fileSystemModel_->rowCount(parent));
   }
 
   return 0;
@@ -101,10 +101,10 @@ QModelIndex PackageScheme::getPathIndex(const QModelIndex& hostIndex, size_t row
       QString packagePath = packagePaths_[packages_[hostIndex.row()]];
       QModelIndex packagePathIndex = fileSystemModel_->index(packagePath);
 
-      return fileSystemModel_->index(row, 0, packagePathIndex);
+      return fileSystemModel_->index(static_cast<int>(row), 0, packagePathIndex);
     }
   } else {
-    return fileSystemModel_->index(row, 0, parent);
+    return fileSystemModel_->index(static_cast<int>(row), 0, parent);
   }
 
   return QModelIndex();

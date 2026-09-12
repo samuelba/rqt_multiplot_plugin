@@ -70,13 +70,13 @@ size_t FileScheme::getNumPaths(const QModelIndex& /*hostIndex*/, const QModelInd
   if (!parent.isValid()) {
     return 1;
   } else if (!parent.parent().isValid()) {
-    return model_->rowCount(model_->index(model_->rootPath()));
+    return static_cast<size_t>(model_->rowCount(model_->index(model_->rootPath())));
   } else {
     if (model_->canFetchMore(parent)) {
       model_->fetchMore(parent);
     }
 
-    return model_->rowCount(parent);
+    return static_cast<size_t>(model_->rowCount(parent));
   }
 }
 
@@ -84,7 +84,7 @@ QModelIndex FileScheme::getPathIndex(const QModelIndex& /*hostIndex*/, size_t ro
   if (!parent.isValid()) {
     return model_->index(model_->rootPath());
   } else {
-    return model_->index(row, 0, parent);
+    return model_->index(static_cast<int>(row), 0, parent);
   }
 }
 

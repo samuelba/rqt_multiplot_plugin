@@ -35,12 +35,12 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       linkCursor_(linkCursor),
       trackPoints_(trackPoints) {
   if ((numRows != 0u) && (numColumns != 0u)) {
-    plotConfig_.resize(numRows);
+    plotConfig_.resize(static_cast<int>(numRows));
 
-    for (size_t row = 0; row < numRows; ++row) {
-      plotConfig_[row].resize(numColumns);
+    for (int row = 0; row < static_cast<int>(numRows); ++row) {
+      plotConfig_[row].resize(static_cast<int>(numColumns));
 
-      for (size_t column = 0; column < numColumns; ++column) {
+      for (int column = 0; column < static_cast<int>(numColumns); ++column) {
         plotConfig_[row][column] = new PlotConfig(this);
 
         connect(plotConfig_[row][column], SIGNAL(changed()), this, SLOT(plotConfigChanged()));
@@ -91,13 +91,13 @@ void PlotTableConfig::setNumPlots(size_t numRows, size_t numColumns) {
       numColumns = 0;
     }
 
-    QVector<QVector<PlotConfig*> > plotConfig(numRows);
+    QVector<QVector<PlotConfig*> > plotConfig(static_cast<int>(numRows));
 
-    for (size_t row = 0; row < numRows; ++row) {
-      plotConfig[row].resize(numColumns);
+    for (int row = 0; row < static_cast<int>(numRows); ++row) {
+      plotConfig[row].resize(static_cast<int>(numColumns));
 
-      for (size_t column = 0; column < numColumns; ++column) {
-        if ((row < oldNumRows) && (column < oldNumColumns)) {
+      for (int column = 0; column < static_cast<int>(numColumns); ++column) {
+        if ((row < static_cast<int>(oldNumRows)) && (column < static_cast<int>(oldNumColumns))) {
           plotConfig[row][column] = plotConfig_[row][column];
         } else {
           plotConfig[row][column] = new PlotConfig(this);
@@ -107,9 +107,9 @@ void PlotTableConfig::setNumPlots(size_t numRows, size_t numColumns) {
       }
     }
 
-    for (size_t row = 0; row < oldNumRows; ++row) {
-      for (size_t column = 0; column < oldNumColumns; ++column) {
-        if ((row >= numRows) || (column >= numColumns)) {
+    for (int row = 0; row < static_cast<int>(oldNumRows); ++row) {
+      for (int column = 0; column < static_cast<int>(oldNumColumns); ++column) {
+        if ((row >= static_cast<int>(numRows)) || (column >= static_cast<int>(numColumns))) {
           delete plotConfig_[row][column];
         }
       }
@@ -144,7 +144,7 @@ size_t PlotTableConfig::getNumColumns() const {
 
 PlotConfig* PlotTableConfig::getPlotConfig(size_t row, size_t column) const {
   if ((row < getNumRows()) && (column < getNumColumns())) {
-    return plotConfig_[row][column];
+    return plotConfig_[static_cast<int>(row)][static_cast<int>(column)];
   } else {
     return nullptr;
   }
@@ -199,10 +199,10 @@ void PlotTableConfig::save(QSettings& settings) const {
 
   settings.beginGroup("plots");
 
-  for (size_t row = 0; row < plotConfig_.count(); ++row) {
+  for (int row = 0; row < plotConfig_.count(); ++row) {
     settings.beginGroup("row_" + QString::number(row));
 
-    for (size_t column = 0; column < plotConfig_[row].count(); ++column) {
+    for (int column = 0; column < plotConfig_[row].count(); ++column) {
       settings.beginGroup("column_" + QString::number(column));
       plotConfig_[row][column]->save(settings);
       settings.endGroup();
@@ -219,8 +219,8 @@ void PlotTableConfig::save(QSettings& settings) const {
 }
 
 void PlotTableConfig::load(QSettings& settings) {
-  setBackgroundColor(settings.value("background_color", (QColor)Qt::white).value<QColor>());
-  setForegroundColor(settings.value("foreground_color", (QColor)Qt::black).value<QColor>());
+  setBackgroundColor(settings.value("background_color", QColor(Qt::white)).value<QColor>());
+  setForegroundColor(settings.value("foreground_color", QColor(Qt::black)).value<QColor>());
 
   settings.beginGroup("plots");
 
@@ -229,7 +229,7 @@ void PlotTableConfig::load(QSettings& settings) {
   size_t numColumns = 0;
 
   for (auto& rowGroup : rowGroups) {
-    if (row >= plotConfig_.count()) {
+    if (row >= static_cast<size_t>(plotConfig_.count())) {
       setNumRows(row + 1);
     }
 
@@ -239,12 +239,12 @@ void PlotTableConfig::load(QSettings& settings) {
     size_t column = 0;
 
     for (auto& columnGroup : columnGroups) {
-      if (column >= plotConfig_[row].count()) {
+      if (column >= static_cast<size_t>(plotConfig_[static_cast<int>(row)].count())) {
         setNumColumns(column + 1);
       }
 
       settings.beginGroup(columnGroup);
-      plotConfig_[row][column]->load(settings);
+      plotConfig_[static_cast<int>(row)][static_cast<int>(column)]->load(settings);
       settings.endGroup();
 
       ++column;
@@ -281,10 +281,10 @@ void PlotTableConfig::write(QDataStream& stream) const {
   stream << backgroundColor_;
   stream << foregroundColor_;
 
-  stream << (quint64)getNumRows() << (quint64)getNumColumns();
+  stream << static_cast<quint64>(getNumRows()) << static_cast<quint64>(getNumColumns());
 
-  for (size_t row = 0; row < plotConfig_.count(); ++row) {
-    for (size_t column = 0; column < plotConfig_[row].count(); ++column) {
+  for (int row = 0; row < plotConfig_.count(); ++row) {
+    for (int column = 0; column < plotConfig_[row].count(); ++column) {
       plotConfig_[row][column]->write(stream);
     }
   }
@@ -310,8 +310,8 @@ void PlotTableConfig::read(QDataStream& stream) {
 
   stream >> numRows >> numColumns;
   setNumPlots(numRows, numColumns);
-  for (size_t row = 0; row < plotConfig_.count(); ++row) {
-    for (size_t column = 0; column < plotConfig_[row].count(); ++column) {
+  for (int row = 0; row < plotConfig_.count(); ++row) {
+    for (int column = 0; column < plotConfig_[row].count(); ++column) {
       plotConfig_[row][column]->read(stream);
     }
   }
@@ -334,8 +334,8 @@ PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
 
   setNumPlots(src.getNumRows(), src.getNumColumns());
 
-  for (size_t row = 0; row < getNumRows(); ++row) {
-    for (size_t column = 0; column < getNumColumns(); ++column) {
+  for (int row = 0; row < static_cast<int>(getNumRows()); ++row) {
+    for (int column = 0; column < static_cast<int>(getNumColumns()); ++column) {
       *plotConfig_[row][column] = *src.plotConfig_[row][column];
     }
   }

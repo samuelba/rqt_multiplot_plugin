@@ -31,7 +31,7 @@ class PlotConfigWidget;
 class PlotConfigDialog : public QDialog {
   Q_OBJECT
  public:
-  explicit PlotConfigDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = nullptr);
+  explicit PlotConfigDialog(QWidget* parent = nullptr, Qt::WindowFlags flags = {});
   ~PlotConfigDialog() override;
 
   PlotConfigWidget* getWidget() const;

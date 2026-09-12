@@ -6,10 +6,11 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
@@ -330,6 +331,7 @@ ament_export_targets(${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(ament_cmake_test REQUIRED)
   find_package(builtin_interfaces REQUIRED)
   find_package(geometry_msgs REQUIRED)
   find_package(std_msgs REQUIRED)
@@ -355,6 +357,7 @@ if(BUILD_TESTING)
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )
+  set_tests_properties(test_${PROJECT_NAME} PROPERTIES LABELS "unit_testing")
   if(TARGET test_${PROJECT_NAME})
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
@@ -366,6 +369,31 @@ if(BUILD_TESTING)
       rosbag2_storage::rosbag2_storage
     )
   endif()
+
+  find_package(ament_cmake_clang_format REQUIRED)
+  ament_clang_format(
+    src include test
+    CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+  )
+
+  ament_add_test(test_run_clang_tidy
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_clang_tidy.py
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 30
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO
+  )
+  set_tests_properties(test_run_clang_tidy PROPERTIES LABELS "unit_testing_clang_tidy")
+
+  ament_add_test(clang_tidy
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_clang_tidy.py
+      --compile-commands ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+      --source-root ${CMAKE_CURRENT_SOURCE_DIR}
+      --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    TIMEOUT 1800
+    GENERATE_RESULT_FOR_RETURN_CODE_ZERO
+  )
+  set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linting")
 endif()
 
 ament_package()

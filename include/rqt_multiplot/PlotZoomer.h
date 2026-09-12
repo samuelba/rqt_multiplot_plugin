@@ -20,7 +20,6 @@
 #define RQT_MULTIPLOT_PLOT_ZOOMER_H
 
 #include <QRect>
-#include <QRect>
 #include <QRegion>
 
 #include <qwt/qwt_plot_zoomer.h>

@@ -42,9 +42,9 @@ class BagReader : public MessageBroker {
   void read(const QString& fileName);
   void wait();
 
-  bool subscribe(const QString& topic, QObject* receiver, const char* method, const PropertyMap& properties = PropertyMap(),
-                 Qt::ConnectionType type = Qt::AutoConnection) override;
-  bool unsubscribe(const QString& topic, QObject* receiver, const char* method = nullptr) override;
+  bool subscribe(const QString& topic, QObject* receiver, const char* method, const PropertyMap& properties,
+                 Qt::ConnectionType type) override;
+  bool unsubscribe(const QString& topic, QObject* receiver, const char* method) override;
 
   bool event(QEvent* event) override;
 

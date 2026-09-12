@@ -34,7 +34,7 @@ class PlotLegendConfigWidget : public QWidget {
   explicit PlotLegendConfigWidget(QWidget* parent = nullptr);
   ~PlotLegendConfigWidget() override;
 
-  void setConfig(PlotLegendConfig* range);
+  void setConfig(PlotLegendConfig* config);
   PlotLegendConfig* getConfig() const;
 
  private:

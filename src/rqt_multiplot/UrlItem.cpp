@@ -59,7 +59,7 @@ int UrlItem::getRow() const {
   if (parent_ != nullptr) {
     for (QMap<size_t, UrlItem*>::const_iterator it = parent_->children_.begin(); it != parent_->children_.end(); ++it) {
       if (it.value() == this) {
-        return it.key();
+        return static_cast<int>(it.key());
       }
     }
   }

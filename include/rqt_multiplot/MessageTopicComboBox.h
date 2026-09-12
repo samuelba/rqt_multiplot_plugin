@@ -36,7 +36,7 @@ class MessageTopicComboBox : public MatchFilterComboBox {
   bool isUpdating() const;
   bool isCurrentTopicRegistered() const;
 
-  void updateTopics();
+  static void updateTopics();
 
  signals:
   void updateStarted();

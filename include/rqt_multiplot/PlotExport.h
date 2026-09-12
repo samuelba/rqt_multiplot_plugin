@@ -37,8 +37,7 @@ enum class ImageExportFormat { Png, Svg, Pdf };
 
 enum class DataExportFormat { Txt, Csv };
 
-void writeCurveTable(QTextStream& stream, const QStringList& titles, const QList<QStringList>& columns,
-                     CurveTableHeaderStyle headerStyle);
+void writeCurveTable(QTextStream& stream, const QStringList& titles, const QList<QStringList>& columns, CurveTableHeaderStyle headerStyle);
 
 std::optional<ImageExportFormat> imageFormatFromPath(const QString& fileName);
 std::optional<DataExportFormat> dataFormatFromPath(const QString& fileName);
