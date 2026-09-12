@@ -94,6 +94,18 @@ TEST(CurveDataSequencer, rejectsMixedReceiptTimeAndWildcard) {
   EXPECT_TRUE(CurveDataSequencer::hasSnapshotHint(config));
 }
 
+TEST(CurveDataSequencer, receiptTimeIgnoresLeftoverWildcardField) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::X)->setField("position/*");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/0");
+
+  EXPECT_FALSE(CurveDataSequencer::hasSnapshotHint(config));
+  EXPECT_FALSE(CurveDataSequencer::isSnapshotConfig(config));
+}
+
 TEST(CurveDataSequencer, rejectsScalarAndWildcardMix) {
   CurveConfig config;
   config.getAxisConfig(CurveConfig::X)->setTopic("/array");

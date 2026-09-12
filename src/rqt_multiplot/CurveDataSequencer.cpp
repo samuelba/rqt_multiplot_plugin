@@ -156,7 +156,13 @@ void CurveDataSequencer::unsubscribe() {
 namespace {
 
 bool isSnapshotAxis(const CurveAxisConfig& axis) {
-  return axis.getFieldType() == CurveAxisConfig::ArrayIndex || isWildcardFieldPath(axis.getField().toStdString());
+  if (axis.getFieldType() == CurveAxisConfig::ArrayIndex) {
+    return true;
+  }
+  if (axis.getFieldType() != CurveAxisConfig::MessageData) {
+    return false;
+  }
+  return isWildcardFieldPath(axis.getField().toStdString());
 }
 
 bool extractAxisSeries(const Message& message, const CurveAxisConfig& axis, std::vector<double>& values) {

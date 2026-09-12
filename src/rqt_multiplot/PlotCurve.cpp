@@ -16,12 +16,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <algorithm>
+
+#include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/CurveDataCircularBuffer.h>
 #include <rqt_multiplot/CurveDataList.h>
 #include <rqt_multiplot/CurveDataListTimeFrame.h>
 #include <rqt_multiplot/CurveDataSequencer.h>
 #include <rqt_multiplot/CurveDataVector.h>
 #include <rqt_multiplot/PlotWidget.h>
+
+#include <qwt/qwt_plot.h>
 
 #include "rqt_multiplot/PlotCurve.h"
 
@@ -47,7 +52,9 @@ PlotCurve::PlotCurve(QObject* parent)
   setData(data_);
 }
 
-PlotCurve::~PlotCurve() = default;
+PlotCurve::~PlotCurve() {
+  clearGhosts();
+}
 
 /*****************************************************************************/
 /* Accessors                                                                 */
@@ -85,6 +92,7 @@ void PlotCurve::setConfig(CurveConfig* config) {
       configDataConfigChanged();
 
       dataSequencer_->setConfig(config);
+      updateSnapshotHistoryCapacity();
     }
   }
 }
@@ -131,6 +139,18 @@ QPair<double, double> PlotCurve::getPreferredAxisScale(CurveConfig::Axis axis) c
       }
     } else {
       axisBounds = data_->getAxisBounds(axis);
+      for (const auto& frame : snapshotHistory_.frames()) {
+        for (const auto& point : frame) {
+          const double value = (axis == CurveConfig::X) ? point.x() : point.y();
+          if (axisBounds.first > axisBounds.second) {
+            axisBounds.first = value;
+            axisBounds.second = value;
+          } else {
+            axisBounds.first = std::min(axisBounds.first, value);
+            axisBounds.second = std::max(axisBounds.second, value);
+          }
+        }
+      }
     }
   }
 
@@ -150,9 +170,15 @@ BoundingRectangle PlotCurve::getPreferredScale() const {
 
 void PlotCurve::attach(QwtPlot* plot) {
   QwtPlotCurve::attach(plot);
+  for (auto* ghost : ghosts_) {
+    ghost->attach(plot);
+  }
 }
 
 void PlotCurve::detach() {
+  for (auto* ghost : ghosts_) {
+    ghost->detach();
+  }
   QwtPlotCurve::detach();
 }
 
@@ -177,8 +203,82 @@ void PlotCurve::pause() {
 
 void PlotCurve::clear() {
   data_->clearPoints();
+  snapshotHistory_.clear();
+  clearGhosts();
 
   emit replotRequested();
+}
+
+QVector<QPointF> PlotCurve::copyPoints(const CurveData& data) {
+  QVector<QPointF> points;
+  points.reserve(static_cast<int>(data.getNumPoints()));
+  for (size_t i = 0; i < data.getNumPoints(); ++i) {
+    points.append(data.getPoint(i));
+  }
+  return points;
+}
+
+void PlotCurve::updateSnapshotHistoryCapacity() {
+  const size_t capacity = (config_ != nullptr) ? config_->getStyleConfig()->getFadeHistory() : 0;
+  snapshotHistory_.setCapacity(capacity);
+  syncGhosts();
+}
+
+void PlotCurve::styleGhost(QwtPlotCurve* ghost, size_t age, size_t count) const {
+  ghost->setStyle(style());
+  ghost->setOrientation(orientation());
+  ghost->setBaseline(baseline());
+  ghost->setCurveAttribute(QwtPlotCurve::Fitted, testCurveAttribute(QwtPlotCurve::Fitted));
+  ghost->setCurveAttribute(QwtPlotCurve::Inverted, testCurveAttribute(QwtPlotCurve::Inverted));
+  ghost->setRenderHint(QwtPlotItem::RenderAntialiased, testRenderHint(QwtPlotItem::RenderAntialiased));
+  ghost->setZ(z() - static_cast<double>(age));
+
+  QPen ghostPen = pen();
+  QColor color = ghostPen.color();
+  const int baseAlpha = (color.alpha() > 0) ? color.alpha() : 255;
+  color.setAlpha(snapshotFadeAlpha(baseAlpha, age, count));
+  ghostPen.setColor(color);
+  ghost->setPen(ghostPen);
+}
+
+void PlotCurve::restyleGhosts() {
+  const size_t count = static_cast<size_t>(snapshotHistory_.frames().size());
+  for (int i = 0; i < ghosts_.size(); ++i) {
+    styleGhost(ghosts_[i], static_cast<size_t>(i + 1), count);
+  }
+}
+
+void PlotCurve::clearGhosts() {
+  for (auto* ghost : ghosts_) {
+    ghost->detach();
+    delete ghost;
+  }
+  ghosts_.clear();
+}
+
+void PlotCurve::syncGhosts() {
+  const auto& frames = snapshotHistory_.frames();
+  while (ghosts_.size() > frames.size()) {
+    ghosts_.last()->detach();
+    delete ghosts_.takeLast();
+  }
+
+  QwtPlot* attachedPlot = plot();
+  while (ghosts_.size() < frames.size()) {
+    auto* ghost = new QwtPlotCurve();
+    ghost->setItemAttribute(QwtPlotItem::Legend, false);
+    ghost->setTitle(QString());
+    if (attachedPlot != nullptr) {
+      ghost->attach(attachedPlot);
+    }
+    ghosts_.append(ghost);
+  }
+
+  const size_t count = static_cast<size_t>(frames.size());
+  for (int i = 0; i < frames.size(); ++i) {
+    styleGhost(ghosts_[i], static_cast<size_t>(i + 1), count);
+    ghosts_[i]->setSamples(frames[i]);
+  }
 }
 
 /*****************************************************************************/
@@ -195,6 +295,7 @@ void PlotCurve::configAxisConfigChanged() {
 
 void PlotCurve::configColorConfigCurrentColorChanged(const QColor& color) {
   setPen(color);
+  restyleGhosts();
 
   emit replotRequested();
 }
@@ -227,6 +328,7 @@ void PlotCurve::configStyleConfigChanged() {
   setPen(pen);
 
   setRenderHint(QwtPlotItem::RenderAntialiased, styleConfig->isRenderAntialiased());
+  updateSnapshotHistoryCapacity();
 
   emit replotRequested();
 }
@@ -282,7 +384,9 @@ void PlotCurve::dataSequencerSeriesReceived(const QVector<QPointF>& points) {
   }
 
   BoundingRectangle oldBounds = getPreferredScale();
+  snapshotHistory_.push(copyPoints(*data_));
   data_->replacePoints(points);
+  syncGhosts();
   BoundingRectangle bounds = getPreferredScale();
 
   if (bounds != oldBounds) {

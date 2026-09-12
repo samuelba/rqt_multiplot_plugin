@@ -132,6 +132,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/ProgressWidget.cpp
   src/rqt_multiplot/QwtPlotCustom.cpp
   src/rqt_multiplot/RosContext.cpp
+  src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
   src/rqt_multiplot/UrlComboBox.cpp
@@ -230,6 +231,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/ProgressChangeEvent.h
   include/rqt_multiplot/ProgressWidget.h
   include/rqt_multiplot/QwtPlotCustom.h
+  include/rqt_multiplot/SnapshotHistory.h
   include/rqt_multiplot/RosContext.h
   include/rqt_multiplot/StatusWidget.h
   include/rqt_multiplot/ThreadedTimer.h
@@ -336,12 +338,15 @@ if(BUILD_TESTING)
     test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
     test/CurveAxisConfigTest.cpp
+    test/CurveStyleConfigTest.cpp
+    test/CurveStyleConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
     test/CurveDataVectorTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/PlotConfigTest.cpp
     test/PlotCursorLabelTest.cpp
+    test/SnapshotHistoryTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
@@ -350,6 +355,7 @@ if(BUILD_TESTING)
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
       Qt5::Core
+      Qt5::Widgets
       ${geometry_msgs_TARGETS}
       ${std_msgs_TARGETS}
       rosbag2_cpp::rosbag2_cpp

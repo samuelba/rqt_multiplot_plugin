@@ -19,6 +19,7 @@
 #ifndef RQT_MULTIPLOT_PLOT_CURVE_H
 #define RQT_MULTIPLOT_PLOT_CURVE_H
 
+#include <QList>
 #include <QObject>
 #include <QPair>
 #include <QPointF>
@@ -29,6 +30,7 @@
 #include <rqt_multiplot/BoundingRectangle.h>
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageBroker.h>
+#include <rqt_multiplot/SnapshotHistory.h>
 
 namespace rqt_multiplot {
 class CurveData;
@@ -67,8 +69,17 @@ class PlotCurve : public QObject, public QwtPlotCurve {
 
   CurveData* data_;
   CurveDataSequencer* dataSequencer_;
+  SnapshotHistory snapshotHistory_;
+  QList<QwtPlotCurve*> ghosts_;
 
   bool paused_;
+
+  void updateSnapshotHistoryCapacity();
+  void syncGhosts();
+  void restyleGhosts();
+  void styleGhost(QwtPlotCurve* ghost, size_t age, size_t count) const;
+  void clearGhosts();
+  static QVector<QPointF> copyPoints(const CurveData& data);
 
  private slots:
   void configTitleChanged(const QString& title);

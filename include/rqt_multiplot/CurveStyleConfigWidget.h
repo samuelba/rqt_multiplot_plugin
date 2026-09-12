@@ -37,6 +37,8 @@ class CurveStyleConfigWidget : public QWidget {
 
   void setConfig(CurveStyleConfig* config);
   CurveStyleConfig* getConfig() const;
+  void setFadeHistoryApplicable(bool applicable);
+  bool isFadeHistoryApplicable() const;
 
  private:
   Ui::CurveStyleConfigWidget* ui_;
@@ -56,6 +58,7 @@ class CurveStyleConfigWidget : public QWidget {
   void configPenWidthChanged(size_t width);
   void configPenStyleChanged(int style);
   void configRenderAntialiasChanged(bool antialias);
+  void configFadeHistoryChanged(size_t frames);
 
   void radioButtonLinesToggled(bool checked);
   void radioButtonSticksToggled(bool checked);
@@ -71,6 +74,7 @@ class CurveStyleConfigWidget : public QWidget {
   void spinBoxPenWidthValueChanged(int value);
   void comboBoxPenStyleCurrentStyleChanged(int style);
   void checkBoxRenderAntialiasStateChanged(int state);
+  void spinBoxFadeHistoryValueChanged(int value);
 };
 }  // namespace rqt_multiplot
 

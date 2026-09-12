@@ -29,7 +29,8 @@ class CurveStyleConfig : public Config {
 
   explicit CurveStyleConfig(QObject* parent = nullptr, Type type = Lines, bool linesInterpolate = false,
                             Qt::Orientation sticksOrientation = Qt::Vertical, double sticksBaseline = 0.0, bool stepsInvert = false,
-                            size_t penWidth = 1, Qt::PenStyle penStyle = Qt::SolidLine, bool renderAntialias = false);
+                            size_t penWidth = 1, Qt::PenStyle penStyle = Qt::SolidLine, bool renderAntialias = false,
+                            size_t fadeHistory = 0);
   ~CurveStyleConfig() override;
 
   void setType(Type type);
@@ -50,6 +51,8 @@ class CurveStyleConfig : public Config {
   Qt::PenStyle getPenStyle() const;
   void setRenderAntialias(bool antialias);
   bool isRenderAntialiased() const;
+  void setFadeHistory(size_t frames);
+  size_t getFadeHistory() const;
 
   void save(QSettings& settings) const override;
   void load(QSettings& settings) override;
@@ -69,6 +72,7 @@ class CurveStyleConfig : public Config {
   void penWidthChanged(size_t width);
   void penStyleChanged(int style);
   void renderAntialiasChanged(bool antialias);
+  void fadeHistoryChanged(size_t frames);
 
  private:
   Type type_;
@@ -81,6 +85,7 @@ class CurveStyleConfig : public Config {
   size_t penWidth_;
   Qt::PenStyle penStyle_;
   bool renderAntialias_;
+  size_t fadeHistory_;
 };
 }  // namespace rqt_multiplot
 
