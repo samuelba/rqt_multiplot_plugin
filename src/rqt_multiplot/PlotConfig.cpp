@@ -124,7 +124,7 @@ CurveConfig* PlotConfig::addCurve() {
 }
 
 void PlotConfig::removeCurve(CurveConfig* curveConfig) {
-  int index = curveConfig_.indexOf(curveConfig);
+  const int index = static_cast<int>(curveConfig_.indexOf(curveConfig));
 
   if (index >= 0) {
     removeCurve(index);
@@ -339,7 +339,7 @@ void PlotConfig::curveConfigChanged() {
 }
 
 void PlotConfig::curveConfigDestroyed() {
-  const int index = curveConfig_.indexOf(dynamic_cast<CurveConfig*>(sender()));
+  const int index = static_cast<int>(curveConfig_.indexOf(dynamic_cast<CurveConfig*>(sender())));
 
   if (index < 0) {
     return;

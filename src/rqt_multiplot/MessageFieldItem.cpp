@@ -91,7 +91,7 @@ int MessageFieldItem::getRow() const {
   if (parent_ != nullptr) {
     // QList::indexOf requires a non-const pointer.
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    return parent_->children_.indexOf(const_cast<MessageFieldItem*>(this));
+    return static_cast<int>(parent_->children_.indexOf(const_cast<MessageFieldItem*>(this)));
   }
 
   return -1;

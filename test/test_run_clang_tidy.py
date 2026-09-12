@@ -35,6 +35,37 @@ class FilterCompileCommandsTest(unittest.TestCase):
             # Assert
             self.assertEqual([entry['file'] for entry in filtered], [str(real_src)])
 
+    def test_drops_fetched_dependencies_and_autogen_sources(self):
+        # Arrange
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = root / 'src' / 'PlotWidget.cpp'
+            src.parent.mkdir(parents=True)
+            src.write_text('int a;\n')
+            db = [
+                {'file': str(src), 'directory': tmp, 'command': 'c++'},
+                {
+                    'file': str(root / 'build' / '_deps' / 'qwt-src' / 'src' / 'qwt_plot.cpp'),
+                    'directory': tmp,
+                    'command': 'c++',
+                },
+                {
+                    'file': str(root / 'build' / 'qwt_qt6_autogen' / 'mocs_compilation.cpp'),
+                    'directory': tmp,
+                    'command': 'c++',
+                },
+            ]
+            (root / 'build' / '_deps' / 'qwt-src' / 'src').mkdir(parents=True)
+            (root / 'build' / '_deps' / 'qwt-src' / 'src' / 'qwt_plot.cpp').write_text('int b;\n')
+            (root / 'build' / 'qwt_qt6_autogen').mkdir(parents=True)
+            (root / 'build' / 'qwt_qt6_autogen' / 'mocs_compilation.cpp').write_text('int c;\n')
+
+            # Act
+            filtered = rct.filter_compile_commands(db, root)
+
+            # Assert
+            self.assertEqual([entry['file'] for entry in filtered], [str(src)])
+
     def test_drops_package_tests_and_gtest_sources(self):
         # Arrange
         with tempfile.TemporaryDirectory() as tmp:

@@ -7,7 +7,8 @@ ARG ROS_DISTRO
 ENV ROS_VERSION=2 \
     ROS_DISTRO=${ROS_DISTRO} \
     DEBIAN_FRONTEND=noninteractive \
-    GTEST_COLOR=1
+    GTEST_COLOR=1 \
+    CLANG_TIDY_VERSION=18
 
 RUN echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99no-install-recommends && \
     echo 'APT::Install-Suggests "false";' >> /etc/apt/apt.conf.d/99no-install-recommends
@@ -97,6 +98,21 @@ RUN --mount=type=cache,id=apt-cache-${ROS_DISTRO},target=/var/cache/apt \
     --dependency-types test && \
     apt-get install -y "ros-${ROS_DISTRO}-rmw-cyclonedds-cpp" && \
     rm -rf /tmp/ws
+
+RUN --mount=type=cache,id=apt-cache-${ROS_DISTRO},target=/var/cache/apt \
+    apt-get update && \
+    apt-get install -y wget gnupg ca-certificates software-properties-common && \
+    case "${ROS_DISTRO}" in \
+      lyrical|rolling) \
+        apt-get install -y clang-format-18 clang-tidy-18 ;; \
+      *) \
+        wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh && \
+        chmod +x /tmp/llvm.sh && \
+        /tmp/llvm.sh 18 && \
+        apt-get install -y clang-format-18 clang-tidy-18 ;; \
+    esac && \
+    clang-format-18 --version && \
+    clang-tidy-18 --version
 
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" > /etc/profile.d/ros.sh && \
     echo 'export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"' >> /etc/profile.d/ros.sh && \

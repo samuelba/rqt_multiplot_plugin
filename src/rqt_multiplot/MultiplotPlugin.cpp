@@ -94,7 +94,7 @@ void MultiplotPlugin::restoreSettings(const qt_gui_cpp::Settings&
       configHistory.append(instanceSettings.value("history/config_" + QString::number(configHistory.count())).toString());
     }
   } else {
-    for (int i = configHistory.count(); i < savedCount; ++i) {
+    for (int i = static_cast<int>(configHistory.count()); i < savedCount; ++i) {
       configHistory.append(instanceSettings.value("history/config_" + QString::number(i)).toString());
     }
   }

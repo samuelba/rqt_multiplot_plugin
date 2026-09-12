@@ -147,7 +147,7 @@ int UrlItemModel::rowCount(const QModelIndex& parent) const {
         return static_cast<int>(parentScheme->getNumPaths(parentItem->getIndex(UrlItem::Host), parentItem->getIndex()));
       }
     } else {
-      return schemes_.count();
+      return static_cast<int>(schemes_.count());
     }
   }
 
@@ -232,7 +232,7 @@ void UrlItemModel::schemeResetStarted() {
   beginResetModel();
 
   auto* scheme = dynamic_cast<UrlScheme*>(sender());
-  int i = schemes_.indexOf(scheme);
+  const int i = static_cast<int>(schemes_.indexOf(scheme));
 
   if (i >= 0) {
     delete schemeItems_[i];
