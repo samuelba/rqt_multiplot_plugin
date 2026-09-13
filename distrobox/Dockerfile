@@ -67,6 +67,12 @@ RUN --mount=type=cache,id=apt-cache-${ROS_DISTRO},target=/var/cache/apt \
     zip \
     libgl1 \
     #
+    # Debian packaging.
+    python3-bloom \
+    python3-rosdep \
+    fakeroot \
+    dh-make \
+    #
     # Other packages.
     ca-certificates \
     git \

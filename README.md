@@ -240,3 +240,38 @@ Run unit tests:
 ```bash
 colcon test --packages-select rqt_multiplot --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
 ```
+
+### Debian packaging
+
+In the distrobox, in the package folder.
+
+Before doing anything, delete the `debian/` and `.obj-x86_64-linux-gnu` folders.
+
+```bash
+rm -rf debian/ .obj-x86_64-linux-gnu/
+```
+
+Install dependencies:
+
+```bash
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+Generate the debian files:
+
+```bash
+# noble/jazzy
+bloom-generate rosdebian --os-name ubuntu --os-version noble --ros-distro jazzy
+# noble/kilted
+bloom-generate rosdebian --os-name ubuntu --os-version noble --ros-distro kilted
+# resolute/lyrical
+bloom-generate rosdebian --os-name ubuntu --os-version resolute --ros-distro lyrical
+# resolute/rolling
+bloom-generate rosdebian --os-name ubuntu --os-version resolute --ros-distro rolling
+```
+
+Generate the deb packages:
+
+```bash
+fakeroot debian/rules binary
+```

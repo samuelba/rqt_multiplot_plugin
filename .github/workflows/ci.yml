@@ -14,7 +14,65 @@ defaults:
 
 jobs:
   build-and-test:
-    name: ${{ matrix.ros_distro }}
+    name: build-and-test / ${{ matrix.ros_distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [jazzy, kilted, lyrical, rolling]
+    container:
+      image: ros:${{ matrix.ros_distro }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src/rqt_multiplot_plugin
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          rosdep update --rosdistro "${ROS_DISTRO}"
+          rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
+            --dependency-types buildtool \
+            --dependency-types build \
+            --dependency-types build_export \
+            --dependency-types exec \
+            --dependency-types test
+
+      - name: Build
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          colcon build --packages-select rqt_multiplot --event-handlers console_direct+
+
+      - name: Test
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          source install/setup.bash
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
+          colcon test-result --verbose
+
+      - name: Upload colcon workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: colcon-build-${{ matrix.ros_distro }}
+          path: |
+            build
+            install
+          retention-days: 1
+          if-no-files-found: error
+
+  format-and-lint:
+    name: format-and-lint / ${{ matrix.ros_distro }}
+    needs: build-and-test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -48,6 +106,11 @@ jobs:
             --dependency-types exec \
             --dependency-types test
 
+      - name: Download colcon workspace
+        uses: actions/download-artifact@v4
+        with:
+          name: colcon-build-${{ matrix.ros_distro }}
+
       - name: Install pinned clang tools
         run: |
           apt-get update
@@ -67,19 +130,6 @@ jobs:
           clang-format-18 --version
           clang-tidy-18 --version
 
-      - name: Build
-        run: |
-          source "/opt/ros/${ROS_DISTRO}/setup.bash"
-          colcon build --packages-select rqt_multiplot --event-handlers console_direct+
-
-      - name: Test
-        run: |
-          source "/opt/ros/${ROS_DISTRO}/setup.bash"
-          source install/setup.bash
-          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
-            --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
-          colcon test-result --verbose
-
       - name: clang-format
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
@@ -89,11 +139,80 @@ jobs:
           colcon test-result --verbose
 
       - name: clang-tidy
-        # env:
-        #   CLANG_TIDY_CHANGED_SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        env:
+          CLANG_TIDY_CHANGED_SINCE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          # CLANG_TIDY_ALL: '1'
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
           source install/setup.bash
           colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
             --ctest-args " -L" clang_tidy
           colcon test-result --verbose
+
+  debian-packaging:
+    name: debian-packaging / ${{ matrix.ros_distro }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [jazzy, kilted, lyrical, rolling]
+    container:
+      image: ros:${{ matrix.ros_distro }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src/rqt_multiplot_plugin
+          fetch-depth: 0
+
+      - name: Build Debian package
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            python3-bloom \
+            fakeroot \
+            dh-make \
+            debhelper
+
+          case "${ROS_DISTRO}" in
+            jazzy|kilted) UBUNTU_VERSION=noble ;;
+            lyrical|rolling) UBUNTU_VERSION=resolute ;;
+          esac
+
+          cd src/rqt_multiplot_plugin
+          rm -rf debian/ .obj-x86_64-linux-gnu/
+
+          cd ../..
+          rosdep update --rosdistro "${ROS_DISTRO}"
+          rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO}"
+
+          cd src/rqt_multiplot_plugin
+          bloom-generate rosdebian \
+            --os-name ubuntu \
+            --os-version "${UBUNTU_VERSION}" \
+            --ros-distro "${ROS_DISTRO}"
+
+          fakeroot debian/rules binary
+
+          mkdir -p ../../debian-packages
+          mv ../ros-${ROS_DISTRO}-rqt-multiplot_*.deb ../../debian-packages/
+          mv ../ros-${ROS_DISTRO}-rqt-multiplot-dbgsym_*.ddeb ../../debian-packages/
+          ls -la ../../debian-packages/
+
+      - name: Upload Debian packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-${{ matrix.ros_distro }}
+          path: debian-packages/*
+          retention-days: 7
+          if-no-files-found: error
