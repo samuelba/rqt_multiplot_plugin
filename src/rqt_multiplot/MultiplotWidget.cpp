@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
 
 #include <ui_MultiplotWidget.h>
@@ -38,13 +38,15 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->setupUi(this);
 
   ui_->configWidget->setConfig(config_);
-  ui_->plotTableConfigWidget->setConfig(config_->getTableConfig());
-  ui_->plotTableConfigWidget->setPlotTable(ui_->plotTableWidget);
-  ui_->plotTableWidget->setConfig(config_->getTableConfig());
+  ui_->plotTabWidget->setConfig(config_);
+  ui_->plotTableConfigWidget->setPlotTabs(ui_->plotTabWidget);
+  plotTabCurrentPlotTableChanged(ui_->plotTabWidget->getCurrentPlotTable());
 
   connect(ui_->configWidget, SIGNAL(currentConfigModifiedChanged(bool)), this, SLOT(configWidgetCurrentConfigModifiedChanged(bool)));
   connect(ui_->configWidget, SIGNAL(currentConfigUrlChanged(const QString&)), this,
           SLOT(configWidgetCurrentConfigUrlChanged(const QString&)));
+  connect(ui_->plotTabWidget, SIGNAL(currentPlotTableChanged(PlotTableWidget*)), this,
+          SLOT(plotTabCurrentPlotTableChanged(PlotTableWidget*)));
 
   configWidgetCurrentConfigUrlChanged(QString());
 
@@ -100,11 +102,11 @@ QStringList MultiplotWidget::getConfigHistory() const {
 }
 
 void MultiplotWidget::runPlots() {
-  ui_->plotTableConfigWidget->runPlots();
+  ui_->plotTabWidget->runPlots();
 }
 
 void MultiplotWidget::pausePlots() {
-  ui_->plotTableWidget->pausePlots();
+  ui_->plotTabWidget->pausePlots();
 }
 
 /*****************************************************************************/
@@ -116,7 +118,7 @@ void MultiplotWidget::loadConfig(const QString& url) {
 }
 
 void MultiplotWidget::readBag(const QString& url) {
-  ui_->plotTableWidget->loadFromBagFile(url);
+  ui_->plotTabWidget->loadFromBagFile(url);
 }
 
 bool MultiplotWidget::confirmClose() {
@@ -146,6 +148,11 @@ void MultiplotWidget::configWidgetCurrentConfigUrlChanged(const QString& url) {
   }
 
   setWindowTitle(windowTitle);
+}
+
+void MultiplotWidget::plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable) {
+  ui_->plotTableConfigWidget->setConfig(plotTable != nullptr ? plotTable->getConfig() : nullptr);
+  ui_->plotTableConfigWidget->setPlotTable(plotTable);
 }
 
 }  // namespace rqt_multiplot

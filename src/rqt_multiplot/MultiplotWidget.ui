@@ -76,7 +76,7 @@
          <number>-1</number>
         </property>
         <item row="0" column="0">
-         <widget class="rqt_multiplot::PlotTableWidget" name="plotTableWidget" native="true"/>
+         <widget class="rqt_multiplot::PlotTabWidget" name="plotTabWidget" native="true"/>
         </item>
        </layout>
       </widget>
@@ -130,9 +130,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>rqt_multiplot::PlotTableWidget</class>
+   <class>rqt_multiplot::PlotTabWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotTableWidget.h</header>
+   <header location="global">rqt_multiplot/PlotTabWidget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

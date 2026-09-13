@@ -15,6 +15,7 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 ## Features
 
 - **Multiple plots and curves** — rows × columns of plots; each plot can hold many curves
+- **Tabs** — multiple named plot grids in one window; each tab has its own layout, colors, and link/track settings
 - **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer
 - **Export** — PNG, SVG, PDF images; TXT or CSV curve data

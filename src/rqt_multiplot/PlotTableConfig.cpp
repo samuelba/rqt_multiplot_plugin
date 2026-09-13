@@ -27,8 +27,9 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor foregroundColor, size_t numRows, size_t numColumns,
-                                 bool linkScale, bool linkCursor, bool trackPoints)
+                                 bool linkScale, bool linkCursor, bool trackPoints, QString title)
     : Config(parent),
+      title_(std::move(title)),
       backgroundColor_(std::move(backgroundColor)),
       foregroundColor_(std::move(foregroundColor)),
       linkScale_(linkScale),
@@ -54,6 +55,19 @@ PlotTableConfig::~PlotTableConfig() = default;
 /*****************************************************************************/
 /* Accessors                                                                 */
 /*****************************************************************************/
+
+void PlotTableConfig::setTitle(const QString& title) {
+  if (title != title_) {
+    title_ = title;
+
+    emit titleChanged(title);
+    emit changed();
+  }
+}
+
+const QString& PlotTableConfig::getTitle() const {
+  return title_;
+}
 
 void PlotTableConfig::setBackgroundColor(const QColor& color) {
   if (color != backgroundColor_) {
@@ -194,6 +208,7 @@ bool PlotTableConfig::arePointsTracked() const {
 /*****************************************************************************/
 
 void PlotTableConfig::save(QSettings& settings) const {
+  settings.setValue("title", title_);
   settings.setValue("background_color", QVariant::fromValue<QColor>(backgroundColor_));
   settings.setValue("foreground_color", QVariant::fromValue<QColor>(foregroundColor_));
 
@@ -219,6 +234,7 @@ void PlotTableConfig::save(QSettings& settings) const {
 }
 
 void PlotTableConfig::load(QSettings& settings) {
+  setTitle(settings.value("title", "Tab 1").toString());
   setBackgroundColor(settings.value("background_color", QColor(Qt::white)).value<QColor>());
   setForegroundColor(settings.value("foreground_color", QColor(Qt::black)).value<QColor>());
 
@@ -266,6 +282,7 @@ void PlotTableConfig::load(QSettings& settings) {
 }
 
 void PlotTableConfig::reset() {
+  setTitle("Tab 1");
   setBackgroundColor(Qt::white);
   setForegroundColor(Qt::black);
 
@@ -292,6 +309,7 @@ void PlotTableConfig::write(QDataStream& stream) const {
   stream << linkScale_;
   stream << linkCursor_;
   stream << trackPoints_;
+  stream << title_;
 }
 
 void PlotTableConfig::read(QDataStream& stream) {
@@ -322,6 +340,10 @@ void PlotTableConfig::read(QDataStream& stream) {
   setLinkCursor(linkCursor);
   stream >> trackPoints;
   setTrackPoints(trackPoints);
+
+  QString title;
+  stream >> title;
+  setTitle(title);
 }
 
 /*****************************************************************************/
@@ -329,6 +351,7 @@ void PlotTableConfig::read(QDataStream& stream) {
 /*****************************************************************************/
 
 PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
+  setTitle(src.title_);
   setBackgroundColor(src.backgroundColor_);
   setForegroundColor(src.foregroundColor_);
 

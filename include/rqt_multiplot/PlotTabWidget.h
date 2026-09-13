@@ -16,57 +16,71 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#ifndef RQT_MULTIPLOT_MULTIPLOT_WIDGET_H
-#define RQT_MULTIPLOT_MULTIPLOT_WIDGET_H
+#ifndef RQT_MULTIPLOT_PLOT_TAB_WIDGET_H
+#define RQT_MULTIPLOT_PLOT_TAB_WIDGET_H
 
-#include <QDockWidget>
-#include <QStringList>
+#include <QString>
 #include <QWidget>
 
-#include <rqt_multiplot/MessageTypeRegistry.h>
 #include <rqt_multiplot/MultiplotConfig.h>
-#include <rqt_multiplot/PackageRegistry.h>
 
-namespace Ui {
-class MultiplotWidget;
-}
+class QTabWidget;
+class QToolButton;
 
 namespace rqt_multiplot {
 class PlotTableWidget;
 
-class MultiplotWidget : public QWidget {
+class PlotTabWidget : public QWidget {
   Q_OBJECT
  public:
-  explicit MultiplotWidget(QWidget* parent = nullptr);
-  ~MultiplotWidget() override;
+  explicit PlotTabWidget(QWidget* parent = nullptr);
+  ~PlotTabWidget() override;
 
+  void setConfig(MultiplotConfig* config);
   MultiplotConfig* getConfig() const;
-  QDockWidget* getDockWidget() const;
+  size_t getNumPlotTables() const;
+  PlotTableWidget* getPlotTable(size_t index) const;
+  PlotTableWidget* getCurrentPlotTable() const;
+  QString getTabText(size_t index) const;
+  void addTab();
+  void closeTab(size_t index);
 
-  void setMaxConfigHistoryLength(size_t length);
-  size_t getMaxConfigHistoryLength() const;
-  void setConfigHistory(const QStringList& history);
-  QStringList getConfigHistory() const;
   void runPlots();
   void pausePlots();
+  void clearPlots();
+  void loadFromBagFile(const QString& fileName);
 
-  void loadConfig(const QString& url);
-  void readBag(const QString& url);
-
-  bool confirmClose();
+ signals:
+  void currentPlotTableChanged(PlotTableWidget* plotTable);
+  void plotPausedChanged();
+  void jobStarted(const QString& toolTip);
+  void jobProgressChanged(double progress);
+  void jobFinished(const QString& toolTip);
+  void jobFailed(const QString& toolTip);
 
  private:
-  Ui::MultiplotWidget* ui_;
-
+  QTabWidget* tabWidget_;
+  QToolButton* addButton_;
   MultiplotConfig* config_;
 
-  MessageTypeRegistry* messageTypeRegistry_;
-  PackageRegistry* packageRegistry_;
+  void rebuildTabs();
+  void clearPlotTables();
+  void appendPlotTable(PlotTableConfig* tableConfig);
+  void updateCloseButtons();
+  void forEachPlotTable(void (PlotTableWidget::*method)());
+  void forEachPlotTable(void (PlotTableWidget::*method)(const QString&), const QString& argument);
 
  private slots:
-  void configWidgetCurrentConfigModifiedChanged(bool modified);
-  void configWidgetCurrentConfigUrlChanged(const QString& url);
-  void plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable);
+  void configTabAdded(size_t index);
+  void configTabRemoved(size_t index);
+  void configTabsChanged();
+  void configTabTitleChanged(size_t index, const QString& title);
+  void configCurrentTabIndexChanged(size_t index);
+
+  void currentChanged(int index);
+  void tabCloseRequested(int index);
+  void tabBarDoubleClicked(int index);
+  void addButtonClicked();
 };
 }  // namespace rqt_multiplot
 

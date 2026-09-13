@@ -22,6 +22,7 @@
 #include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotExport.h>
 
+#include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PlotWidget.h>
 
@@ -36,7 +37,14 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
-    : QWidget(parent), ui_(new Ui::PlotTableConfigWidget()), menuImportExport_(new QMenu(this)), config_(nullptr), plotTable_(nullptr) {
+    : QWidget(parent),
+      ui_(new Ui::PlotTableConfigWidget()),
+      menuImportExport_(new QMenu(this)),
+      config_(nullptr),
+      plotTabs_(nullptr),
+      plotTable_(nullptr),
+      playbackJobCount_(0),
+      lastJobFailure_() {
   ui_->setupUi(this);
 
   ui_->labelBackgroundColor->setAutoFillBackground(true);
@@ -116,27 +124,23 @@ PlotTableConfig* PlotTableConfigWidget::getConfig() const {
   return config_;
 }
 
+void PlotTableConfigWidget::setPlotTabs(PlotTabWidget* plotTabs) {
+  if (plotTabs != plotTabs_) {
+    unbindPlaybackSignals();
+    plotTabs_ = plotTabs;
+    bindPlaybackSignals();
+  }
+}
+
+PlotTabWidget* PlotTableConfigWidget::getPlotTabs() const {
+  return plotTabs_;
+}
+
 void PlotTableConfigWidget::setPlotTable(PlotTableWidget* plotTable) {
   if (plotTable != plotTable_) {
-    if (plotTable_ != nullptr) {
-      disconnect(plotTable_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
-      disconnect(plotTable_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
-      disconnect(plotTable_, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
-      disconnect(plotTable_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
-      disconnect(plotTable_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
-    }
-
+    unbindPlaybackSignals();
     plotTable_ = plotTable;
-
-    if (plotTable != nullptr) {
-      connect(plotTable, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
-      connect(plotTable, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
-      connect(plotTable, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
-      connect(plotTable, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
-      connect(plotTable, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
-
-      plotTablePlotPausedChanged();
-    }
+    bindPlaybackSignals();
   }
 }
 
@@ -145,8 +149,49 @@ PlotTableWidget* PlotTableConfigWidget::getPlotTableWidget() const {
 }
 
 void PlotTableConfigWidget::runPlots() {
-  if (plotTable_ != nullptr) {
+  if (plotTabs_ != nullptr) {
+    plotTabs_->runPlots();
+  } else if (plotTable_ != nullptr) {
     plotTable_->runPlots();
+  }
+}
+
+void PlotTableConfigWidget::unbindPlaybackSignals() {
+  if (plotTabs_ != nullptr) {
+    disconnect(plotTabs_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
+    disconnect(plotTabs_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
+    disconnect(plotTabs_, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
+    disconnect(plotTabs_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
+    disconnect(plotTabs_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+  } else if (plotTable_ != nullptr) {
+    disconnect(plotTable_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
+    disconnect(plotTable_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
+    disconnect(plotTable_, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
+    disconnect(plotTable_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
+    disconnect(plotTable_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+  }
+
+  playbackJobCount_ = 0;
+  lastJobFailure_.clear();
+}
+
+void PlotTableConfigWidget::bindPlaybackSignals() {
+  if (plotTabs_ != nullptr) {
+    connect(plotTabs_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
+    connect(plotTabs_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
+    connect(plotTabs_, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
+    connect(plotTabs_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
+    connect(plotTabs_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+  } else if (plotTable_ != nullptr) {
+    connect(plotTable_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
+    connect(plotTable_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
+    connect(plotTable_, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
+    connect(plotTable_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
+    connect(plotTable_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+  }
+
+  if (plotTabs_ != nullptr || plotTable_ != nullptr) {
+    plotTablePlotPausedChanged();
   }
 }
 
@@ -240,19 +285,21 @@ void PlotTableConfigWidget::checkBoxTrackPointsStateChanged(int state) {
 }
 
 void PlotTableConfigWidget::pushButtonRunClicked() {
-  if (plotTable_ != nullptr) {
-    plotTable_->runPlots();
-  }
+  runPlots();
 }
 
 void PlotTableConfigWidget::pushButtonPauseClicked() {
-  if (plotTable_ != nullptr) {
+  if (plotTabs_ != nullptr) {
+    plotTabs_->pausePlots();
+  } else if (plotTable_ != nullptr) {
     plotTable_->pausePlots();
   }
 }
 
 void PlotTableConfigWidget::pushButtonClearClicked() {
-  if (plotTable_ != nullptr) {
+  if (plotTabs_ != nullptr) {
+    plotTabs_->clearPlots();
+  } else if (plotTable_ != nullptr) {
     plotTable_->clearPlots();
   }
 }
@@ -270,7 +317,11 @@ void PlotTableConfigWidget::menuImportBagFileTriggered() {
   if (dialog.exec() == QDialog::Accepted) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      plotTable_->loadFromBagFile(files.first());
+      if (plotTabs_ != nullptr) {
+        plotTabs_->loadFromBagFile(files.first());
+      } else if (plotTable_ != nullptr) {
+        plotTable_->loadFromBagFile(files.first());
+      }
     }
   }
 }
@@ -285,7 +336,11 @@ void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
   if (dialog.exec() == QDialog::Accepted) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      plotTable_->loadFromBagFile(files.first());
+      if (plotTabs_ != nullptr) {
+        plotTabs_->loadFromBagFile(files.first());
+      } else if (plotTable_ != nullptr) {
+        plotTable_->loadFromBagFile(files.first());
+      }
     }
   }
 }
@@ -322,25 +377,48 @@ void PlotTableConfigWidget::menuExportTextFileTriggered() {
 }
 
 void PlotTableConfigWidget::plotTablePlotPausedChanged() {
-  if (plotTable_ != nullptr) {
-    bool allPlotsPaused = true;
-    bool anyPlotPaused = false;
+  bool allPlotsPaused = true;
+  bool anyPlotPaused = false;
+  bool hasPlots = false;
 
-    for (size_t row = 0; row < plotTable_->getNumRows(); ++row) {
-      for (size_t column = 0; column < plotTable_->getNumColumns(); ++column) {
-        allPlotsPaused &= plotTable_->getPlotWidget(row, column)->isPaused();
-        anyPlotPaused |= plotTable_->getPlotWidget(row, column)->isPaused();
-      }
+  auto accumulate = [&](PlotTableWidget* plotTable) {
+    if (plotTable == nullptr) {
+      return;
     }
 
-    ui_->pushButtonRun->setEnabled(anyPlotPaused);
-    ui_->pushButtonPause->setEnabled(!allPlotsPaused);
+    for (size_t row = 0; row < plotTable->getNumRows(); ++row) {
+      for (size_t column = 0; column < plotTable->getNumColumns(); ++column) {
+        PlotWidget* plot = plotTable->getPlotWidget(row, column);
+        if (plot == nullptr) {
+          continue;
+        }
+
+        hasPlots = true;
+        allPlotsPaused &= plot->isPaused();
+        anyPlotPaused |= plot->isPaused();
+      }
+    }
+  };
+
+  if (plotTabs_ != nullptr) {
+    for (size_t index = 0; index < plotTabs_->getNumPlotTables(); ++index) {
+      accumulate(plotTabs_->getPlotTable(index));
+    }
+  } else {
+    accumulate(plotTable_);
   }
+
+  if (!hasPlots) {
+    return;
+  }
+
+  ui_->pushButtonRun->setEnabled(anyPlotPaused);
+  ui_->pushButtonPause->setEnabled(!allPlotsPaused);
 }
 
 void PlotTableConfigWidget::plotTableJobStarted(const QString& toolTip) {
+  ++playbackJobCount_;
   ui_->widgetProgress->setEnabled(true);
-
   ui_->widgetProgress->start(toolTip);
 }
 
@@ -349,11 +427,32 @@ void PlotTableConfigWidget::plotTableJobProgressChanged(double progress) {
 }
 
 void PlotTableConfigWidget::plotTableJobFinished(const QString& toolTip) {
-  ui_->widgetProgress->finish(toolTip);
+  completePlaybackJob(toolTip, false);
 }
 
 void PlotTableConfigWidget::plotTableJobFailed(const QString& toolTip) {
-  ui_->widgetProgress->fail(toolTip);
+  completePlaybackJob(toolTip, true);
+}
+
+void PlotTableConfigWidget::completePlaybackJob(const QString& toolTip, bool failed) {
+  if (playbackJobCount_ > 0) {
+    --playbackJobCount_;
+  }
+
+  if (failed) {
+    lastJobFailure_ = toolTip;
+  }
+
+  if (playbackJobCount_ > 0) {
+    return;
+  }
+
+  if (!lastJobFailure_.isEmpty()) {
+    ui_->widgetProgress->fail(lastJobFailure_);
+    lastJobFailure_.clear();
+  } else {
+    ui_->widgetProgress->finish(toolTip);
+  }
 }
 
 }  // namespace rqt_multiplot

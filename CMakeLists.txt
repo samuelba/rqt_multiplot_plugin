@@ -154,6 +154,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotTableConfig.cpp
   src/rqt_multiplot/PlotTableConfigWidget.cpp
   src/rqt_multiplot/PlotTableWidget.cpp
+  src/rqt_multiplot/PlotTabWidget.cpp
   src/rqt_multiplot/PlotWidget.cpp
   src/rqt_multiplot/PlotZoomer.cpp
   src/rqt_multiplot/ProgressChangeEvent.cpp
@@ -254,6 +255,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotTableConfig.h
   include/rqt_multiplot/PlotTableConfigWidget.h
   include/rqt_multiplot/PlotTableWidget.h
+  include/rqt_multiplot/PlotTabWidget.h
   include/rqt_multiplot/PlotWidget.h
   include/rqt_multiplot/PlotZoomer.h
   include/rqt_multiplot/ProgressChangeEvent.h
@@ -380,7 +382,9 @@ if(BUILD_TESTING)
     test/CurveDataVectorTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
+    test/MultiplotConfigTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotTableConfigTest.cpp
     test/PlotCurveTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
@@ -388,6 +392,7 @@ if(BUILD_TESTING)
     test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
+    test/PlotTabWidgetTest.cpp
     test/AmentIndexTest.cpp
     test/MatchFilterCompleterModelTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
