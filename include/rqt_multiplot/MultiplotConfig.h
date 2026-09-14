@@ -19,6 +19,9 @@
 #ifndef RQT_MULTIPLOT_MULTIPLOT_CONFIG_H
 #define RQT_MULTIPLOT_MULTIPLOT_CONFIG_H
 
+#include <QString>
+#include <QVector>
+
 #include <rqt_multiplot/Config.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 
@@ -29,7 +32,13 @@ class MultiplotConfig : public Config {
   explicit MultiplotConfig(QObject* parent);
   ~MultiplotConfig() override;
 
-  PlotTableConfig* getTableConfig() const;
+  size_t getNumTabs() const;
+  PlotTableConfig* getTableConfig(size_t index) const;
+  PlotTableConfig* addTab();
+  void removeTab(size_t index);
+  void setTabTitle(size_t index, const QString& title) const;
+  size_t getCurrentTabIndex() const;
+  void setCurrentTabIndex(size_t index);
 
   MultiplotConfig& operator=(const MultiplotConfig& src);
 
@@ -40,11 +49,31 @@ class MultiplotConfig : public Config {
   void write(QDataStream& stream) const override;
   void read(QDataStream& stream) override;
 
+ signals:
+  void tabAdded(size_t index);
+  void tabRemoved(size_t index);
+  void tabsChanged();
+  void tabTitleChanged(size_t index, const QString& title);
+  void currentTabIndexChanged(size_t index);
+
  private:
-  PlotTableConfig* tableConfig_;
+  QVector<PlotTableConfig*> tableConfigs_;
+  size_t currentTabIndex_;
+
+  PlotTableConfig* createTab(const QString& title);
+  QVector<PlotTableConfig*> takeTabs();
+  void deleteTabs(const QVector<PlotTableConfig*>& tabs);
+  void connectTable(PlotTableConfig* table);
+  QString nextTabTitle() const;
+  static int tabGroupIndex(const QString& group);
+  void loadTabs(QSettings& settings);
+  void loadLegacyTable(QSettings& settings);
+  void replaceTabsFromStream(QDataStream& stream, quint64 numTabs, quint64 currentTabIndex);
+  void replaceWithLegacyTableStream(QDataStream& stream);
 
  private slots:
   void tableConfigChanged();
+  void tableTitleChanged(const QString& title);
 };
 }  // namespace rqt_multiplot
 

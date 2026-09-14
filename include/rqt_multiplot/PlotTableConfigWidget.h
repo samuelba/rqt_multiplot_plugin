@@ -30,6 +30,7 @@ class PlotTableConfigWidget;
 
 namespace rqt_multiplot {
 class PlotTableWidget;
+class PlotTabWidget;
 
 class PlotTableConfigWidget : public QWidget {
   Q_OBJECT
@@ -39,6 +40,8 @@ class PlotTableConfigWidget : public QWidget {
 
   void setConfig(PlotTableConfig* config);
   PlotTableConfig* getConfig() const;
+  void setPlotTabs(PlotTabWidget* plotTabs);
+  PlotTabWidget* getPlotTabs() const;
   void setPlotTable(PlotTableWidget* plotTable);
   PlotTableWidget* getPlotTableWidget() const;
   void runPlots();
@@ -52,7 +55,14 @@ class PlotTableConfigWidget : public QWidget {
   QMenu* menuImportExport_;
 
   PlotTableConfig* config_;
+  PlotTabWidget* plotTabs_;
   PlotTableWidget* plotTable_;
+  int playbackJobCount_;
+  QString lastJobFailure_;
+
+  void unbindPlaybackSignals();
+  void bindPlaybackSignals();
+  void completePlaybackJob(const QString& toolTip, bool failed);
 
  private slots:
   void configBackgroundColorChanged(const QColor& color);

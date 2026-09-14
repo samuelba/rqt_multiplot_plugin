@@ -20,6 +20,7 @@
 #define RQT_MULTIPLOT_PLOT_TABLE_CONFIG_H
 
 #include <QColor>
+#include <QString>
 #include <QVector>
 
 #include <rqt_multiplot/Config.h>
@@ -30,9 +31,12 @@ class PlotTableConfig : public Config {
   Q_OBJECT
  public:
   explicit PlotTableConfig(QObject* parent, QColor backgroundColor = Qt::white, QColor foregroundColor = Qt::black, size_t numRows = 1,
-                           size_t numColumns = 1, bool linkScale = false, bool linkCursor = false, bool trackPoints = false);
+                           size_t numColumns = 1, bool linkScale = false, bool linkCursor = false, bool trackPoints = false,
+                           QString title = "Tab 1");
   ~PlotTableConfig() override;
 
+  void setTitle(const QString& title);
+  const QString& getTitle() const;
   void setBackgroundColor(const QColor& color);
   const QColor& getBackgroundColor() const;
   void setForegroundColor(const QColor& color);
@@ -60,6 +64,7 @@ class PlotTableConfig : public Config {
   PlotTableConfig& operator=(const PlotTableConfig& src);
 
  signals:
+  void titleChanged(const QString& title);
   void backgroundColorChanged(const QColor& color);
   void foregroundColorChanged(const QColor& color);
   void numPlotsChanged(size_t numRows, size_t numColumns);
@@ -68,6 +73,7 @@ class PlotTableConfig : public Config {
   void trackPointsChanged(bool track);
 
  private:
+  QString title_;
   QColor backgroundColor_;
   QColor foregroundColor_;
   QVector<QVector<PlotConfig*> > plotConfig_;

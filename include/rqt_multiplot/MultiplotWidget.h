@@ -32,6 +32,8 @@ class MultiplotWidget;
 }
 
 namespace rqt_multiplot {
+class PlotTableWidget;
+
 class MultiplotWidget : public QWidget {
   Q_OBJECT
  public:
@@ -64,6 +66,7 @@ class MultiplotWidget : public QWidget {
  private slots:
   void configWidgetCurrentConfigModifiedChanged(bool modified);
   void configWidgetCurrentConfigUrlChanged(const QString& url);
+  void plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable);
 };
 }  // namespace rqt_multiplot
 
