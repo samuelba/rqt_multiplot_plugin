@@ -207,6 +207,76 @@ class HeaderFilterTest(unittest.TestCase):
 
         self.assertEqual(cmd[cmd.index('-header-filter') + 1], rct.header_filter())
         self.assertNotIn('include/rqt_multiplot_plugin/', cmd)
+        self.assertEqual(cmd[cmd.index('-warnings-as-errors') + 1], '*')
+
+
+class ExitStatusTest(unittest.TestCase):
+    def test_fails_when_warning_is_printed_even_if_returncode_is_zero(self):
+        output = '/tmp/src/Foo.cpp:12:3: warning: use nullptr [modernize-use-nullptr]\n'
+
+        self.assertEqual(rct.exit_status(0, output), 1)
+
+    def test_fails_when_error_is_printed_with_zero_returncode(self):
+        output = '/tmp/src/Foo.cpp:12:3: error: use nullptr [modernize-use-nullptr]\n'
+
+        self.assertEqual(rct.exit_status(0, output), 1)
+
+    def test_fails_when_fatal_error_is_printed_with_zero_returncode(self):
+        output = '/tmp/src/Foo.cpp:1:1: fatal error: \'missing.h\' file not found\n'
+
+        self.assertEqual(rct.exit_status(0, output), 1)
+
+    def test_passes_when_no_diagnostics_and_returncode_is_zero(self):
+        self.assertEqual(rct.exit_status(0, 'clang-tidy: full scan (3 files)\n'), 0)
+
+    def test_preserves_nonzero_returncode(self):
+        self.assertEqual(rct.exit_status(2, ''), 2)
+
+    def test_ignores_warning_summary_without_diagnostic_location(self):
+        self.assertEqual(rct.exit_status(0, '3 warnings generated.\n'), 0)
+
+
+class RunCommandTest(unittest.TestCase):
+    def test_forwards_merged_output_and_returncode(self):
+        returncode, output = rct.run_command(
+            [
+                sys.executable,
+                '-u',
+                '-c',
+                'import sys; print("hello"); print("err", file=sys.stderr); sys.exit(3)',
+            ]
+        )
+
+        self.assertEqual(returncode, 3)
+        self.assertEqual(output, 'hello\nerr\n')
+
+
+class MainFailOnWarningTest(unittest.TestCase):
+    def test_main_returns_nonzero_when_tidy_prints_warning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            src = root / 'src' / 'A.cpp'
+            src.parent.mkdir()
+            src.write_text('int x;\n')
+            compile_commands = root / 'compile_commands.json'
+            compile_commands.write_text(
+                json.dumps([{'file': str(src), 'directory': tmp, 'command': 'c++'}])
+            )
+            warning = f'{src}:1:1: warning: unused [misc-unused-using-decls]\n'
+
+            with patch('run_clang_tidy.find_run_clang_tidy', return_value='/usr/bin/run-clang-tidy'):
+                with patch('run_clang_tidy.run_command', return_value=(0, warning)):
+                    status = rct.main(
+                        [
+                            '--compile-commands',
+                            str(compile_commands),
+                            '--source-root',
+                            str(root),
+                            '--all',
+                        ]
+                    )
+
+            self.assertEqual(status, 1)
 
 
 class WriteFilteredDatabaseTest(unittest.TestCase):
