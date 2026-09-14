@@ -11,7 +11,9 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
+
+DIAGNOSTIC_RE = re.compile(r':\d+:\d+: (?:warning|error|fatal error):')
 
 SOURCE_EXTENSIONS = {'.c', '.cc', '.cpp', '.cxx'}
 HEADER_EXTENSIONS = {'.h', '.hh', '.hpp', '.hxx'}
@@ -176,6 +178,8 @@ def build_command(
         '-header-filter',
         header_filter(),
         '-quiet',
+        '-warnings-as-errors',
+        '*',
     ]
     if config_file is not None:
         cmd.extend(['-config-file', str(config_file)])
@@ -195,6 +199,34 @@ def resolve_jobs(override: Optional[int]) -> int:
 
 def load_compile_commands(path: Path) -> List[dict]:
     return json.loads(path.read_text())
+
+
+def exit_status(returncode: int, output: str) -> int:
+    """Fail the test when clang-tidy printed a diagnostic, even if it exited 0."""
+    if returncode != 0:
+        return returncode
+    if DIAGNOSTIC_RE.search(output):
+        return 1
+    return 0
+
+
+def run_command(cmd: Sequence[str]) -> Tuple[int, str]:
+    chunks: List[str] = []
+    with subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    ) as process:
+        stdout = process.stdout
+        if stdout is None:
+            return process.wait(), ''
+        for line in stdout:
+            chunks.append(line)
+            sys.stdout.write(line)
+            sys.stdout.flush()
+        returncode = process.wait()
+    return returncode, ''.join(chunks)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -259,7 +291,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             config_file,
         )
         print(' '.join(cmd))
-        return subprocess.run(cmd, check=False).returncode
+        returncode, output = run_command(cmd)
+        status = exit_status(returncode, output)
+        if status != 0 and returncode == 0:
+            print('clang-tidy printed warning or error diagnostics; failing', file=sys.stderr)
+        return status
 
 
 if __name__ == '__main__':
