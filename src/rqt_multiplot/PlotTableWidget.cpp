@@ -367,7 +367,7 @@ void PlotTableWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
   }
 
   if (!plotWidgets.isEmpty() && !plotWidgets[0].isEmpty()) {
-    plotWidgets[0][0]->setCanChangeState(!((numRows == 1u) && (numColumns == 1u)));
+    plotWidgets[0][0]->setCanChangeState((numRows != 1u) || (numColumns != 1u));
   }
 
   for (int row = 0; row < static_cast<int>(oldNumRows); ++row) {
