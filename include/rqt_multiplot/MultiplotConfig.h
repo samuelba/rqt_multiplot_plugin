@@ -68,6 +68,8 @@ class MultiplotConfig : public Config {
   static int tabGroupIndex(const QString& group);
   void loadTabs(QSettings& settings);
   void loadLegacyTable(QSettings& settings);
+  void replaceTabsFromStream(QDataStream& stream, quint64 numTabs, quint64 currentTabIndex);
+  void replaceWithLegacyTableStream(QDataStream& stream);
 
  private slots:
   void tableConfigChanged();

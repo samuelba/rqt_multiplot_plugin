@@ -137,11 +137,18 @@ PlotTabWidget* PlotTableConfigWidget::getPlotTabs() const {
 }
 
 void PlotTableConfigWidget::setPlotTable(PlotTableWidget* plotTable) {
-  if (plotTable != plotTable_) {
-    unbindPlaybackSignals();
-    plotTable_ = plotTable;
-    bindPlaybackSignals();
+  if (plotTable == plotTable_) {
+    return;
   }
+
+  if (plotTabs_ != nullptr) {
+    plotTable_ = plotTable;
+    return;
+  }
+
+  unbindPlaybackSignals();
+  plotTable_ = plotTable;
+  bindPlaybackSignals();
 }
 
 PlotTableWidget* PlotTableConfigWidget::getPlotTableWidget() const {
@@ -408,12 +415,8 @@ void PlotTableConfigWidget::plotTablePlotPausedChanged() {
     accumulate(plotTable_);
   }
 
-  if (!hasPlots) {
-    return;
-  }
-
-  ui_->pushButtonRun->setEnabled(anyPlotPaused);
-  ui_->pushButtonPause->setEnabled(!allPlotsPaused);
+  ui_->pushButtonRun->setEnabled(hasPlots && anyPlotPaused);
+  ui_->pushButtonPause->setEnabled(hasPlots && !allPlotsPaused);
 }
 
 void PlotTableConfigWidget::plotTableJobStarted(const QString& toolTip) {

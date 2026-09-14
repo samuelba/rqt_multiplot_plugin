@@ -19,6 +19,7 @@
 #ifndef RQT_MULTIPLOT_PLOT_TAB_WIDGET_H
 #define RQT_MULTIPLOT_PLOT_TAB_WIDGET_H
 
+#include <QHash>
 #include <QString>
 #include <QWidget>
 
@@ -62,10 +63,16 @@ class PlotTabWidget : public QWidget {
   QTabWidget* tabWidget_;
   QToolButton* addButton_;
   MultiplotConfig* config_;
+  QHash<PlotTableWidget*, int> activeJobCounts_;
+  QHash<PlotTableWidget*, double> jobProgress_;
 
   void rebuildTabs();
   void clearPlotTables();
   void appendPlotTable(PlotTableConfig* tableConfig);
+  void destroyPlotTable(QWidget* page);
+  void connectPlotTableJobs(PlotTableWidget* plotTable);
+  void completeTableJob(PlotTableWidget* plotTable);
+  void emitAggregatedProgress();
   void updateCloseButtons();
   void forEachPlotTable(void (PlotTableWidget::*method)());
   void forEachPlotTable(void (PlotTableWidget::*method)(const QString&), const QString& argument);
@@ -81,6 +88,11 @@ class PlotTabWidget : public QWidget {
   void tabCloseRequested(int index);
   void tabBarDoubleClicked(int index);
   void addButtonClicked();
+
+  void plotTableJobStarted(const QString& toolTip);
+  void plotTableJobProgressChanged(double progress);
+  void plotTableJobFinished(const QString& toolTip);
+  void plotTableJobFailed(const QString& toolTip);
 };
 }  // namespace rqt_multiplot
 

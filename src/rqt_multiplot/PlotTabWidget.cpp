@@ -166,7 +166,7 @@ void PlotTabWidget::clearPlotTables() {
   while (tabWidget_->count() > 0) {
     QWidget* page = tabWidget_->widget(0);
     tabWidget_->removeTab(0);
-    delete page;
+    destroyPlotTable(page);
   }
   tabWidget_->blockSignals(false);
 }
@@ -175,11 +175,60 @@ void PlotTabWidget::appendPlotTable(PlotTableConfig* tableConfig) {
   auto* plotTable = new PlotTableWidget(tabWidget_);
   plotTable->setConfig(tableConfig);
   connect(plotTable, SIGNAL(plotPausedChanged()), this, SIGNAL(plotPausedChanged()));
-  connect(plotTable, SIGNAL(jobStarted(const QString&)), this, SIGNAL(jobStarted(const QString&)));
-  connect(plotTable, SIGNAL(jobProgressChanged(double)), this, SIGNAL(jobProgressChanged(double)));
-  connect(plotTable, SIGNAL(jobFinished(const QString&)), this, SIGNAL(jobFinished(const QString&)));
-  connect(plotTable, SIGNAL(jobFailed(const QString&)), this, SIGNAL(jobFailed(const QString&)));
+  connectPlotTableJobs(plotTable);
   tabWidget_->addTab(plotTable, tableConfig != nullptr ? tableConfig->getTitle() : QString());
+}
+
+void PlotTabWidget::destroyPlotTable(QWidget* page) {
+  auto* plotTable = qobject_cast<PlotTableWidget*>(page);
+  if (plotTable != nullptr) {
+    const int outstanding = activeJobCounts_.value(plotTable, 0);
+    plotTable->disconnect(this);
+    activeJobCounts_.remove(plotTable);
+    jobProgress_.remove(plotTable);
+    for (int index = 0; index < outstanding; ++index) {
+      emit jobFinished(QString());
+    }
+  }
+
+  delete page;
+}
+
+void PlotTabWidget::connectPlotTableJobs(PlotTableWidget* plotTable) {
+  connect(plotTable, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
+  connect(plotTable, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
+  connect(plotTable, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
+  connect(plotTable, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+}
+
+void PlotTabWidget::completeTableJob(PlotTableWidget* plotTable) {
+  if (plotTable == nullptr) {
+    return;
+  }
+
+  auto countIt = activeJobCounts_.find(plotTable);
+  if ((countIt != activeJobCounts_.end()) && (countIt.value() > 0)) {
+    --countIt.value();
+    if (countIt.value() == 0) {
+      activeJobCounts_.erase(countIt);
+      jobProgress_.remove(plotTable);
+    }
+  } else {
+    jobProgress_.remove(plotTable);
+  }
+}
+
+void PlotTabWidget::emitAggregatedProgress() {
+  if (jobProgress_.isEmpty()) {
+    return;
+  }
+
+  double sum = 0.0;
+  for (double progress : jobProgress_) {
+    sum += progress;
+  }
+
+  emit jobProgressChanged(sum / static_cast<double>(jobProgress_.size()));
 }
 
 void PlotTabWidget::updateCloseButtons() {
@@ -234,7 +283,7 @@ void PlotTabWidget::configTabRemoved(size_t index) {
   QWidget* page = tabWidget_->widget(tabIndex);
   tabWidget_->removeTab(tabIndex);
   tabWidget_->blockSignals(false);
-  delete page;
+  destroyPlotTable(page);
   updateCloseButtons();
   emit currentPlotTableChanged(getCurrentPlotTable());
 }
@@ -285,6 +334,37 @@ void PlotTabWidget::tabBarDoubleClicked(int index) {
 
 void PlotTabWidget::addButtonClicked() {
   addTab();
+}
+
+void PlotTabWidget::plotTableJobStarted(const QString& toolTip) {
+  auto* plotTable = qobject_cast<PlotTableWidget*>(sender());
+  if (plotTable != nullptr) {
+    ++activeJobCounts_[plotTable];
+    jobProgress_[plotTable] = 0.0;
+  }
+
+  emit jobStarted(toolTip);
+}
+
+void PlotTabWidget::plotTableJobProgressChanged(double progress) {
+  auto* plotTable = qobject_cast<PlotTableWidget*>(sender());
+  if (plotTable != nullptr) {
+    jobProgress_[plotTable] = progress;
+  }
+
+  emitAggregatedProgress();
+}
+
+void PlotTabWidget::plotTableJobFinished(const QString& toolTip) {
+  completeTableJob(qobject_cast<PlotTableWidget*>(sender()));
+  emitAggregatedProgress();
+  emit jobFinished(toolTip);
+}
+
+void PlotTabWidget::plotTableJobFailed(const QString& toolTip) {
+  completeTableJob(qobject_cast<PlotTableWidget*>(sender()));
+  emitAggregatedProgress();
+  emit jobFailed(toolTip);
 }
 
 }  // namespace rqt_multiplot

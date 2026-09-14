@@ -341,9 +341,17 @@ void PlotTableConfig::read(QDataStream& stream) {
   stream >> trackPoints;
   setTrackPoints(trackPoints);
 
+  if (stream.atEnd()) {
+    return;
+  }
+
   QString title;
   stream >> title;
-  setTitle(title);
+  if ((stream.status() == QDataStream::Ok) && !title.isEmpty()) {
+    setTitle(title);
+  } else {
+    stream.resetStatus();
+  }
 }
 
 /*****************************************************************************/

@@ -20,9 +20,17 @@
 
 #include <algorithm>
 
+#include <QBuffer>
+#include <QByteArray>
+#include <QIODevice>
 #include <QRegularExpression>
 
 namespace rqt_multiplot {
+
+namespace {
+constexpr quint32 kTabsStreamMagic = 0x52544D31;
+constexpr quint64 kMaxStreamTabs = 256;
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -150,6 +158,7 @@ void MultiplotConfig::reset() {
 }
 
 void MultiplotConfig::write(QDataStream& stream) const {
+  stream << kTabsStreamMagic;
   stream << static_cast<quint64>(getNumTabs());
   stream << static_cast<quint64>(currentTabIndex_);
 
@@ -159,28 +168,40 @@ void MultiplotConfig::write(QDataStream& stream) const {
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
-  quint64 numTabs = 0;
-  quint64 currentTabIndex = 0;
-  stream >> numTabs >> currentTabIndex;
-
-  const QVector<PlotTableConfig*> previous = takeTabs();
-  for (quint64 index = 0; index < numTabs; ++index) {
-    createTab(nextTabTitle())->read(stream);
+  QIODevice* const device = stream.device();
+  if (device == nullptr) {
+    reset();
+    return;
   }
 
-  if (tableConfigs_.isEmpty()) {
-    createTab("Tab 1");
+  const QByteArray payload = device->readAll();
+  QBuffer tabbedBuffer;
+  tabbedBuffer.setData(payload);
+  tabbedBuffer.open(QIODevice::ReadWrite);
+
+  QDataStream in(&tabbedBuffer);
+  in.setVersion(stream.version());
+  in.setByteOrder(stream.byteOrder());
+  in.setFloatingPointPrecision(stream.floatingPointPrecision());
+
+  quint32 magic = 0;
+  in >> magic;
+  if ((in.status() == QDataStream::Ok) && (magic == kTabsStreamMagic)) {
+    quint64 numTabs = 0;
+    quint64 currentTabIndex = 0;
+    in >> numTabs >> currentTabIndex;
+    replaceTabsFromStream(in, numTabs, currentTabIndex);
+    return;
   }
 
-  currentTabIndex_ = 0;
-  if (currentTabIndex < getNumTabs()) {
-    currentTabIndex_ = static_cast<size_t>(currentTabIndex);
-  }
-
-  emit tabsChanged();
-  emit currentTabIndexChanged(currentTabIndex_);
-  deleteTabs(previous);
-  emit changed();
+  QBuffer legacyBuffer;
+  legacyBuffer.setData(payload);
+  legacyBuffer.open(QIODevice::ReadWrite);
+  QDataStream legacy(&legacyBuffer);
+  legacy.setVersion(stream.version());
+  legacy.setByteOrder(stream.byteOrder());
+  legacy.setFloatingPointPrecision(stream.floatingPointPrecision());
+  replaceWithLegacyTableStream(legacy);
 }
 
 /*****************************************************************************/
@@ -317,6 +338,44 @@ void MultiplotConfig::loadLegacyTable(QSettings& settings) {
   table->load(settings);
   settings.endGroup();
 
+  table->setTitle("Tab 1");
+  currentTabIndex_ = 0;
+
+  emit tabsChanged();
+  emit currentTabIndexChanged(0);
+  deleteTabs(previous);
+  emit changed();
+}
+
+void MultiplotConfig::replaceTabsFromStream(QDataStream& stream, quint64 numTabs, quint64 currentTabIndex) {
+  if (numTabs > kMaxStreamTabs) {
+    numTabs = 0;
+  }
+
+  const QVector<PlotTableConfig*> previous = takeTabs();
+  for (quint64 index = 0; index < numTabs; ++index) {
+    createTab(nextTabTitle())->read(stream);
+  }
+
+  if (tableConfigs_.isEmpty()) {
+    createTab("Tab 1");
+  }
+
+  currentTabIndex_ = 0;
+  if (currentTabIndex < getNumTabs()) {
+    currentTabIndex_ = static_cast<size_t>(currentTabIndex);
+  }
+
+  emit tabsChanged();
+  emit currentTabIndexChanged(currentTabIndex_);
+  deleteTabs(previous);
+  emit changed();
+}
+
+void MultiplotConfig::replaceWithLegacyTableStream(QDataStream& stream) {
+  const QVector<PlotTableConfig*> previous = takeTabs();
+  PlotTableConfig* table = createTab("Tab 1");
+  table->read(stream);
   table->setTitle("Tab 1");
   currentTabIndex_ = 0;
 

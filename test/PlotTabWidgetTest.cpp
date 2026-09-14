@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QColor>
+#include <QMetaObject>
 #include <QPushButton>
 #include <QSettings>
 #include <QTabBar>
@@ -16,6 +17,7 @@
 #include <rqt_multiplot/PlotTableConfigWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PlotWidget.h>
+#include <rqt_multiplot/ProgressWidget.h>
 #include <rqt_multiplot/XmlSettings.h>
 
 namespace {
@@ -26,6 +28,7 @@ using rqt_multiplot::PlotTableConfigWidget;
 using rqt_multiplot::PlotTableWidget;
 using rqt_multiplot::PlotTabWidget;
 using rqt_multiplot::PlotWidget;
+using rqt_multiplot::ProgressWidget;
 using rqt_multiplot::XmlSettings;
 
 bool plotTablePaused(PlotTableWidget* plotTable) {
@@ -63,6 +66,21 @@ QApplication* ensureApplication() {
   static char arg0[] = "test_rqt_multiplot";
   static char* argv[] = {arg0, nullptr};
   return new QApplication(argc, argv);
+}
+
+void startBagJob(PlotTableWidget* plotTable) {
+  EXPECT_NE(plotTable, nullptr);
+  EXPECT_TRUE(QMetaObject::invokeMethod(plotTable, "bagReaderReadingStarted", Qt::DirectConnection));
+}
+
+void progressBagJob(PlotTableWidget* plotTable, double progress) {
+  EXPECT_NE(plotTable, nullptr);
+  EXPECT_TRUE(QMetaObject::invokeMethod(plotTable, "bagReaderReadingProgressChanged", Qt::DirectConnection, Q_ARG(double, progress)));
+}
+
+void finishBagJob(PlotTableWidget* plotTable) {
+  EXPECT_NE(plotTable, nullptr);
+  EXPECT_TRUE(QMetaObject::invokeMethod(plotTable, "bagReaderReadingFinished", Qt::DirectConnection));
 }
 
 TEST(PlotTabWidget, startsWithOneTabFromConfig) {
@@ -313,6 +331,107 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
   EXPECT_EQ(tabs.getPlotTable(1)->getBagReader()->getFileName(), QString("/this/path/does/not/exist.mcap"));
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(0)));
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
+}
+
+TEST(PlotTabWidget, closingTabWithActiveJobCompletesToolbarProgress) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  ASSERT_TRUE(progress->isStarted());
+
+  tabs.closeTab(0);
+
+  EXPECT_EQ(tabs.getNumPlotTables(), 1u);
+  EXPECT_FALSE(progress->isStarted());
+}
+
+TEST(PlotTabWidget, switchingTabsDoesNotResetActiveJobCount) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+  QObject::connect(&tabs, &PlotTabWidget::currentPlotTableChanged, [&toolbar](PlotTableWidget* plotTable) {
+    toolbar.setConfig(plotTable != nullptr ? plotTable->getConfig() : nullptr);
+    toolbar.setPlotTable(plotTable);
+  });
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  startBagJob(tabs.getPlotTable(1));
+  ASSERT_TRUE(progress->isStarted());
+
+  config.setCurrentTabIndex(0);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+  EXPECT_TRUE(progress->isStarted());
+
+  finishBagJob(tabs.getPlotTable(0));
+  EXPECT_TRUE(progress->isStarted());
+
+  finishBagJob(tabs.getPlotTable(1));
+  EXPECT_FALSE(progress->isStarted());
+}
+
+TEST(PlotTabWidget, aggregatesProgressAcrossActiveTabs) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  startBagJob(tabs.getPlotTable(1));
+  progressBagJob(tabs.getPlotTable(0), 0.0);
+  progressBagJob(tabs.getPlotTable(1), 1.0);
+
+  EXPECT_NEAR(progress->getCurrentProgress(), 0.5, 1e-9);
+}
+
+TEST(PlotTabWidget, emptyTableDisablesRunAndPause) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* runButton = toolbar.findChild<QPushButton*>("pushButtonRun");
+  auto* pauseButton = toolbar.findChild<QPushButton*>("pushButtonPause");
+  ASSERT_NE(runButton, nullptr);
+  ASSERT_NE(pauseButton, nullptr);
+  EXPECT_TRUE(runButton->isEnabled());
+  EXPECT_FALSE(pauseButton->isEnabled());
+
+  config.getTableConfig(0)->setNumPlots(0, 0);
+
+  EXPECT_FALSE(runButton->isEnabled());
+  EXPECT_FALSE(pauseButton->isEnabled());
 }
 
 }  // namespace

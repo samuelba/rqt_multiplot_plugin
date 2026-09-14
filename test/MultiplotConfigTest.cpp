@@ -1,4 +1,7 @@
+#include <QBuffer>
 #include <QColor>
+#include <QDataStream>
+#include <QIODevice>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -220,6 +223,91 @@ TEST(MultiplotConfig, loadsLegacyTableXmlOntoSingleTab) {
   EXPECT_EQ(tab->getNumColumns(), 1u);
   EXPECT_EQ(tab->getBackgroundColor(), QColor(0, 128, 255));
   EXPECT_EQ(tab->getForegroundColor(), QColor(32, 32, 32));
+  EXPECT_TRUE(tab->isScaleLinked());
+  EXPECT_TRUE(tab->isCursorLinked());
+  EXPECT_TRUE(tab->arePointsTracked());
+  EXPECT_EQ(tab->getPlotConfig(0, 0)->getTitle(), QString("Legacy Plot"));
+  ASSERT_EQ(tab->getPlotConfig(1, 0)->getNumCurves(), 1u);
+  EXPECT_EQ(tab->getPlotConfig(1, 0)->getCurveConfig(0)->getTitle(), QString("pannant"));
+  EXPECT_EQ(loaded.getCurrentTabIndex(), 0u);
+}
+
+void writeLegacyTableStream(QDataStream& stream, const PlotTableConfig& table) {
+  stream << table.getBackgroundColor();
+  stream << table.getForegroundColor();
+  stream << static_cast<quint64>(table.getNumRows()) << static_cast<quint64>(table.getNumColumns());
+
+  for (size_t row = 0; row < table.getNumRows(); ++row) {
+    for (size_t column = 0; column < table.getNumColumns(); ++column) {
+      table.getPlotConfig(row, column)->write(stream);
+    }
+  }
+
+  stream << table.isScaleLinked();
+  stream << table.isCursorLinked();
+  stream << table.arePointsTracked();
+}
+
+TEST(MultiplotConfig, roundTripsTwoTabsThroughDataStream) {
+  MultiplotConfig source(nullptr);
+  source.getTableConfig(0)->setTitle("Left");
+  source.getTableConfig(0)->setLinkScale(true);
+  source.getTableConfig(0)->setBackgroundColor(QColor(255, 0, 0));
+  auto* second = source.addTab();
+  second->setTitle("Right");
+  second->setTrackPoints(true);
+  second->setNumPlots(1, 2);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.addTab();
+  loaded.read(in);
+
+  ASSERT_EQ(loaded.getNumTabs(), 2u);
+  EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Left"));
+  EXPECT_TRUE(loaded.getTableConfig(0)->isScaleLinked());
+  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(255, 0, 0));
+  EXPECT_EQ(loaded.getTableConfig(1)->getTitle(), QString("Right"));
+  EXPECT_TRUE(loaded.getTableConfig(1)->arePointsTracked());
+  EXPECT_EQ(loaded.getTableConfig(1)->getNumColumns(), 2u);
+  EXPECT_EQ(loaded.getCurrentTabIndex(), 1u);
+}
+
+TEST(MultiplotConfig, loadsLegacyTableStreamOntoSingleTab) {
+  PlotTableConfig table(nullptr);
+  table.setTitle("should not persist");
+  table.setNumPlots(2, 1);
+  table.setBackgroundColor(QColor(0, 128, 255));
+  table.setLinkScale(true);
+  table.setLinkCursor(true);
+  table.setTrackPoints(true);
+  table.getPlotConfig(0, 0)->setTitle("Legacy Plot");
+  table.getPlotConfig(1, 0)->addCurve()->setTitle("pannant");
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  writeLegacyTableStream(out, table);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.addTab();
+  loaded.read(in);
+
+  ASSERT_EQ(loaded.getNumTabs(), 1u);
+  const PlotTableConfig* tab = loaded.getTableConfig(0);
+  ASSERT_NE(tab, nullptr);
+  EXPECT_EQ(tab->getTitle(), QString("Tab 1"));
+  EXPECT_EQ(tab->getNumRows(), 2u);
+  EXPECT_EQ(tab->getNumColumns(), 1u);
+  EXPECT_EQ(tab->getBackgroundColor(), QColor(0, 128, 255));
   EXPECT_TRUE(tab->isScaleLinked());
   EXPECT_TRUE(tab->isCursorLinked());
   EXPECT_TRUE(tab->arePointsTracked());

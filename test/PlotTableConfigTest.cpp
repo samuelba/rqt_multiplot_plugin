@@ -1,3 +1,7 @@
+#include <QBuffer>
+#include <QColor>
+#include <QDataStream>
+#include <QIODevice>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -77,6 +81,53 @@ TEST(PlotTableConfig, assignmentCopiesTitle) {
   dest = source;
 
   EXPECT_EQ(dest.getTitle(), QString("Battery"));
+}
+
+TEST(PlotTableConfig, roundTripsTitleThroughDataStream) {
+  PlotTableConfig source(nullptr);
+  source.setTitle("IMU");
+  source.setLinkScale(true);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.setTitle("other");
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("IMU"));
+  EXPECT_TRUE(loaded.isScaleLinked());
+}
+
+TEST(PlotTableConfig, legacyStreamWithoutTitleLeavesExistingTitle) {
+  PlotTableConfig source(nullptr);
+  source.setBackgroundColor(QColor(1, 2, 3));
+  source.setLinkCursor(true);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << source.getBackgroundColor();
+  out << source.getForegroundColor();
+  out << static_cast<quint64>(source.getNumRows()) << static_cast<quint64>(source.getNumColumns());
+  source.getPlotConfig(0, 0)->write(out);
+  out << source.isScaleLinked();
+  out << source.isCursorLinked();
+  out << source.arePointsTracked();
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.setTitle("other");
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("other"));
+  EXPECT_EQ(loaded.getBackgroundColor(), QColor(1, 2, 3));
+  EXPECT_TRUE(loaded.isCursorLinked());
 }
 
 TEST(PlotTableConfig, resetRestoresDefaultTitle) {
