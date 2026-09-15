@@ -23,10 +23,13 @@
 
 #include <QApplication>
 #include <QFile>
+#include <QResizeEvent>
 #include <QSet>
 #include <QShowEvent>
+#include <QSizePolicy>
 #include <QSplitter>
 #include <QTextStream>
+#include <QTimer>
 
 #include <rqt_multiplot/PlotCursor.h>
 #include <rqt_multiplot/PlotExport.h>
@@ -358,6 +361,7 @@ void PlotTableWidget::rebuildLayout() {
 
   updatePlotControls();
   applyAllStretch();
+  QTimer::singleShot(0, this, [this]() { applyAllStretch(); });
   emit plotPausedChanged();
 }
 
@@ -385,11 +389,12 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
   splitterNodes_.insert(splitter, node);
 
   for (PlotLayoutConfig* child : node->getChildren()) {
-    splitter->addWidget(createNodeWidget(child, existing));
+    QWidget* childWidget = createNodeWidget(child, existing);
+    childWidget->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    splitter->addWidget(childWidget);
   }
 
   connect(splitter, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMoved(int, int)));
-  applyStretch(splitter, node);
   return splitter;
 }
 
@@ -421,25 +426,51 @@ void PlotTableWidget::applyStretch(QSplitter* splitter, PlotLayoutConfig* node) 
   const QSignalBlocker blocker(splitter);
   int total = 0;
   for (int index = 0; index < count; ++index) {
+    QWidget* child = splitter->widget(index);
+    if (child != nullptr) {
+      child->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    }
     splitter->setStretchFactor(index, stretch[index]);
     total += stretch[index];
   }
 
   const int span = (splitter->orientation() == Qt::Horizontal) ? splitter->width() : splitter->height();
-  if ((total > 0) && (span > 0)) {
-    QList<int> pixels;
-    pixels.reserve(count);
-    for (int index = 0; index < count; ++index) {
-      pixels.append(std::max(1, span * stretch[index] / total));
-    }
-    splitter->setSizes(pixels);
+  if ((total <= 0) || (span <= 0)) {
+    return;
+  }
+
+  const int handleSpace = splitter->handleWidth() * std::max(0, count - 1);
+  const int available = std::max(count, span - handleSpace);
+  QList<int> pixels;
+  pixels.reserve(count);
+  int allocated = 0;
+  for (int index = 0; index < count; ++index) {
+    const int value = (index + 1 == count)
+                          ? std::max(1, available - allocated)
+                          : std::max(1, static_cast<int>(static_cast<qint64>(available) * stretch[index] / total));
+    pixels.append(value);
+    allocated += value;
+  }
+  splitter->setSizes(pixels);
+}
+
+void PlotTableWidget::applyStretchRecursive(QWidget* widget) {
+  auto* splitter = qobject_cast<QSplitter*>(widget);
+  if (splitter == nullptr) {
+    return;
+  }
+
+  PlotLayoutConfig* node = splitterNodes_.value(splitter, nullptr);
+  if (node != nullptr) {
+    applyStretch(splitter, node);
+  }
+  for (int index = 0; index < splitter->count(); ++index) {
+    applyStretchRecursive(splitter->widget(index));
   }
 }
 
 void PlotTableWidget::applyAllStretch() {
-  for (auto it = splitterNodes_.begin(); it != splitterNodes_.end(); ++it) {
-    applyStretch(it.key(), it.value());
-  }
+  applyStretchRecursive(rootWidget_);
 }
 
 void PlotTableWidget::updatePlotControls() {
@@ -452,6 +483,11 @@ void PlotTableWidget::updatePlotControls() {
 
 void PlotTableWidget::showEvent(QShowEvent* event) {
   QWidget::showEvent(event);
+  applyAllStretch();
+}
+
+void PlotTableWidget::resizeEvent(QResizeEvent* event) {
+  QWidget::resizeEvent(event);
   applyAllStretch();
 }
 

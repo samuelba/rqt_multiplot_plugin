@@ -54,6 +54,37 @@ TEST(PlotLayoutConfig, splitPlotInsertsSiblingForSameOrientation) {
   EXPECT_EQ(layout.getChildren().count(), 3);
   EXPECT_EQ(layout.plotCount(), 3u);
   EXPECT_EQ(layout.plotConfigs().at(2), third);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{2, 1, 1}));
+}
+
+TEST(PlotLayoutConfig, splitPlotHalvesOnlyTargetStretch) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  layout.setStretch({3, 1});
+
+  PlotConfig* third = layout.splitPlot(second, Qt::Horizontal);
+
+  ASSERT_NE(third, nullptr);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{6, 1, 1}));
+  EXPECT_EQ(layout.plotConfigs().at(0), first);
+  EXPECT_EQ(layout.plotConfigs().at(1), second);
+  EXPECT_EQ(layout.plotConfigs().at(2), third);
+}
+
+TEST(PlotLayoutConfig, splitPlotHalvesTargetWhenInsertingBefore) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  layout.setStretch({3, 1});
+
+  PlotConfig* added = layout.splitPlot(first, Qt::Horizontal, true);
+
+  ASSERT_NE(added, nullptr);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 3, 2}));
+  EXPECT_EQ(layout.plotConfigs().at(0), added);
+  EXPECT_EQ(layout.plotConfigs().at(1), first);
+  EXPECT_EQ(layout.plotConfigs().at(2), second);
 }
 
 TEST(PlotLayoutConfig, splitPlotInsertsBeforeWhenRequested) {
@@ -111,12 +142,37 @@ TEST(PlotLayoutConfig, closePlotCollapsesNestedSplitter) {
   PlotConfig* right = layout.splitPlot(left, Qt::Horizontal);
   right->setTitle("Right");
   PlotConfig* bottomRight = layout.splitPlot(right, Qt::Vertical);
+  layout.setStretch({3, 1});
 
   EXPECT_TRUE(layout.closePlot(bottomRight));
   EXPECT_EQ(layout.getType(), PlotLayoutConfig::Horizontal);
   EXPECT_EQ(layout.getChildren().count(), 2);
   EXPECT_EQ(layout.getChildren().at(1)->getType(), PlotLayoutConfig::Plot);
   EXPECT_EQ(layout.plotConfigs().at(1)->getTitle(), QString("Right"));
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotLayoutConfig, closePlotGivesStretchToSplitSibling) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  PlotConfig* third = layout.splitPlot(second, Qt::Horizontal);
+  layout.setStretch({6, 1, 1});
+
+  EXPECT_TRUE(layout.closePlot(third));
+  EXPECT_EQ(layout.getChildren().count(), 2);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotLayoutConfig, closePlotGivesStretchToNextWhenClosingFirst) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  layout.splitPlot(second, Qt::Horizontal);
+  layout.setStretch({6, 1, 1});
+
+  EXPECT_TRUE(layout.closePlot(first));
+  EXPECT_EQ(layout.getStretch(), (QList<int>{7, 1}));
 }
 
 TEST(PlotLayoutConfig, setStretchReducesRatios) {

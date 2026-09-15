@@ -390,6 +390,7 @@ if(BUILD_TESTING)
     test/PlotTableConfigTest.cpp
     test/PlotTableWidgetLayoutTest.cpp
     test/PlotCurveTest.cpp
+    test/PlotWidgetSplitMenuTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp

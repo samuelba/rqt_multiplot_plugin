@@ -31,6 +31,7 @@
 #include <rqt_multiplot/MessageSubscriberRegistry.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 
+class QResizeEvent;
 class QShowEvent;
 class QSplitter;
 
@@ -80,6 +81,7 @@ class PlotTableWidget : public QWidget {
 
  protected:
   void showEvent(QShowEvent* event) override;
+  void resizeEvent(QResizeEvent* event) override;
 
  private:
   QVBoxLayout* layout_;
@@ -99,6 +101,7 @@ class PlotTableWidget : public QWidget {
   PlotWidget* createPlotWidget();
   void connectPlotWidget(PlotWidget* plot);
   static void applyStretch(QSplitter* splitter, PlotLayoutConfig* node);
+  void applyStretchRecursive(QWidget* widget);
   void applyAllStretch();
   void updatePlotControls();
 

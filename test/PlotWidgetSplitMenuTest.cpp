@@ -2,9 +2,11 @@
 
 #include <QApplication>
 #include <QGridLayout>
+#include <QLineEdit>
 #include <QList>
 #include <QPair>
 #include <QPushButton>
+#include <QSpacerItem>
 #include <QToolButton>
 #include <QWidget>
 
@@ -103,6 +105,49 @@ TEST(PlotWidget, splitMenuButtonsRequestMatchingSplits) {
   EXPECT_EQ(requests.at(1), (QPair<Qt::Orientation, bool>{Qt::Horizontal, false}));
   EXPECT_EQ(requests.at(2), (QPair<Qt::Orientation, bool>{Qt::Vertical, true}));
   EXPECT_EQ(requests.at(3), (QPair<Qt::Orientation, bool>{Qt::Vertical, false}));
+}
+
+TEST(PlotWidget, titleIsLeftAlignedWithRoomForControls) {
+  ensureApplication();
+
+  PlotWidget widget;
+  auto* title = widget.findChild<QLineEdit*>("lineEditTitle");
+  ASSERT_NE(title, nullptr);
+  EXPECT_TRUE(title->alignment().testFlag(Qt::AlignLeft));
+  EXPECT_FALSE(title->alignment().testFlag(Qt::AlignHCenter));
+
+  auto* grid = qobject_cast<QGridLayout*>(widget.layout());
+  ASSERT_NE(grid, nullptr);
+
+  int titleColumn = -1;
+  for (int index = 0; index < grid->count(); ++index) {
+    int row = 0;
+    int column = 0;
+    int rowSpan = 0;
+    int columnSpan = 0;
+    grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+    if ((row == 0) && (grid->itemAt(index)->widget() == title)) {
+      titleColumn = column;
+      break;
+    }
+  }
+  ASSERT_GE(titleColumn, 0);
+
+  for (int index = 0; index < grid->count(); ++index) {
+    int row = 0;
+    int column = 0;
+    int rowSpan = 0;
+    int columnSpan = 0;
+    grid->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+    if ((row != 0) || (column >= titleColumn)) {
+      continue;
+    }
+
+    QSpacerItem* spacer = grid->itemAt(index)->spacerItem();
+    if (spacer != nullptr) {
+      EXPECT_FALSE(spacer->expandingDirections().testFlag(Qt::Horizontal));
+    }
+  }
 }
 
 }  // namespace

@@ -18,6 +18,7 @@
 
 #include "rqt_multiplot/PlotLayoutConfig.h"
 
+#include <algorithm>
 #include <numeric>
 
 #include <QRegularExpression>
@@ -406,9 +407,24 @@ PlotConfig* PlotLayoutConfig::insertPlotSibling(PlotLayoutConfig* sibling, bool 
     return nullptr;
   }
 
+  QList<int> newStretch = stretch_;
+  while (newStretch.count() < children_.count()) {
+    newStretch.append(1);
+  }
+  while (newStretch.count() > children_.count()) {
+    newStretch.removeLast();
+  }
+  for (int& value : newStretch) {
+    value = std::max(1, value) * 2;
+  }
+  const int half = std::max(1, newStretch[index] / 2);
+  newStretch[index] = half;
+  const int insertIndex = insertBefore ? index : index + 1;
+  newStretch.insert(insertIndex, half);
+
   auto* node = new PlotLayoutConfig(this);
-  addChild(node, 1, insertBefore ? index : index + 1);
-  stretch_ = reducedStretch(stretch_);
+  addChild(node, half, insertIndex);
+  stretch_ = reducedStretch(newStretch);
   emit structureChanged();
   emit changed();
   return node->plotConfig_;
@@ -455,6 +471,7 @@ void PlotLayoutConfig::removeChild(PlotLayoutConfig* child) {
     return;
   }
 
+  const int donated = (index < stretch_.count()) ? std::max(1, stretch_[index]) : 1;
   children_.removeAt(index);
   if (index < stretch_.count()) {
     stretch_.removeAt(index);
@@ -463,7 +480,11 @@ void PlotLayoutConfig::removeChild(PlotLayoutConfig* child) {
 
   if (children_.count() == 1) {
     collapseSingleChild();
-  } else {
+  } else if (!stretch_.isEmpty()) {
+    const int recipient = (index > 0) ? (index - 1) : 0;
+    if (recipient < stretch_.count()) {
+      stretch_[recipient] += donated;
+    }
     stretch_ = reducedStretch(stretch_);
   }
 
