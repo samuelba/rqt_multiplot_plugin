@@ -58,10 +58,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/run.png</normaloff>../resource/16x16/run.png</iconset>
-       </property>
        <property name="flat">
         <bool>true</bool>
        </property>
@@ -89,10 +85,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/clear.png</normaloff>../resource/16x16/clear.png</iconset>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -122,10 +114,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/eject.png</normaloff>../resource/16x16/eject.png</iconset>
-       </property>
        <property name="flat">
         <bool>true</bool>
        </property>
@@ -153,10 +141,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/setup.png</normaloff>../resource/16x16/setup.png</iconset>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -214,9 +198,33 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/zoom_in.png</normaloff>../resource/16x16/zoom_in.png</iconset>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonClose">
+       <property name="minimumSize">
+        <size>
+         <width>22</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>22</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+       <property name="toolTip">
+        <string>Close plot</string>
+       </property>
+       <property name="text">
+        <string/>
        </property>
        <property name="flat">
         <bool>true</bool>
@@ -302,7 +310,7 @@
      </property>
      <property name="minimumSize">
       <size>
-       <width>100</width>
+       <width>25</width>
        <height>0</height>
       </size>
      </property>

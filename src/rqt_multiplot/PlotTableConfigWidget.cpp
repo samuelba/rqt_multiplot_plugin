@@ -39,7 +39,8 @@ namespace rqt_multiplot {
 PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
     : QWidget(parent),
       ui_(new Ui::PlotTableConfigWidget()),
-      menuImportExport_(new QMenu(this)),
+      menuImport_(new QMenu(this)),
+      menuExport_(new QMenu(this)),
       config_(nullptr),
       plotTabs_(nullptr),
       plotTable_(nullptr),
@@ -52,18 +53,18 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
 
   ui_->widgetProgress->setEnabled(false);
 
-  ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/16x16/run.png")));
-  ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/16x16/pause.png")));
-  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
-  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
+  ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/play.svg")));
+  ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
+  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
+  ui_->pushButtonImport->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
+  ui_->pushButtonExport->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
 
   ui_->pushButtonPause->setEnabled(false);
 
-  menuImportExport_->addAction("Import from bag file...", this, SLOT(menuImportBagFileTriggered()));
-  menuImportExport_->addAction("Import from bag directory...", this, SLOT(menuImportBagDirectoryTriggered()));
-  menuImportExport_->addSeparator();
-  menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
-  menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
+  menuImport_->addAction("Import from bag file...", this, SLOT(menuImportBagFileTriggered()));
+  menuImport_->addAction("Import from bag directory...", this, SLOT(menuImportBagDirectoryTriggered()));
+  menuExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
+  menuExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
 
   connect(ui_->checkBoxLinkScale, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkScaleStateChanged(int)));
   connect(ui_->checkBoxLinkCursor, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkCursorStateChanged(int)));
@@ -72,7 +73,8 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->pushButtonRun, SIGNAL(clicked()), this, SLOT(pushButtonRunClicked()));
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
-  connect(ui_->pushButtonImportExport, SIGNAL(clicked()), this, SLOT(pushButtonImportExportClicked()));
+  connect(ui_->pushButtonImport, SIGNAL(clicked()), this, SLOT(pushButtonImportClicked()));
+  connect(ui_->pushButtonExport, SIGNAL(clicked()), this, SLOT(pushButtonExportClicked()));
 
   ui_->labelBackgroundColor->installEventFilter(this);
   ui_->labelForegroundColor->installEventFilter(this);
@@ -288,8 +290,12 @@ void PlotTableConfigWidget::pushButtonClearClicked() {
   }
 }
 
-void PlotTableConfigWidget::pushButtonImportExportClicked() {
-  menuImportExport_->popup(QCursor::pos());
+void PlotTableConfigWidget::pushButtonImportClicked() {
+  menuImport_->popup(QCursor::pos());
+}
+
+void PlotTableConfigWidget::pushButtonExportClicked() {
+  menuExport_->popup(QCursor::pos());
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {

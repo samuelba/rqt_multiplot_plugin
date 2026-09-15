@@ -55,10 +55,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/new.png</normaloff>../resource/16x16/new.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -92,10 +88,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/open.png</normaloff>../resource/16x16/open.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -131,10 +123,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/save.png</normaloff>../resource/16x16/save.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -168,10 +156,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/save_as.png</normaloff>../resource/16x16/save_as.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -227,10 +211,6 @@
      </property>
      <property name="text">
       <string/>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>../resource/16x16/clear_history.png</normaloff>../resource/16x16/clear_history.png</iconset>
      </property>
      <property name="iconSize">
       <size>

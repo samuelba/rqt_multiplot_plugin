@@ -47,7 +47,7 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
 
   addButton_->setAutoRaise(true);
   addButton_->setToolTip("Add tab");
-  addButton_->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
+  addButton_->setIcon(QIcon(packageResourcePath("resource/new-tab.svg")));
   addButton_->setIconSize(QSize(16, 16));
   tabWidget_->setCornerWidget(addButton_, Qt::TopRightCorner);
 

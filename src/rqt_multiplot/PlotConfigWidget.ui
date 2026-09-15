@@ -193,10 +193,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/add.png</normaloff>../resource/16x16/add.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -231,10 +227,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/edit.png</normaloff>../resource/16x16/edit.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -268,10 +260,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/22x22/remove.png</normaloff>../resource/22x22/remove.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -323,10 +311,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/copy.png</normaloff>../resource/16x16/copy.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -360,10 +344,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/paste.png</normaloff>../resource/16x16/paste.png</iconset>
        </property>
        <property name="iconSize">
         <size>

@@ -92,16 +92,16 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   setAcceptDrops(true);
 
-  runIcon_ = QIcon(packageResourcePath("resource/16x16/run.png"));
-  pauseIcon_ = QIcon(packageResourcePath("resource/16x16/pause.png"));
-  normalIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_in.png"));
-  maximizedIcon_ = QIcon(packageResourcePath("resource/16x16/zoom_out.png"));
+  runIcon_ = QIcon(packageResourcePath("resource/play.svg"));
+  pauseIcon_ = QIcon(packageResourcePath("resource/pause.svg"));
+  normalIcon_ = QIcon(packageResourcePath("resource/maximize.svg"));
+  maximizedIcon_ = QIcon(packageResourcePath("resource/minimize.svg"));
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
-  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
-  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
-  ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
-  ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
+  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
+  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
+  ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/settings-edit.svg")));
+  ui_->pushButtonSplit->setIcon(QIcon(packageResourcePath("resource/split/layout.svg")));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
   ui_->pushButtonClose->setIcon(packageIcon("resource/close.svg", QSize(16, 16)));
@@ -372,15 +372,16 @@ void PlotWidget::buildSplitMenu() {
   grid->setObjectName("splitDirectionGrid");
 
   auto* layout = new QGridLayout(grid);
-  layout->setContentsMargins(4, 4, 4, 4);
-  layout->setSpacing(2);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(0);
 
   const auto addButton = [this, layout](int row, int column, const QString& objectName, const QString& iconPath, const QString& toolTip,
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    button->setIcon(packageIcon(iconPath, QSize(24, 24)));
-    button->setIconSize(QSize(24, 24));
+    button->setIcon(QIcon(packageResourcePath(iconPath)));
+    button->setIconSize(QSize(18, 18));
+    button->setFixedSize(22, 22);
     button->setToolTip(toolTip);
     button->setAutoRaise(true);
     button->setCursor(Qt::PointingHandCursor);
