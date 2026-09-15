@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QCursor>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
@@ -23,6 +24,8 @@
 #include <QFontMetrics>
 #include <QMimeData>
 #include <QPainter>
+#include <QPen>
+#include <QPixmap>
 #include <QTextStream>
 
 #include <qwt/qwt_plot.h>
@@ -54,6 +57,18 @@
 
 namespace rqt_multiplot {
 
+namespace {
+QIcon splitIcon() {
+  QPixmap pixmap(16, 16);
+  pixmap.fill(Qt::transparent);
+  QPainter painter(&pixmap);
+  painter.setPen(QPen(QColor(0x50, 0x50, 0x50), 1));
+  painter.drawRect(1, 1, 13, 13);
+  painter.drawLine(1, 8, 14, 8);
+  return QIcon(pixmap);
+}
+}  // namespace
+
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
@@ -63,6 +78,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       ui_(new Ui::PlotWidget()),
       timer_(new QTimer(this)),
       menuImportExport_(new QMenu(this)),
+      menuSplit_(new QMenu(this)),
       config_(nullptr),
       broker_(nullptr),
       legend_(nullptr),
@@ -94,7 +110,10 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
+  ui_->pushButtonSplit->setIcon(splitIcon());
   ui_->pushButtonState->setIcon(normalIcon_);
+  ui_->pushButtonClose->setIcon(QIcon(packageResourcePath("resource/16x16/remove.png")));
+  ui_->pushButtonClose->setEnabled(false);
 
   ui_->plot->setAutoReplot(false);
   ui_->plot->setAutoDelete(false);
@@ -123,6 +142,11 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
+
+  menuSplit_->addAction("Split left", this, SLOT(menuSplitLeftTriggered()));
+  menuSplit_->addAction("Split right", this, SLOT(menuSplitRightTriggered()));
+  menuSplit_->addAction("Split top", this, SLOT(menuSplitTopTriggered()));
+  menuSplit_->addAction("Split bottom", this, SLOT(menuSplitBottomTriggered()));
 
   auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
   if (canvas != nullptr) {
@@ -153,7 +177,9 @@ PlotWidget::PlotWidget(QWidget* parent)
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
   connect(ui_->pushButtonSetup, SIGNAL(clicked()), this, SLOT(pushButtonSetupClicked()));
   connect(ui_->pushButtonImportExport, SIGNAL(clicked()), this, SLOT(pushButtonImportExportClicked()));
+  connect(ui_->pushButtonSplit, SIGNAL(clicked()), this, SLOT(pushButtonSplitClicked()));
   connect(ui_->pushButtonState, SIGNAL(clicked()), this, SLOT(pushButtonStateClicked()));
+  connect(ui_->pushButtonClose, SIGNAL(clicked()), this, SLOT(pushButtonCloseClicked()));
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
@@ -193,6 +219,7 @@ void PlotWidget::setConfig(PlotConfig* config) {
       disconnect(config_->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       disconnect(config_->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       disconnect(config_, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      disconnect(config_, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configCurvesCleared();
     }
@@ -214,6 +241,7 @@ void PlotWidget::setConfig(PlotConfig* config) {
       connect(config->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       connect(config->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       connect(config, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      connect(config, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configTitleChanged(config->getTitle());
       configPlotRateChanged(config->getPlotRate());
@@ -317,6 +345,14 @@ void PlotWidget::setCanChangeState(bool can) {
 
 bool PlotWidget::canChangeState() const {
   return ui_->pushButtonState->isEnabled();
+}
+
+void PlotWidget::setCanClose(bool can) {
+  ui_->pushButtonClose->setEnabled(can);
+}
+
+bool PlotWidget::canClose() const {
+  return ui_->pushButtonClose->isEnabled();
 }
 
 void PlotWidget::setUserScaleLocked(bool locked) {
@@ -811,6 +847,39 @@ void PlotWidget::pushButtonStateClicked() {
   } else {
     setState(Maximized);
   }
+}
+
+void PlotWidget::pushButtonSplitClicked() {
+  menuSplit_->popup(QCursor::pos());
+}
+
+void PlotWidget::pushButtonCloseClicked() {
+  if (canClose()) {
+    emit closeRequested();
+  }
+}
+
+void PlotWidget::menuSplitLeftTriggered() {
+  emit splitRequested(Qt::Horizontal, true);
+}
+
+void PlotWidget::menuSplitRightTriggered() {
+  emit splitRequested(Qt::Horizontal, false);
+}
+
+void PlotWidget::menuSplitTopTriggered() {
+  emit splitRequested(Qt::Vertical, true);
+}
+
+void PlotWidget::menuSplitBottomTriggered() {
+  emit splitRequested(Qt::Vertical, false);
+}
+
+void PlotWidget::configDestroyed() {
+  for (PlotCurve* curve : curves_) {
+    curve->setConfig(nullptr);
+  }
+  config_ = nullptr;
 }
 
 void PlotWidget::menuExportImageFileTriggered() {

@@ -194,6 +194,10 @@ void PlotCurve::detach() {
 }
 
 void PlotCurve::run() {
+  if (config_ == nullptr) {
+    return;
+  }
+
   CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
   CurveAxisConfig* yAxisConfig = config_->getAxisConfig(CurveConfig::Y);
 

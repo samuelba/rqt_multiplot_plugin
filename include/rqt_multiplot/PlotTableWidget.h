@@ -19,10 +19,11 @@
 #ifndef RQT_MULTIPLOT_PLOT_TABLE_WIDGET_H
 #define RQT_MULTIPLOT_PLOT_TABLE_WIDGET_H
 
-#include <QGridLayout>
+#include <QHash>
+#include <QList>
 #include <QPainter>
 #include <QRectF>
-#include <QVector>
+#include <QVBoxLayout>
 #include <QWidget>
 
 #include <rqt_multiplot/BagReader.h>
@@ -30,7 +31,11 @@
 #include <rqt_multiplot/MessageSubscriberRegistry.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 
+class QShowEvent;
+class QSplitter;
+
 namespace rqt_multiplot {
+class PlotLayoutConfig;
 class PlotWidget;
 
 class PlotTableWidget : public QWidget {
@@ -43,7 +48,9 @@ class PlotTableWidget : public QWidget {
   PlotTableConfig* getConfig() const;
   size_t getNumRows() const;
   size_t getNumColumns() const;
+  size_t getNumPlots() const;
   PlotWidget* getPlotWidget(size_t row, size_t column) const;
+  const QList<PlotWidget*>& getPlotWidgets() const;
   MessageSubscriberRegistry* getRegistry() const;
   BagReader* getBagReader() const;
 
@@ -62,6 +69,7 @@ class PlotTableWidget : public QWidget {
   void loadFromBagFile(const QString& fileName);
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
+  void storeSplitterRatios();
 
  signals:
   void plotPausedChanged();
@@ -70,9 +78,14 @@ class PlotTableWidget : public QWidget {
   void jobFinished(const QString& toolTip);
   void jobFailed(const QString& toolTip);
 
+ protected:
+  void showEvent(QShowEvent* event) override;
+
  private:
-  QGridLayout* layout_;
-  QVector<QVector<PlotWidget*> > plotWidgets_;
+  QVBoxLayout* layout_;
+  QWidget* rootWidget_;
+  QList<PlotWidget*> plotWidgets_;
+  QHash<QSplitter*, PlotLayoutConfig*> splitterNodes_;
 
   PlotTableConfig* config_;
 
@@ -81,11 +94,18 @@ class PlotTableWidget : public QWidget {
 
   void updatePlotScale(const BoundingRectangle& bounds, PlotWidget* excluded = nullptr);
   bool anyPlotUserScaleLocked() const;
+  void rebuildLayout();
+  QWidget* createNodeWidget(PlotLayoutConfig* node, QHash<PlotConfig*, PlotWidget*>& existing);
+  PlotWidget* createPlotWidget();
+  void connectPlotWidget(PlotWidget* plot);
+  static void applyStretch(QSplitter* splitter, PlotLayoutConfig* node);
+  void applyAllStretch();
+  void updatePlotControls();
 
  private slots:
   void configBackgroundColorChanged(const QColor& color);
   void configForegroundColorChanged(const QColor& color);
-  void configNumPlotsChanged(size_t numRows, size_t numColumns);
+  void configLayoutChanged();
   void configLinkScaleChanged(bool link);
   void configTrackPointsChanged(bool track);
 
@@ -96,6 +116,9 @@ class PlotTableWidget : public QWidget {
   void plotCursorCurrentPositionChanged(const QPointF& position);
   void plotPausedChanged(bool paused);
   void plotStateChanged(int state);
+  void plotSplitRequested(Qt::Orientation orientation, bool insertBefore);
+  void plotCloseRequested();
+  void splitterMoved(int pos, int index);
 
   void bagReaderReadingStarted();
   void bagReaderReadingProgressChanged(double progress);

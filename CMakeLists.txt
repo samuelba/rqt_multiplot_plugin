@@ -149,6 +149,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotLegend.cpp
   src/rqt_multiplot/PlotLegendConfig.cpp
   src/rqt_multiplot/PlotLegendConfigWidget.cpp
+  src/rqt_multiplot/PlotLayoutConfig.cpp
   src/rqt_multiplot/PlotMagnifier.cpp
   src/rqt_multiplot/PlotPanner.cpp
   src/rqt_multiplot/PlotTableConfig.cpp
@@ -249,6 +250,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLegend.h
   include/rqt_multiplot/PlotLegendConfig.h
   include/rqt_multiplot/PlotLegendConfigWidget.h
+  include/rqt_multiplot/PlotLayoutConfig.h
   include/rqt_multiplot/PlotMagnifier.h
   include/rqt_multiplot/PlotMouseBindings.h
   include/rqt_multiplot/PlotPanner.h
@@ -384,7 +386,9 @@ if(BUILD_TESTING)
     test/OffsetScaleDrawTest.cpp
     test/MultiplotConfigTest.cpp
     test/PlotConfigTest.cpp
+    test/PlotLayoutConfigTest.cpp
     test/PlotTableConfigTest.cpp
+    test/PlotTableWidgetLayoutTest.cpp
     test/PlotCurveTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp

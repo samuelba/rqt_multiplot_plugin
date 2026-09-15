@@ -200,22 +200,6 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="1">
-    <widget class="QLabel" name="label_3">
-     <property name="font">
-      <font>
-       <weight>50</weight>
-       <bold>false</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>x</string>
-     </property>
-     <property name="margin">
-      <number>0</number>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="15">
     <widget class="Line" name="line_5">
      <property name="orientation">
@@ -314,16 +298,6 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="2">
-    <widget class="QSpinBox" name="spinBoxColumns">
-     <property name="toolTip">
-      <string>Number of plot columns</string>
-     </property>
-     <property name="minimum">
-      <number>1</number>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="17">
     <widget class="Line" name="line_4">
      <property name="orientation">
@@ -369,16 +343,6 @@
        </widget>
       </item>
      </layout>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="QSpinBox" name="spinBoxRows">
-     <property name="toolTip">
-      <string>Number of plot rows</string>
-     </property>
-     <property name="minimum">
-      <number>1</number>
-     </property>
     </widget>
    </item>
    <item row="0" column="14">

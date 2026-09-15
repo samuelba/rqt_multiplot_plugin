@@ -96,7 +96,7 @@
         </font>
        </property>
        <property name="text">
-        <string>Plot Table:</string>
+        <string>Plots:</string>
        </property>
       </widget>
      </item>

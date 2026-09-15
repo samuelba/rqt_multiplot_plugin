@@ -18,9 +18,16 @@
 
 #include "rqt_multiplot/PlotTableConfig.h"
 
+#include <algorithm>
 #include <utility>
 
+#include <QIODevice>
+
 namespace rqt_multiplot {
+
+namespace {
+constexpr quint32 kLayoutStreamMagic = 0x52544C31;  // "RTL1"
+}
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -32,21 +39,15 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       title_(std::move(title)),
       backgroundColor_(std::move(backgroundColor)),
       foregroundColor_(std::move(foregroundColor)),
+      layout_(new PlotLayoutConfig(this)),
       linkScale_(linkScale),
       linkCursor_(linkCursor),
       trackPoints_(trackPoints) {
-  if ((numRows != 0u) && (numColumns != 0u)) {
-    plotConfig_.resize(static_cast<int>(numRows));
-
-    for (int row = 0; row < static_cast<int>(numRows); ++row) {
-      plotConfig_[row].resize(static_cast<int>(numColumns));
-
-      for (int column = 0; column < static_cast<int>(numColumns); ++column) {
-        plotConfig_[row][column] = new PlotConfig(this);
-
-        connect(plotConfig_[row][column], SIGNAL(changed()), this, SLOT(plotConfigChanged()));
-      }
-    }
+  connectLayout();
+  if ((numRows != 1u) || (numColumns != 1u)) {
+    setNumPlots(numRows, numColumns);
+  } else if ((numRows == 0u) || (numColumns == 0u)) {
+    setNumPlots(0, 0);
   }
 }
 
@@ -96,44 +97,21 @@ const QColor& PlotTableConfig::getForegroundColor() const {
 }
 
 void PlotTableConfig::setNumPlots(size_t numRows, size_t numColumns) {
-  if ((numRows != getNumRows()) || (numColumns != getNumColumns())) {
-    size_t oldNumRows = getNumRows();
-    size_t oldNumColumns = getNumColumns();
-
-    if ((numRows == 0u) || (numColumns == 0u)) {
-      numRows = 0;
-      numColumns = 0;
-    }
-
-    QVector<QVector<PlotConfig*> > plotConfig(static_cast<int>(numRows));
-
-    for (int row = 0; row < static_cast<int>(numRows); ++row) {
-      plotConfig[row].resize(static_cast<int>(numColumns));
-
-      for (int column = 0; column < static_cast<int>(numColumns); ++column) {
-        if ((row < static_cast<int>(oldNumRows)) && (column < static_cast<int>(oldNumColumns))) {
-          plotConfig[row][column] = plotConfig_[row][column];
-        } else {
-          plotConfig[row][column] = new PlotConfig(this);
-
-          connect(plotConfig[row][column], SIGNAL(changed()), this, SLOT(plotConfigChanged()));
-        }
-      }
-    }
-
-    for (int row = 0; row < static_cast<int>(oldNumRows); ++row) {
-      for (int column = 0; column < static_cast<int>(oldNumColumns); ++column) {
-        if ((row >= static_cast<int>(numRows)) || (column >= static_cast<int>(numColumns))) {
-          delete plotConfig_[row][column];
-        }
-      }
-    }
-
-    plotConfig_ = plotConfig;
-
-    emit numPlotsChanged(numRows, numColumns);
-    emit changed();
+  if ((numRows == getNumRows()) && (numColumns == getNumColumns())) {
+    return;
   }
+
+  if ((numRows == 0u) || (numColumns == 0u)) {
+    numRows = 0;
+    numColumns = 0;
+  }
+
+  QList<PlotConfig*> preserved = layout_->detachPlotConfigs();
+  layout_->resetToRectangularGrid(numRows, numColumns, preserved);
+
+  emit numPlotsChanged(numRows, numColumns);
+  emit layoutChanged();
+  emit changed();
 }
 
 void PlotTableConfig::setNumRows(size_t numRows) {
@@ -141,7 +119,7 @@ void PlotTableConfig::setNumRows(size_t numRows) {
 }
 
 size_t PlotTableConfig::getNumRows() const {
-  return plotConfig_.count();
+  return layout_->getNumRows();
 }
 
 void PlotTableConfig::setNumColumns(size_t numColumns) {
@@ -149,19 +127,31 @@ void PlotTableConfig::setNumColumns(size_t numColumns) {
 }
 
 size_t PlotTableConfig::getNumColumns() const {
-  if (!plotConfig_.isEmpty()) {
-    return plotConfig_[0].count();
-  } else {
-    return 0;
-  }
+  return layout_->getNumColumns();
 }
 
 PlotConfig* PlotTableConfig::getPlotConfig(size_t row, size_t column) const {
-  if ((row < getNumRows()) && (column < getNumColumns())) {
-    return plotConfig_[static_cast<int>(row)][static_cast<int>(column)];
-  } else {
-    return nullptr;
-  }
+  return layout_->plotConfigAt(row, column);
+}
+
+PlotLayoutConfig* PlotTableConfig::getLayout() const {
+  return layout_;
+}
+
+size_t PlotTableConfig::plotCount() const {
+  return layout_->plotCount();
+}
+
+QList<PlotConfig*> PlotTableConfig::plotConfigs() const {
+  return layout_->plotConfigs();
+}
+
+PlotConfig* PlotTableConfig::splitPlot(PlotConfig* plot, Qt::Orientation orientation, bool insertBefore) {
+  return layout_->splitPlot(plot, orientation, insertBefore);
+}
+
+bool PlotTableConfig::closePlot(PlotConfig* plot) {
+  return layout_->closePlot(plot);
 }
 
 void PlotTableConfig::setLinkScale(bool link) {
@@ -212,20 +202,8 @@ void PlotTableConfig::save(QSettings& settings) const {
   settings.setValue("background_color", QVariant::fromValue<QColor>(backgroundColor_));
   settings.setValue("foreground_color", QVariant::fromValue<QColor>(foregroundColor_));
 
-  settings.beginGroup("plots");
-
-  for (int row = 0; row < plotConfig_.count(); ++row) {
-    settings.beginGroup("row_" + QString::number(row));
-
-    for (int column = 0; column < plotConfig_[row].count(); ++column) {
-      settings.beginGroup("column_" + QString::number(column));
-      plotConfig_[row][column]->save(settings);
-      settings.endGroup();
-    }
-
-    settings.endGroup();
-  }
-
+  settings.beginGroup("layout");
+  layout_->save(settings);
   settings.endGroup();
 
   settings.setValue("link_scale", linkScale_);
@@ -238,43 +216,19 @@ void PlotTableConfig::load(QSettings& settings) {
   setBackgroundColor(settings.value("background_color", QColor(Qt::white)).value<QColor>());
   setForegroundColor(settings.value("foreground_color", QColor(Qt::black)).value<QColor>());
 
-  settings.beginGroup("plots");
-
-  QStringList rowGroups = settings.childGroups();
-  size_t row = 0;
-  size_t numColumns = 0;
-
-  for (auto& rowGroup : rowGroups) {
-    if (row >= static_cast<size_t>(plotConfig_.count())) {
-      setNumRows(row + 1);
-    }
-
-    settings.beginGroup(rowGroup);
-
-    QStringList columnGroups = settings.childGroups();
-    size_t column = 0;
-
-    for (auto& columnGroup : columnGroups) {
-      if (column >= static_cast<size_t>(plotConfig_[static_cast<int>(row)].count())) {
-        setNumColumns(column + 1);
-      }
-
-      settings.beginGroup(columnGroup);
-      plotConfig_[static_cast<int>(row)][static_cast<int>(column)]->load(settings);
-      settings.endGroup();
-
-      ++column;
-    }
-
+  const QStringList groups = settings.childGroups();
+  if (groups.contains("layout")) {
+    settings.beginGroup("layout");
+    layout_->load(settings);
     settings.endGroup();
-
-    numColumns = std::max(numColumns, column);
-    ++row;
+  } else if (groups.contains("plots")) {
+    loadLegacyPlots(settings);
+  } else {
+    setNumPlots(1, 1);
+    if (getPlotConfig(0, 0) != nullptr) {
+      getPlotConfig(0, 0)->reset();
+    }
   }
-
-  settings.endGroup();
-
-  setNumPlots(row, numColumns);
 
   setLinkScale(settings.value("link_scale", false).toBool());
   setLinkCursor(settings.value("link_cursor", false).toBool());
@@ -287,7 +241,9 @@ void PlotTableConfig::reset() {
   setForegroundColor(Qt::black);
 
   setNumPlots(1, 1);
-  plotConfig_[0][0]->reset();
+  if (getPlotConfig(0, 0) != nullptr) {
+    getPlotConfig(0, 0)->reset();
+  }
 
   setLinkScale(false);
   setLinkCursor(false);
@@ -295,17 +251,10 @@ void PlotTableConfig::reset() {
 }
 
 void PlotTableConfig::write(QDataStream& stream) const {
+  stream << kLayoutStreamMagic;
   stream << backgroundColor_;
   stream << foregroundColor_;
-
-  stream << static_cast<quint64>(getNumRows()) << static_cast<quint64>(getNumColumns());
-
-  for (int row = 0; row < plotConfig_.count(); ++row) {
-    for (int column = 0; column < plotConfig_[row].count(); ++column) {
-      plotConfig_[row][column]->write(stream);
-    }
-  }
-
+  layout_->write(stream);
   stream << linkScale_;
   stream << linkCursor_;
   stream << trackPoints_;
@@ -313,6 +262,131 @@ void PlotTableConfig::write(QDataStream& stream) const {
 }
 
 void PlotTableConfig::read(QDataStream& stream) {
+  QIODevice* const device = stream.device();
+  if (device == nullptr) {
+    reset();
+    return;
+  }
+
+  const qint64 pos = device->pos();
+  quint32 magic = 0;
+  stream >> magic;
+  if ((stream.status() == QDataStream::Ok) && (magic == kLayoutStreamMagic)) {
+    QColor backgroundColor;
+    QColor foregroundColor;
+    bool linkScale = false;
+    bool linkCursor = false;
+    bool trackPoints = false;
+
+    stream >> backgroundColor;
+    setBackgroundColor(backgroundColor);
+    stream >> foregroundColor;
+    setForegroundColor(foregroundColor);
+    layout_->read(stream);
+    stream >> linkScale;
+    setLinkScale(linkScale);
+    stream >> linkCursor;
+    setLinkCursor(linkCursor);
+    stream >> trackPoints;
+    setTrackPoints(trackPoints);
+
+    if (stream.atEnd()) {
+      return;
+    }
+
+    QString title;
+    stream >> title;
+    if ((stream.status() == QDataStream::Ok) && !title.isEmpty()) {
+      setTitle(title);
+    } else {
+      stream.resetStatus();
+    }
+    return;
+  }
+
+  stream.resetStatus();
+  if (!device->seek(pos)) {
+    reset();
+    return;
+  }
+  readLegacyGridStream(stream);
+}
+
+/*****************************************************************************/
+/* Operators                                                                 */
+/*****************************************************************************/
+
+PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
+  if (this == &src) {
+    return *this;
+  }
+
+  setTitle(src.title_);
+  setBackgroundColor(src.backgroundColor_);
+  setForegroundColor(src.foregroundColor_);
+  *layout_ = *src.layout_;
+  setLinkScale(src.linkScale_);
+  setLinkCursor(src.linkCursor_);
+  setTrackPoints(src.trackPoints_);
+
+  return *this;
+}
+
+/*****************************************************************************/
+/* Private methods                                                           */
+/*****************************************************************************/
+
+void PlotTableConfig::connectLayout() {
+  connect(layout_, SIGNAL(changed()), this, SLOT(layoutConfigChanged()));
+  connect(layout_, SIGNAL(structureChanged()), this, SLOT(layoutStructureChanged()));
+}
+
+void PlotTableConfig::loadLegacyPlots(QSettings& settings) {
+  settings.beginGroup("plots");
+
+  QStringList rowGroups = settings.childGroups();
+  QList<QList<PlotConfig*>> grid;
+
+  for (const QString& rowGroup : rowGroups) {
+    settings.beginGroup(rowGroup);
+    QStringList columnGroups = settings.childGroups();
+    QList<PlotConfig*> row;
+    for (const QString& columnGroup : columnGroups) {
+      auto* plot = new PlotConfig(this);
+      settings.beginGroup(columnGroup);
+      plot->load(settings);
+      settings.endGroup();
+      row.append(plot);
+    }
+    settings.endGroup();
+    grid.append(row);
+  }
+
+  settings.endGroup();
+
+  const auto numRows = static_cast<size_t>(grid.count());
+  size_t numColumns = 0;
+  for (const QList<PlotConfig*>& row : grid) {
+    numColumns = std::max(numColumns, static_cast<size_t>(row.count()));
+  }
+
+  QList<PlotConfig*> preserved;
+  for (int row = 0; row < static_cast<int>(numRows); ++row) {
+    for (size_t column = 0; column < numColumns; ++column) {
+      if (column < static_cast<size_t>(grid[row].count())) {
+        preserved.append(grid[row][static_cast<int>(column)]);
+      } else {
+        preserved.append(new PlotConfig(this));
+      }
+    }
+  }
+
+  QList<PlotConfig*> discarded = layout_->detachPlotConfigs();
+  qDeleteAll(discarded);
+  layout_->resetToRectangularGrid(numRows, numColumns, preserved);
+}
+
+void PlotTableConfig::readLegacyGridStream(QDataStream& stream) {
   QColor backgroundColor;
   QColor foregroundColor;
   bool linkScale = false;
@@ -328,9 +402,12 @@ void PlotTableConfig::read(QDataStream& stream) {
 
   stream >> numRows >> numColumns;
   setNumPlots(numRows, numColumns);
-  for (int row = 0; row < plotConfig_.count(); ++row) {
-    for (int column = 0; column < plotConfig_[row].count(); ++column) {
-      plotConfig_[row][column]->read(stream);
+  for (size_t row = 0; row < getNumRows(); ++row) {
+    for (size_t column = 0; column < getNumColumns(); ++column) {
+      PlotConfig* plot = getPlotConfig(row, column);
+      if (plot != nullptr) {
+        plot->read(stream);
+      }
     }
   }
 
@@ -355,35 +432,16 @@ void PlotTableConfig::read(QDataStream& stream) {
 }
 
 /*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
-PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
-  setTitle(src.title_);
-  setBackgroundColor(src.backgroundColor_);
-  setForegroundColor(src.foregroundColor_);
-
-  setNumPlots(src.getNumRows(), src.getNumColumns());
-
-  for (int row = 0; row < static_cast<int>(getNumRows()); ++row) {
-    for (int column = 0; column < static_cast<int>(getNumColumns()); ++column) {
-      *plotConfig_[row][column] = *src.plotConfig_[row][column];
-    }
-  }
-
-  setLinkScale(src.linkScale_);
-  setLinkCursor(src.linkCursor_);
-  setTrackPoints(src.trackPoints_);
-
-  return *this;
-}
-
-/*****************************************************************************/
 /* Slots                                                                     */
 /*****************************************************************************/
 
-void PlotTableConfig::plotConfigChanged() {
+void PlotTableConfig::layoutConfigChanged() {
   emit changed();
+}
+
+void PlotTableConfig::layoutStructureChanged() {
+  emit numPlotsChanged(getNumRows(), getNumColumns());
+  emit layoutChanged();
 }
 
 }  // namespace rqt_multiplot
