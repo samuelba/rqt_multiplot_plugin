@@ -248,7 +248,7 @@
        </property>
        <property name="icon">
         <iconset>
-         <normaloff>../resource/16x16/remove.png</normaloff>../resource/16x16/remove.png</iconset>
+         <normaloff>../resource/close.svg</normaloff>../resource/close.svg</iconset>
        </property>
        <property name="flat">
         <bool>true</bool>

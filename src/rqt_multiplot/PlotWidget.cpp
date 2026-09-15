@@ -22,11 +22,14 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFontMetrics>
+#include <QGridLayout>
 #include <QMimeData>
 #include <QPainter>
-#include <QPen>
 #include <QPixmap>
+#include <QSize>
 #include <QTextStream>
+#include <QToolButton>
+#include <QWidgetAction>
 
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
@@ -56,18 +59,6 @@
 #include "rqt_multiplot/PlotWidget.h"
 
 namespace rqt_multiplot {
-
-namespace {
-QIcon splitIcon() {
-  QPixmap pixmap(16, 16);
-  pixmap.fill(Qt::transparent);
-  QPainter painter(&pixmap);
-  painter.setPen(QPen(QColor(0x50, 0x50, 0x50), 1));
-  painter.drawRect(1, 1, 13, 13);
-  painter.drawLine(1, 8, 14, 8);
-  return QIcon(pixmap);
-}
-}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -110,9 +101,11 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
-  ui_->pushButtonSplit->setIcon(splitIcon());
+  ui_->pushButtonSplit->setIcon(QIcon(packageResourcePath("resource/split/layout.svg")));
+  ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
-  ui_->pushButtonClose->setIcon(QIcon(packageResourcePath("resource/16x16/remove.png")));
+  ui_->pushButtonClose->setIcon(QIcon(packageResourcePath("resource/close.svg")));
+  ui_->pushButtonClose->setIconSize(QSize(16, 16));
   ui_->pushButtonClose->setEnabled(false);
 
   ui_->plot->setAutoReplot(false);
@@ -142,11 +135,7 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
-
-  menuSplit_->addAction("Split left", this, SLOT(menuSplitLeftTriggered()));
-  menuSplit_->addAction("Split right", this, SLOT(menuSplitRightTriggered()));
-  menuSplit_->addAction("Split top", this, SLOT(menuSplitTopTriggered()));
-  menuSplit_->addAction("Split bottom", this, SLOT(menuSplitBottomTriggered()));
+  buildSplitMenu();
 
   auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
   if (canvas != nullptr) {
@@ -377,6 +366,39 @@ bool PlotWidget::isUserScaleLocked() const {
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
+
+void PlotWidget::buildSplitMenu() {
+  auto* grid = new QWidget();
+  grid->setObjectName("splitDirectionGrid");
+
+  auto* layout = new QGridLayout(grid);
+  layout->setContentsMargins(4, 4, 4, 4);
+  layout->setSpacing(2);
+
+  const auto addButton = [this, layout](int row, int column, const QString& objectName, const QString& iconPath, const QString& toolTip,
+                                        const char* slot) {
+    auto* button = new QToolButton();
+    button->setObjectName(objectName);
+    button->setIcon(QIcon(packageResourcePath(iconPath)));
+    button->setIconSize(QSize(24, 24));
+    button->setToolTip(toolTip);
+    button->setAutoRaise(true);
+    button->setCursor(Qt::PointingHandCursor);
+    button->setFocusPolicy(Qt::NoFocus);
+    layout->addWidget(button, row, column);
+    connect(button, SIGNAL(clicked()), this, slot);
+    connect(button, SIGNAL(clicked()), menuSplit_, SLOT(hide()));
+  };
+
+  addButton(0, 0, "toolButtonSplitLeft", "resource/split/split-left.svg", "Split left", SLOT(menuSplitLeftTriggered()));
+  addButton(0, 1, "toolButtonSplitRight", "resource/split/split-right.svg", "Split right", SLOT(menuSplitRightTriggered()));
+  addButton(1, 0, "toolButtonSplitUp", "resource/split/split-up.svg", "Split up", SLOT(menuSplitTopTriggered()));
+  addButton(1, 1, "toolButtonSplitDown", "resource/split/split-down.svg", "Split down", SLOT(menuSplitBottomTriggered()));
+
+  auto* action = new QWidgetAction(menuSplit_);
+  action->setDefaultWidget(grid);
+  menuSplit_->addAction(action);
+}
 
 void PlotWidget::run() {
   if (paused_) {

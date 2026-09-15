@@ -150,6 +150,7 @@ class PlotWidget : public QWidget {
   void resetAxisOrigins();
   void updateAxisTimeLabels();
   void applyAxisTimeOffsets();
+  void buildSplitMenu();
 
  private slots:
   void timerTimeout();
