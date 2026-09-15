@@ -152,6 +152,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotLayoutConfig.cpp
   src/rqt_multiplot/PlotMagnifier.cpp
   src/rqt_multiplot/PlotPanner.cpp
+  src/rqt_multiplot/PlotSplitter.cpp
   src/rqt_multiplot/PlotTableConfig.cpp
   src/rqt_multiplot/PlotTableConfigWidget.cpp
   src/rqt_multiplot/PlotTableWidget.cpp
@@ -254,6 +255,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotMagnifier.h
   include/rqt_multiplot/PlotMouseBindings.h
   include/rqt_multiplot/PlotPanner.h
+  include/rqt_multiplot/PlotSplitter.h
   include/rqt_multiplot/PlotTableConfig.h
   include/rqt_multiplot/PlotTableConfigWidget.h
   include/rqt_multiplot/PlotTableWidget.h
@@ -389,6 +391,7 @@ if(BUILD_TESTING)
     test/PlotLayoutConfigTest.cpp
     test/PlotTableConfigTest.cpp
     test/PlotTableWidgetLayoutTest.cpp
+    test/PlotSplitterHandleTest.cpp
     test/PlotCurveTest.cpp
     test/PlotWidgetSplitMenuTest.cpp
     test/PlotCursorLabelTest.cpp

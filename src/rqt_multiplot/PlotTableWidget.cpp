@@ -35,6 +35,7 @@
 #include <rqt_multiplot/PlotExport.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotMouseBindings.h>
+#include <rqt_multiplot/PlotSplitter.h>
 #include <rqt_multiplot/PlotWidget.h>
 
 namespace rqt_multiplot {
@@ -383,9 +384,7 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     return plot;
   }
 
-  auto* splitter = new QSplitter((node->getType() == PlotLayoutConfig::Horizontal) ? Qt::Horizontal : Qt::Vertical, this);
-  splitter->setChildrenCollapsible(false);
-  splitter->setOpaqueResize(true);
+  auto* splitter = new PlotSplitter((node->getType() == PlotLayoutConfig::Horizontal) ? Qt::Horizontal : Qt::Vertical, this);
   splitterNodes_.insert(splitter, node);
 
   for (PlotLayoutConfig* child : node->getChildren()) {
@@ -445,9 +444,8 @@ void PlotTableWidget::applyStretch(QSplitter* splitter, PlotLayoutConfig* node) 
   pixels.reserve(count);
   int allocated = 0;
   for (int index = 0; index < count; ++index) {
-    const int value = (index + 1 == count)
-                          ? std::max(1, available - allocated)
-                          : std::max(1, static_cast<int>(static_cast<qint64>(available) * stretch[index] / total));
+    const int value = (index + 1 == count) ? std::max(1, available - allocated)
+                                           : std::max(1, static_cast<int>(static_cast<qint64>(available) * stretch[index] / total));
     pixels.append(value);
     allocated += value;
   }

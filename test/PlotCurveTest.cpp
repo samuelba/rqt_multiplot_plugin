@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QMetaObject>
+#include <QStringList>
 #include <QVector>
 #include <QWidget>
 
@@ -32,6 +33,14 @@ QApplication* ensureApplication() {
   static char arg0[] = "test_rqt_multiplot";
   static char* argv[] = {arg0, nullptr};
   return new QApplication(argc, argv);
+}
+
+QStringList* gQtWarnings = nullptr;
+
+void captureQtWarnings(QtMsgType type, const QMessageLogContext& /*context*/, const QString& message) {
+  if ((gQtWarnings != nullptr) && (type == QtWarningMsg)) {
+    gQtWarnings->append(message);
+  }
 }
 
 void configureSnapshotCurve(CurveConfig* config) {
@@ -75,6 +84,26 @@ TEST(PlotCurve, destroyingParentAfterSnapshotGhostsDoesNotCrash) {
   ASSERT_EQ(plot->itemList().count(), 3);
 
   delete parent;
+}
+
+TEST(PlotCurve, clearingConfigDoesNotWarnAboutMissingChangedSignal) {
+  ensureApplication();
+
+  QStringList warnings;
+  gQtWarnings = &warnings;
+  const QtMessageHandler previous = qInstallMessageHandler(captureQtWarnings);
+
+  CurveConfig config;
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.setConfig(nullptr);
+
+  qInstallMessageHandler(previous);
+  gQtWarnings = nullptr;
+
+  for (const QString& warning : warnings) {
+    EXPECT_FALSE(warning.contains(QStringLiteral("No such signal"))) << warning.toStdString();
+  }
 }
 
 TEST(PlotWidget, destroyingAfterPlottedSamplesDoesNotCrash) {
