@@ -69,6 +69,8 @@ class PlotWidget : public QWidget {
   State getState() const;
   void setCanChangeState(bool can);
   bool canChangeState() const;
+  void setCanClose(bool can);
+  bool canClose() const;
   void setUserScaleLocked(bool locked);
   bool isUserScaleLocked() const;
 
@@ -94,6 +96,8 @@ class PlotWidget : public QWidget {
   void currentScaleChanged(const BoundingRectangle& bounds);
   void pausedChanged(bool paused);
   void stateChanged(int state);
+  void splitRequested(Qt::Orientation orientation, bool insertBefore);
+  void closeRequested();
   void cleared();
   void userScaleLockedChanged(bool locked);
 
@@ -112,6 +116,7 @@ class PlotWidget : public QWidget {
   QIcon maximizedIcon_;
   QTimer* timer_;
   QMenu* menuImportExport_;
+  QMenu* menuSplit_;
 
   PlotConfig* config_;
 
@@ -145,6 +150,7 @@ class PlotWidget : public QWidget {
   void resetAxisOrigins();
   void updateAxisTimeLabels();
   void applyAxisTimeOffsets();
+  void buildSplitMenu();
 
  private slots:
   void timerTimeout();
@@ -169,8 +175,15 @@ class PlotWidget : public QWidget {
   void pushButtonSetupClicked();
   void pushButtonImportExportClicked();
   void pushButtonStateClicked();
+  void pushButtonSplitClicked();
+  void pushButtonCloseClicked();
+  void menuSplitLeftTriggered();
+  void menuSplitRightTriggered();
+  void menuSplitTopTriggered();
+  void menuSplitBottomTriggered();
   void menuExportImageFileTriggered();
   void menuExportTextFileTriggered();
+  void configDestroyed();
 
   void plotXBottomScaleDivChanged();
   void plotYLeftScaleDivChanged();

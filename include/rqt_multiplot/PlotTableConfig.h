@@ -20,11 +20,12 @@
 #define RQT_MULTIPLOT_PLOT_TABLE_CONFIG_H
 
 #include <QColor>
+#include <QList>
 #include <QString>
-#include <QVector>
 
 #include <rqt_multiplot/Config.h>
 #include <rqt_multiplot/PlotConfig.h>
+#include <rqt_multiplot/PlotLayoutConfig.h>
 
 namespace rqt_multiplot {
 class PlotTableConfig : public Config {
@@ -47,6 +48,11 @@ class PlotTableConfig : public Config {
   void setNumColumns(size_t numColumns);
   size_t getNumColumns() const;
   PlotConfig* getPlotConfig(size_t row, size_t column) const;
+  PlotLayoutConfig* getLayout() const;
+  size_t plotCount() const;
+  QList<PlotConfig*> plotConfigs() const;
+  PlotConfig* splitPlot(PlotConfig* plot, Qt::Orientation orientation, bool insertBefore = false);
+  bool closePlot(PlotConfig* plot);
   void setLinkScale(bool link);
   bool isScaleLinked() const;
   void setLinkCursor(bool link);
@@ -68,6 +74,7 @@ class PlotTableConfig : public Config {
   void backgroundColorChanged(const QColor& color);
   void foregroundColorChanged(const QColor& color);
   void numPlotsChanged(size_t numRows, size_t numColumns);
+  void layoutChanged();
   void linkScaleChanged(bool link);
   void linkCursorChanged(bool link);
   void trackPointsChanged(bool track);
@@ -76,13 +83,18 @@ class PlotTableConfig : public Config {
   QString title_;
   QColor backgroundColor_;
   QColor foregroundColor_;
-  QVector<QVector<PlotConfig*> > plotConfig_;
+  PlotLayoutConfig* layout_;
   bool linkScale_;
   bool linkCursor_;
   bool trackPoints_;
 
+  void connectLayout();
+  void loadLegacyPlots(QSettings& settings);
+  void readLegacyGridStream(QDataStream& stream);
+
  private slots:
-  void plotConfigChanged();
+  void layoutConfigChanged();
+  void layoutStructureChanged();
 };
 }  // namespace rqt_multiplot
 

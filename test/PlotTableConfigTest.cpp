@@ -7,10 +7,14 @@
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/PlotConfig.h>
+#include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 
 namespace {
 
+using rqt_multiplot::PlotConfig;
+using rqt_multiplot::PlotLayoutConfig;
 using rqt_multiplot::PlotTableConfig;
 
 QString settingsPath(const QTemporaryDir& dir, const char* name) {
@@ -139,6 +143,91 @@ TEST(PlotTableConfig, resetRestoresDefaultTitle) {
 
   EXPECT_EQ(config.getTitle(), QString("Tab 1"));
   EXPECT_FALSE(config.isScaleLinked());
+}
+
+TEST(PlotTableConfig, saveWritesLayoutNotPlots) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  PlotTableConfig config(nullptr);
+  config.setNumPlots(2, 1);
+  config.getPlotConfig(0, 0)->setTitle("Top");
+  config.getPlotConfig(1, 0)->setTitle("Bottom");
+
+  QSettings settings(settingsPath(dir, "layout.ini"), QSettings::IniFormat);
+  config.save(settings);
+  settings.sync();
+
+  EXPECT_TRUE(settings.childGroups().contains("layout"));
+  EXPECT_FALSE(settings.childGroups().contains("plots"));
+}
+
+TEST(PlotTableConfig, loadsLegacyPlotsGrid) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  QSettings settings(settingsPath(dir, "legacy.ini"), QSettings::IniFormat);
+  settings.beginGroup("plots");
+  settings.beginGroup("row_0");
+  settings.beginGroup("column_0");
+  settings.setValue("title", "Legacy Plot");
+  settings.endGroup();
+  settings.endGroup();
+  settings.beginGroup("row_1");
+  settings.beginGroup("column_0");
+  settings.setValue("title", "Second");
+  settings.endGroup();
+  settings.endGroup();
+  settings.endGroup();
+  settings.sync();
+
+  PlotTableConfig loaded(nullptr);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getNumRows(), 2u);
+  EXPECT_EQ(loaded.getNumColumns(), 1u);
+  EXPECT_EQ(loaded.getLayout()->getType(), PlotLayoutConfig::Vertical);
+  EXPECT_EQ(loaded.getPlotConfig(0, 0)->getTitle(), QString("Legacy Plot"));
+  EXPECT_EQ(loaded.getPlotConfig(1, 0)->getTitle(), QString("Second"));
+}
+
+TEST(PlotTableConfig, prefersLayoutWhenBothGroupsExist) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  QSettings settings(settingsPath(dir, "both.ini"), QSettings::IniFormat);
+  settings.beginGroup("layout");
+  settings.setValue("type", "plot");
+  settings.setValue("title", "FromLayout");
+  settings.endGroup();
+  settings.beginGroup("plots");
+  settings.beginGroup("row_0");
+  settings.beginGroup("column_0");
+  settings.setValue("title", "FromPlots");
+  settings.endGroup();
+  settings.endGroup();
+  settings.endGroup();
+  settings.sync();
+
+  PlotTableConfig loaded(nullptr);
+  loaded.load(settings);
+
+  ASSERT_EQ(loaded.plotCount(), 1u);
+  EXPECT_EQ(loaded.getPlotConfig(0, 0)->getTitle(), QString("FromLayout"));
+}
+
+TEST(PlotTableConfig, splitAndCloseUpdateLayout) {
+  PlotTableConfig config(nullptr);
+  PlotConfig* first = config.getPlotConfig(0, 0);
+  PlotConfig* second = config.splitPlot(first, Qt::Horizontal);
+
+  ASSERT_NE(second, nullptr);
+  EXPECT_EQ(config.plotCount(), 2u);
+  EXPECT_EQ(config.getLayout()->getType(), PlotLayoutConfig::Horizontal);
+
+  EXPECT_TRUE(config.closePlot(second));
+  EXPECT_EQ(config.plotCount(), 1u);
+  EXPECT_EQ(config.getLayout()->getType(), PlotLayoutConfig::Plot);
 }
 
 }  // namespace
