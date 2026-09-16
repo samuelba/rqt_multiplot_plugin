@@ -16,14 +16,20 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QCursor>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFontMetrics>
+#include <QGridLayout>
 #include <QMimeData>
 #include <QPainter>
+#include <QPixmap>
+#include <QSize>
 #include <QTextStream>
+#include <QToolButton>
+#include <QWidgetAction>
 
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
@@ -63,6 +69,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       ui_(new Ui::PlotWidget()),
       timer_(new QTimer(this)),
       menuImportExport_(new QMenu(this)),
+      menuSplit_(new QMenu(this)),
       config_(nullptr),
       broker_(nullptr),
       legend_(nullptr),
@@ -94,7 +101,12 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
+  ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
+  ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
+  ui_->pushButtonClose->setIcon(packageIcon("resource/close.svg", QSize(16, 16)));
+  ui_->pushButtonClose->setIconSize(QSize(16, 16));
+  ui_->pushButtonClose->setEnabled(false);
 
   ui_->plot->setAutoReplot(false);
   ui_->plot->setAutoDelete(false);
@@ -123,6 +135,7 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
+  buildSplitMenu();
 
   auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
   if (canvas != nullptr) {
@@ -153,7 +166,9 @@ PlotWidget::PlotWidget(QWidget* parent)
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
   connect(ui_->pushButtonSetup, SIGNAL(clicked()), this, SLOT(pushButtonSetupClicked()));
   connect(ui_->pushButtonImportExport, SIGNAL(clicked()), this, SLOT(pushButtonImportExportClicked()));
+  connect(ui_->pushButtonSplit, SIGNAL(clicked()), this, SLOT(pushButtonSplitClicked()));
   connect(ui_->pushButtonState, SIGNAL(clicked()), this, SLOT(pushButtonStateClicked()));
+  connect(ui_->pushButtonClose, SIGNAL(clicked()), this, SLOT(pushButtonCloseClicked()));
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
@@ -193,6 +208,7 @@ void PlotWidget::setConfig(PlotConfig* config) {
       disconnect(config_->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       disconnect(config_->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       disconnect(config_, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      disconnect(config_, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configCurvesCleared();
     }
@@ -214,6 +230,7 @@ void PlotWidget::setConfig(PlotConfig* config) {
       connect(config->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       connect(config->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       connect(config, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      connect(config, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configTitleChanged(config->getTitle());
       configPlotRateChanged(config->getPlotRate());
@@ -319,6 +336,14 @@ bool PlotWidget::canChangeState() const {
   return ui_->pushButtonState->isEnabled();
 }
 
+void PlotWidget::setCanClose(bool can) {
+  ui_->pushButtonClose->setEnabled(can);
+}
+
+bool PlotWidget::canClose() const {
+  return ui_->pushButtonClose->isEnabled();
+}
+
 void PlotWidget::setUserScaleLocked(bool locked) {
   if (locked == userScaleLocked_) {
     return;
@@ -341,6 +366,39 @@ bool PlotWidget::isUserScaleLocked() const {
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
+
+void PlotWidget::buildSplitMenu() {
+  auto* grid = new QWidget();
+  grid->setObjectName("splitDirectionGrid");
+
+  auto* layout = new QGridLayout(grid);
+  layout->setContentsMargins(4, 4, 4, 4);
+  layout->setSpacing(2);
+
+  const auto addButton = [this, layout](int row, int column, const QString& objectName, const QString& iconPath, const QString& toolTip,
+                                        const char* slot) {
+    auto* button = new QToolButton();
+    button->setObjectName(objectName);
+    button->setIcon(packageIcon(iconPath, QSize(24, 24)));
+    button->setIconSize(QSize(24, 24));
+    button->setToolTip(toolTip);
+    button->setAutoRaise(true);
+    button->setCursor(Qt::PointingHandCursor);
+    button->setFocusPolicy(Qt::NoFocus);
+    layout->addWidget(button, row, column);
+    connect(button, SIGNAL(clicked()), this, slot);
+    connect(button, SIGNAL(clicked()), menuSplit_, SLOT(hide()));
+  };
+
+  addButton(0, 0, "toolButtonSplitLeft", "resource/split/split-left.svg", "Split left", SLOT(menuSplitLeftTriggered()));
+  addButton(0, 1, "toolButtonSplitRight", "resource/split/split-right.svg", "Split right", SLOT(menuSplitRightTriggered()));
+  addButton(1, 0, "toolButtonSplitUp", "resource/split/split-up.svg", "Split up", SLOT(menuSplitTopTriggered()));
+  addButton(1, 1, "toolButtonSplitDown", "resource/split/split-down.svg", "Split down", SLOT(menuSplitBottomTriggered()));
+
+  auto* action = new QWidgetAction(menuSplit_);
+  action->setDefaultWidget(grid);
+  menuSplit_->addAction(action);
+}
 
 void PlotWidget::run() {
   if (paused_) {
@@ -811,6 +869,39 @@ void PlotWidget::pushButtonStateClicked() {
   } else {
     setState(Maximized);
   }
+}
+
+void PlotWidget::pushButtonSplitClicked() {
+  menuSplit_->popup(QCursor::pos());
+}
+
+void PlotWidget::pushButtonCloseClicked() {
+  if (canClose()) {
+    emit closeRequested();
+  }
+}
+
+void PlotWidget::menuSplitLeftTriggered() {
+  emit splitRequested(Qt::Horizontal, true);
+}
+
+void PlotWidget::menuSplitRightTriggered() {
+  emit splitRequested(Qt::Horizontal, false);
+}
+
+void PlotWidget::menuSplitTopTriggered() {
+  emit splitRequested(Qt::Vertical, true);
+}
+
+void PlotWidget::menuSplitBottomTriggered() {
+  emit splitRequested(Qt::Vertical, false);
+}
+
+void PlotWidget::configDestroyed() {
+  for (PlotCurve* curve : curves_) {
+    curve->setConfig(nullptr);
+  }
+  config_ = nullptr;
 }
 
 void PlotWidget::menuExportImageFileTriggered() {

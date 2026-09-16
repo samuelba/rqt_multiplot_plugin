@@ -36,12 +36,9 @@ bool plotTablePaused(PlotTableWidget* plotTable) {
     return true;
   }
 
-  for (size_t row = 0; row < plotTable->getNumRows(); ++row) {
-    for (size_t column = 0; column < plotTable->getNumColumns(); ++column) {
-      PlotWidget* plot = plotTable->getPlotWidget(row, column);
-      if (plot != nullptr && !plot->isPaused()) {
-        return false;
-      }
+  for (PlotWidget* plot : plotTable->getPlotWidgets()) {
+    if (plot != nullptr && !plot->isPaused()) {
+      return false;
     }
   }
 

@@ -65,9 +65,6 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
 
-  connect(ui_->spinBoxRows, SIGNAL(valueChanged(int)), this, SLOT(spinBoxRowsValueChanged(int)));
-  connect(ui_->spinBoxColumns, SIGNAL(valueChanged(int)), this, SLOT(spinBoxColumnsValueChanged(int)));
-
   connect(ui_->checkBoxLinkScale, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkScaleStateChanged(int)));
   connect(ui_->checkBoxLinkCursor, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkCursorStateChanged(int)));
   connect(ui_->checkBoxTrackPoints, SIGNAL(stateChanged(int)), this, SLOT(checkBoxTrackPointsStateChanged(int)));
@@ -94,7 +91,6 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
     if (config_ != nullptr) {
       disconnect(config_, SIGNAL(backgroundColorChanged(const QColor&)), this, SLOT(configBackgroundColorChanged(const QColor&)));
       disconnect(config_, SIGNAL(foregroundColorChanged(const QColor&)), this, SLOT(configForegroundColorChanged(const QColor&)));
-      disconnect(config_, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(configNumPlotsChanged(size_t, size_t)));
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
@@ -105,14 +101,12 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
     if (config != nullptr) {
       connect(config, SIGNAL(backgroundColorChanged(const QColor&)), this, SLOT(configBackgroundColorChanged(const QColor&)));
       connect(config, SIGNAL(foregroundColorChanged(const QColor&)), this, SLOT(configForegroundColorChanged(const QColor&)));
-      connect(config, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(configNumPlotsChanged(size_t, size_t)));
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
 
       configBackgroundColorChanged(config->getBackgroundColor());
       configForegroundColorChanged(config->getForegroundColor());
-      configNumPlotsChanged(config->getNumRows(), config->getNumColumns());
       configLinkScaleChanged(config_->isScaleLinked());
       configLinkCursorChanged(config_->isCursorLinked());
       configTrackPointsChanged(config_->arePointsTracked());
@@ -244,11 +238,6 @@ void PlotTableConfigWidget::configForegroundColorChanged(const QColor& color) {
   ui_->labelForegroundColor->setPalette(palette);
 }
 
-void PlotTableConfigWidget::configNumPlotsChanged(size_t numRows, size_t numColumns) {
-  ui_->spinBoxRows->setValue(static_cast<int>(numRows));
-  ui_->spinBoxColumns->setValue(static_cast<int>(numColumns));
-}
-
 void PlotTableConfigWidget::configLinkScaleChanged(bool link) {
   ui_->checkBoxLinkScale->setCheckState(link ? Qt::Checked : Qt::Unchecked);
 }
@@ -259,18 +248,6 @@ void PlotTableConfigWidget::configLinkCursorChanged(bool link) {
 
 void PlotTableConfigWidget::configTrackPointsChanged(bool track) {
   ui_->checkBoxTrackPoints->setCheckState(track ? Qt::Checked : Qt::Unchecked);
-}
-
-void PlotTableConfigWidget::spinBoxRowsValueChanged(int value) {
-  if (config_ != nullptr) {
-    config_->setNumRows(value);
-  }
-}
-
-void PlotTableConfigWidget::spinBoxColumnsValueChanged(int value) {
-  if (config_ != nullptr) {
-    config_->setNumColumns(value);
-  }
 }
 
 void PlotTableConfigWidget::checkBoxLinkScaleStateChanged(int state) {
@@ -393,17 +370,14 @@ void PlotTableConfigWidget::plotTablePlotPausedChanged() {
       return;
     }
 
-    for (size_t row = 0; row < plotTable->getNumRows(); ++row) {
-      for (size_t column = 0; column < plotTable->getNumColumns(); ++column) {
-        PlotWidget* plot = plotTable->getPlotWidget(row, column);
-        if (plot == nullptr) {
-          continue;
-        }
-
-        hasPlots = true;
-        allPlotsPaused &= plot->isPaused();
-        anyPlotPaused |= plot->isPaused();
+    for (PlotWidget* plot : plotTable->getPlotWidgets()) {
+      if (plot == nullptr) {
+        continue;
       }
+
+      hasPlots = true;
+      allPlotsPaused &= plot->isPaused();
+      anyPlotPaused |= plot->isPaused();
     }
   };
 

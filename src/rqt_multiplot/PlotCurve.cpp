@@ -67,7 +67,7 @@ PlotCurve::~PlotCurve() {
 void PlotCurve::setConfig(CurveConfig* config) {
   if (config != config_) {
     if (config_ != nullptr) {
-      disconnect(config_, SIGNAL(changed(const QString&)), this, SLOT(configTitleChanged(const QString&)));
+      disconnect(config_, SIGNAL(titleChanged(const QString&)), this, SLOT(configTitleChanged(const QString&)));
       disconnect(config_->getAxisConfig(CurveConfig::X), SIGNAL(changed()), this, SLOT(configAxisConfigChanged()));
       disconnect(config_->getAxisConfig(CurveConfig::Y), SIGNAL(changed()), this, SLOT(configAxisConfigChanged()));
       disconnect(config_->getColorConfig(), SIGNAL(currentColorChanged(const QColor&)), this,
@@ -194,6 +194,10 @@ void PlotCurve::detach() {
 }
 
 void PlotCurve::run() {
+  if (config_ == nullptr) {
+    return;
+  }
+
   CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
   CurveAxisConfig* yAxisConfig = config_->getAxisConfig(CurveConfig::Y);
 

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml?query=branch%3Amain)
 
-rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Qwt](https://qwt.sourceforge.io)).
+rqt plugin for ROS 2 that plots numeric message fields in tiled 2D plots ([Qwt](https://qwt.sourceforge.io)).
 
 **Author(s):** Ralf Kaestner, Samuel Bachmann
 
@@ -14,12 +14,12 @@ rqt plugin for ROS 2 that plots numeric message fields in a grid of 2D plots ([Q
 
 ## Features
 
-- **Multiple plots and curves** — rows × columns of plots; each plot can hold many curves
-- **Tabs** — multiple named plot grids in one window; each tab has its own layout, colors, and link/track settings
+- **Multiple plots and curves** — split any plot horizontally or vertically; each plot can hold many curves
+- **Tabs** — multiple named plot layouts in one window; each tab has its own layout, colors, and link/track settings
 - **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer
 - **Export** — PNG, SVG, PDF images; TXT or CSV curve data
-- **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`)
+- **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`); older row×column files still load
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 
 Also: run / pause / clear, message receipt time, start time from 0, circular and time-frame buffers, and drag-and-drop of curves between plot legends.
@@ -97,9 +97,9 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 | Hover (Points enabled) | Crosshair; nearest-sample marker and title / x, y readout |
 | Drag a legend item onto another plot | Copy that curve |
 
-Use the plot toolbar to run, pause, clear, configure, export, or maximize one plot.
+Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. Older row×column files still load.
 
-**Link Scale** keeps axis ranges in sync across the grid. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
+**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
 
 ### Configure a plot
 

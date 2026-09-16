@@ -67,13 +67,9 @@ class PlotTableConfigWidget : public QWidget {
  private slots:
   void configBackgroundColorChanged(const QColor& color);
   void configForegroundColorChanged(const QColor& color);
-  void configNumPlotsChanged(size_t numRows, size_t numColumns);
   void configLinkScaleChanged(bool link);
   void configLinkCursorChanged(bool link);
   void configTrackPointsChanged(bool track);
-
-  void spinBoxRowsValueChanged(int value);
-  void spinBoxColumnsValueChanged(int value);
 
   void checkBoxLinkScaleStateChanged(int state);
   void checkBoxLinkCursorStateChanged(int state);
