@@ -357,10 +357,6 @@
      <property name="text">
       <string/>
      </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>../resource/22x22/arrows_right_left.png</normaloff>../resource/22x22/arrows_right_left.png</iconset>
-     </property>
      <property name="iconSize">
       <size>
        <width>22</width>
@@ -435,10 +431,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/22x22/arrow_right.png</normaloff>../resource/22x22/arrow_right.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>22</width>
@@ -476,10 +468,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/22x22/arrow_left.png</normaloff>../resource/22x22/arrow_left.png</iconset>
        </property>
        <property name="iconSize">
         <size>

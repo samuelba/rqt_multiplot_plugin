@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 26.3.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="icon"
+   x="0px"
+   y="0px"
+   width="32px"
+   height="32px"
+   viewBox="0 0 32 32"
+   style="enable-background:new 0 0 32 32;"
+   xml:space="preserve"
+   sodipodi:docname="save-as.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs1" /><sodipodi:namedview
+   id="namedview1"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="36.375"
+   inkscape:cx="15.986254"
+   inkscape:cy="16"
+   inkscape:window-width="2560"
+   inkscape:window-height="1375"
+   inkscape:window-x="0"
+   inkscape:window-y="0"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="icon" />
+<style
+   type="text/css"
+   id="style1">
+	.st0{fill:none;}
+</style>
+
+<path
+   d="m 16,26 h -4 v -8 h 4 v -2 h -4 c -1.1,0 -2,0.9 -2,2 v 8 H 6 V 6 h 4 v 4 c 0,1.1 0.9,2 2,2 h 8 c 1.1,0 2,-0.9 2,-2 V 6.4 l 4,4 v 4.500344 h 2 V 10 C 28,9.7 27.9,9.5 27.7,9.3 l -5,-5 C 22.5,4.1 22.3,4 22,4 H 6 C 4.9,4 4,4.9 4,6 v 20 c 0,1.1 0.9,2 2,2 H 16 Z M 12,6 h 8 v 4 h -8 z"
+   id="path1"
+   sodipodi:nodetypes="cccccssccccssssccccssssssssccccccc" />
+<rect
+   id="_x3C_Transparent_Rectangle_x3E__589_"
+   class="st0"
+   width="32"
+   height="32" />
+<path
+   d="m 31.70705,19.580962 -3,-3 c -0.3906,-0.3906 -1.0234,-0.3906 -1.4141,0 l -9.293,9.293 v 4.4141 h 4.4141 l 9.293,-9.293 c 0.3906,-0.3906 0.3906,-1.0234 0,-1.4141 z m -10.1211,8.707 h -1.5859 v -1.5859 l 5,-5 1.5859,1.5859 z m 6.4141,-6.4141 -1.5859,-1.5859 1.5859,-1.5859 1.5859,1.5859 z"
+   id="path1-5" /></svg>

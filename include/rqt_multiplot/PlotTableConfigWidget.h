@@ -52,7 +52,8 @@ class PlotTableConfigWidget : public QWidget {
  private:
   Ui::PlotTableConfigWidget* ui_;
 
-  QMenu* menuImportExport_;
+  QMenu* menuImport_;
+  QMenu* menuExport_;
 
   PlotTableConfig* config_;
   PlotTabWidget* plotTabs_;
@@ -78,7 +79,8 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonRunClicked();
   void pushButtonPauseClicked();
   void pushButtonClearClicked();
-  void pushButtonImportExportClicked();
+  void pushButtonImportClicked();
+  void pushButtonExportClicked();
   void menuImportBagFileTriggered();
   void menuImportBagDirectoryTriggered();
   void menuExportImageFileTriggered();

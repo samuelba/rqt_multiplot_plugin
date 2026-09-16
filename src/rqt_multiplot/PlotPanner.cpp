@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <QEvent>
+#include <QIcon>
 #include <QMouseEvent>
 
 #include <qwt/qwt_plot.h>
@@ -35,7 +36,7 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
-  cursor_ = QCursor(QPixmap(packageResourcePath("resource/23x23/move.png")), 11, 11);
+  cursor_ = QCursor(QIcon(packageResourcePath("resource/move.svg")).pixmap(23, 23), 11, 11);
 
   if (canvas != nullptr) {
     canvas->installEventFilter(this);

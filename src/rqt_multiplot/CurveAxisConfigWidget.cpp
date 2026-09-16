@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QIcon>
 #include <QSignalBlocker>
 
 #include <rqt_multiplot/MessageFieldAccess.h>
@@ -36,8 +37,8 @@ namespace rqt_multiplot {
 CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
 
-  QPixmap pixmapOkay = QPixmap(packageResourcePath("resource/22x22/okay.png"));
-  QPixmap pixmapError = QPixmap(packageResourcePath("resource/22x22/error.png"));
+  QPixmap pixmapOkay = QIcon(packageResourcePath("resource/status-okay.svg")).pixmap(22, 22);
+  QPixmap pixmapError = QIcon(packageResourcePath("resource/status-error.svg")).pixmap(22, 22);
   QPixmap pixmapBusy = QPixmap(packageResourcePath("resource/22x22/busy.png"));
 
   ui_->statusWidgetTopic->setIcon(StatusWidget::Okay, pixmapOkay);

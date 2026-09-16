@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QIcon>
 #include <QPixmap>
 #include <QStringList>
 
@@ -39,9 +40,9 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
       messageTopicRegistry_(new MessageTopicRegistry(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonCopyRight->setIcon(QIcon(packageResourcePath("resource/22x22/arrow_right.png")));
-  ui_->pushButtonCopyLeft->setIcon(QIcon(packageResourcePath("resource/22x22/arrow_left.png")));
-  ui_->pushButtonSwap->setIcon(QIcon(packageResourcePath("resource/22x22/arrows_right_left.png")));
+  ui_->pushButtonCopyRight->setIcon(QIcon(packageResourcePath("resource/axis-copy-right.svg")));
+  ui_->pushButtonCopyLeft->setIcon(QIcon(packageResourcePath("resource/axis-copy-left.svg")));
+  ui_->pushButtonSwap->setIcon(QIcon(packageResourcePath("resource/axis-swap.svg")));
 
   ui_->curveAxisConfigWidgetX->setConfig(config_->getAxisConfig(CurveConfig::X));
   ui_->curveAxisConfigWidgetY->setConfig(config_->getAxisConfig(CurveConfig::Y));
@@ -68,7 +69,7 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   connect(ui_->curveAxisConfigWidgetX, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
   connect(ui_->curveAxisConfigWidgetY, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
 
-  ui_->labelValidationErrorIcon->setPixmap(QPixmap(packageResourcePath("resource/22x22/error.png")));
+  ui_->labelValidationErrorIcon->setPixmap(QIcon(packageResourcePath("resource/status-error.svg")).pixmap(22, 22));
   ui_->widgetValidationError->setVisible(false);
   ui_->lineValidationError->setVisible(false);
 

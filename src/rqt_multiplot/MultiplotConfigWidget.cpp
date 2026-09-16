@@ -44,11 +44,11 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
       maxHistoryLength_(maxHistoryLength) {
   ui_->setupUi(this);
 
-  ui_->pushButtonClearHistory->setIcon(QIcon(packageResourcePath("resource/16x16/clear_history.png")));
-  ui_->pushButtonNew->setIcon(QIcon(packageResourcePath("resource/16x16/add.png")));
-  ui_->pushButtonOpen->setIcon(QIcon(packageResourcePath("resource/16x16/open.png")));
-  ui_->pushButtonSave->setIcon(QIcon(packageResourcePath("resource/16x16/save.png")));
-  ui_->pushButtonSaveAs->setIcon(QIcon(packageResourcePath("resource/16x16/save_as.png")));
+  ui_->pushButtonClearHistory->setIcon(QIcon(packageResourcePath("resource/delete-history.svg")));
+  ui_->pushButtonNew->setIcon(QIcon(packageResourcePath("resource/new-configuration.svg")));
+  ui_->pushButtonOpen->setIcon(QIcon(packageResourcePath("resource/open-configuration.svg")));
+  ui_->pushButtonSave->setIcon(QIcon(packageResourcePath("resource/save.svg")));
+  ui_->pushButtonSaveAs->setIcon(QIcon(packageResourcePath("resource/save-as.svg")));
 
   ui_->pushButtonClearHistory->setEnabled(false);
   ui_->pushButtonSave->setEnabled(false);

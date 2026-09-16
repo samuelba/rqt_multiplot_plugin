@@ -48,10 +48,6 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/run.png</normaloff>../resource/16x16/run.png</iconset>
-       </property>
        <property name="iconSize">
         <size>
          <width>16</width>
@@ -85,10 +81,6 @@
        </property>
        <property name="text">
         <string/>
-       </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/pause.png</normaloff>../resource/16x16/pause.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -124,9 +116,39 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/clear.png</normaloff>../resource/16x16/clear.png</iconset>
+       <property name="iconSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonImport">
+       <property name="minimumSize">
+        <size>
+         <width>22</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>22</width>
+         <height>22</height>
+        </size>
+       </property>
+       <property name="cursor">
+        <cursorShape>PointingHandCursor</cursorShape>
+       </property>
+       <property name="toolTip">
+        <string>Import bag file</string>
+       </property>
+       <property name="text">
+        <string/>
        </property>
        <property name="iconSize">
         <size>
@@ -140,7 +162,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButtonImportExport">
+      <widget class="QPushButton" name="pushButtonExport">
        <property name="minimumSize">
         <size>
          <width>22</width>
@@ -162,9 +184,11 @@
        <property name="text">
         <string/>
        </property>
-       <property name="icon">
-        <iconset>
-         <normaloff>../resource/16x16/eject.png</normaloff>../resource/16x16/eject.png</iconset>
+       <property name="iconSize">
+        <size>
+         <width>16</width>
+         <height>16</height>
+        </size>
        </property>
        <property name="flat">
         <bool>true</bool>
