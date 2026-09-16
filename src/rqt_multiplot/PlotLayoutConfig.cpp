@@ -257,7 +257,7 @@ void PlotLayoutConfig::load(QSettings& settings) {
       addChild(child);
     }
 
-    stretch_ = parseStretch(settings.value("sizes").toString(), children_.count());
+    stretch_ = parseStretch(settings.value("sizes").toString(), static_cast<int>(children_.count()));
     emit structureChanged();
     emit changed();
     return;
@@ -340,7 +340,7 @@ void PlotLayoutConfig::read(QDataStream& stream) {
     addChild(child);
   }
 
-  stretch_ = reducedStretch(parseStretch(joinStretch(loadedStretch), children_.count()));
+  stretch_ = reducedStretch(parseStretch(joinStretch(loadedStretch), static_cast<int>(children_.count())));
   emit structureChanged();
   emit changed();
 }
@@ -402,7 +402,7 @@ PlotLayoutConfig* PlotLayoutConfig::findLeaf(const PlotConfig* plot) {
 }
 
 PlotConfig* PlotLayoutConfig::insertPlotSibling(PlotLayoutConfig* sibling, bool insertBefore) {
-  const int index = children_.indexOf(sibling);
+  const int index = static_cast<int>(children_.indexOf(sibling));
   if (index < 0) {
     return nullptr;
   }
@@ -466,7 +466,7 @@ void PlotLayoutConfig::addChild(PlotLayoutConfig* child, int stretch, int index)
 }
 
 void PlotLayoutConfig::removeChild(PlotLayoutConfig* child) {
-  const int index = children_.indexOf(child);
+  const int index = static_cast<int>(children_.indexOf(child));
   if (index < 0) {
     return;
   }
@@ -597,7 +597,7 @@ QVector<QVector<PlotConfig*>> PlotLayoutConfig::rectangularGrid() const {
       if (childGrid.isEmpty()) {
         continue;
       }
-      const int childColumns = childGrid[0].count();
+      const int childColumns = static_cast<int>(childGrid[0].count());
       if (columns < 0) {
         columns = childColumns;
       }
@@ -614,7 +614,7 @@ QVector<QVector<PlotConfig*>> PlotLayoutConfig::rectangularGrid() const {
     if (childGrid.isEmpty()) {
       continue;
     }
-    const int childRows = childGrid.count();
+    const int childRows = static_cast<int>(childGrid.count());
     if (rows < 0) {
       rows = childRows;
     }

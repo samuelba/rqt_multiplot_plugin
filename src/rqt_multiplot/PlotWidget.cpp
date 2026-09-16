@@ -101,10 +101,10 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/16x16/clear.png")));
   ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/16x16/eject.png")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/16x16/setup.png")));
-  ui_->pushButtonSplit->setIcon(QIcon(packageResourcePath("resource/split/layout.svg")));
+  ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
-  ui_->pushButtonClose->setIcon(QIcon(packageResourcePath("resource/close.svg")));
+  ui_->pushButtonClose->setIcon(packageIcon("resource/close.svg", QSize(16, 16)));
   ui_->pushButtonClose->setIconSize(QSize(16, 16));
   ui_->pushButtonClose->setEnabled(false);
 
@@ -379,7 +379,7 @@ void PlotWidget::buildSplitMenu() {
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    button->setIcon(QIcon(packageResourcePath(iconPath)));
+    button->setIcon(packageIcon(iconPath, QSize(24, 24)));
     button->setIconSize(QSize(24, 24));
     button->setToolTip(toolTip);
     button->setAutoRaise(true);
