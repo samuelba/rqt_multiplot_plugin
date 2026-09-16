@@ -381,4 +381,28 @@ TEST(PlotLayoutConfig, roundTripsThroughDataStream) {
   EXPECT_EQ(loaded.plotConfigs().at(1)->getTitle(), QString("B"));
 }
 
+TEST(PlotLayoutConfig, equalizeStretchSetsAllSplittersToOne) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* left = layout.getPlotConfig();
+  PlotConfig* right = layout.splitPlot(left, Qt::Horizontal);
+  layout.setStretch({3, 1});
+  layout.splitPlot(right, Qt::Vertical);
+  layout.getChildren().at(1)->setStretch({2, 1});
+
+  layout.equalizeStretch();
+
+  EXPECT_EQ(layout.getStretch(), (QList<int>{1, 1}));
+  EXPECT_EQ(layout.getChildren().at(1)->getStretch(), (QList<int>{1, 1}));
+  EXPECT_EQ(layout.plotCount(), 3u);
+}
+
+TEST(PlotLayoutConfig, equalizeStretchIsNoOpOnLeaf) {
+  PlotLayoutConfig layout(nullptr);
+
+  layout.equalizeStretch();
+
+  EXPECT_EQ(layout.getType(), PlotLayoutConfig::Plot);
+  EXPECT_EQ(layout.plotCount(), 1u);
+}
+
 }  // namespace

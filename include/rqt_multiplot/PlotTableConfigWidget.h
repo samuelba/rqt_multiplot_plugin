@@ -86,6 +86,8 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonRunClicked();
   void pushButtonPauseClicked();
   void pushButtonClearClicked();
+  void pushButtonResetLayoutClicked();
+  void updateResetLayoutButtonState();
   void menuImportBagFileTriggered();
   void menuImportBagDirectoryTriggered();
   void menuExportImageFileTriggered();

@@ -364,4 +364,68 @@ TEST(PlotTableWidget, closeNestedPlotKeepsOtherPlotSize) {
   EXPECT_NEAR(static_cast<double>(after.at(0)), static_cast<double>(before.at(0)), 40.0);
 }
 
+TEST(PlotTableWidget, resetEvenDistributionEqualizesSplitters) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotConfig* left = config.getPlotConfig(0, 0);
+  config.splitPlot(left, Qt::Horizontal);
+  config.getLayout()->setStretch({3, 1});
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  widget.resetEvenDistribution();
+  waitForLayout();
+
+  EXPECT_EQ(config.getLayout()->getStretch(), (QList<int>{1, 1}));
+
+  QSplitter* root = rootSplitter(widget);
+  ASSERT_NE(root, nullptr);
+  const QList<int> sizes = root->sizes();
+  ASSERT_EQ(sizes.count(), 2);
+  ASSERT_GT(sizes.at(1), 0);
+  EXPECT_NEAR(sizeRatio(sizes), 1.0, 0.15);
+}
+
+TEST(PlotTableWidget, resetEvenDistributionEqualizesNestedSplitters) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotConfig* left = config.getPlotConfig(0, 0);
+  PlotConfig* right = config.splitPlot(left, Qt::Horizontal);
+  config.getLayout()->setStretch({3, 1});
+  config.splitPlot(right, Qt::Vertical);
+  config.getLayout()->getChildren().at(1)->setStretch({2, 1});
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  widget.resetEvenDistribution();
+  waitForLayout();
+
+  EXPECT_EQ(config.getLayout()->getStretch(), (QList<int>{1, 1}));
+  EXPECT_EQ(config.getLayout()->getChildren().at(1)->getStretch(), (QList<int>{1, 1}));
+
+  QSplitter* root = rootSplitter(widget);
+  ASSERT_NE(root, nullptr);
+  const QList<int> rootSizes = root->sizes();
+  ASSERT_EQ(rootSizes.count(), 2);
+  ASSERT_GT(rootSizes.at(1), 0);
+  EXPECT_NEAR(sizeRatio(rootSizes), 1.0, 0.15);
+
+  auto* nested = root->findChild<QSplitter*>();
+  ASSERT_NE(nested, nullptr);
+  const QList<int> nestedSizes = nested->sizes();
+  ASSERT_EQ(nestedSizes.count(), 2);
+  ASSERT_GT(nestedSizes.at(1), 0);
+  EXPECT_NEAR(sizeRatio(nestedSizes), 1.0, 0.15);
+}
+
 }  // namespace
