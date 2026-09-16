@@ -417,7 +417,7 @@ void PlotTableWidget::connectPlotWidget(PlotWidget* plot) {
 
 void PlotTableWidget::applyStretch(QSplitter* splitter, PlotLayoutConfig* node) {
   const QList<int> stretch = node->getStretch();
-  const int count = std::min(stretch.count(), splitter->count());
+  const int count = std::min(static_cast<int>(stretch.count()), splitter->count());
   if (count == 0) {
     return;
   }
