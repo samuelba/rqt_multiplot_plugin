@@ -16,11 +16,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QAbstractButton>
+#include <QBuffer>
+#include <QDataStream>
 #include <QDebug>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QIODevice>
+#include <QIcon>
 #include <QMessageBox>
 #include <QSettings>
+#include <QTimer>
 
 #include <rqt_multiplot/PackageResource.h>
 
@@ -41,7 +47,9 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
       ui_(new Ui::MultiplotConfigWidget()),
       config_(nullptr),
       currentConfigModified_(false),
-      maxHistoryLength_(maxHistoryLength) {
+      maxHistoryLength_(maxHistoryLength),
+      suppressDirtyTracking_(false),
+      settleSnapshotPending_(false) {
   ui_->setupUi(this);
 
   ui_->pushButtonClearHistory->setIcon(QIcon(packageResourcePath("resource/delete-history.svg")));
@@ -82,6 +90,8 @@ void MultiplotConfigWidget::setConfig(MultiplotConfig* config) {
     if (config != nullptr) {
       connect(config, SIGNAL(changed()), this, SLOT(configChanged()));
     }
+
+    setCurrentConfigModified(false);
   }
 }
 
@@ -108,6 +118,11 @@ QString MultiplotConfigWidget::getCurrentConfigUrl() const {
 }
 
 bool MultiplotConfigWidget::setCurrentConfigModified(bool modified) {
+  if (!modified) {
+    savedConfigSnapshot_ = currentConfigSnapshot();
+    scheduleSettleSnapshot();
+  }
+
   if (modified != currentConfigModified_) {
     currentConfigModified_ = modified;
 
@@ -186,9 +201,11 @@ bool MultiplotConfigWidget::loadConfig(const QString& url) {
         QSettings settings(filePath, XmlSettings::format);
 
         if (settings.status() == QSettings::NoError) {
+          suppressDirtyTracking_ = true;
           settings.beginGroup("rqt_multiplot");
           config_->load(settings);
           settings.endGroup();
+          suppressDirtyTracking_ = false;
 
           setCurrentConfigUrl(url);
           setCurrentConfigModified(false);
@@ -250,7 +267,9 @@ bool MultiplotConfigWidget::saveConfig(const QString& url) {
 
 void MultiplotConfigWidget::resetConfig() {
   if (config_ != nullptr) {
+    suppressDirtyTracking_ = true;
     config_->reset();
+    suppressDirtyTracking_ = false;
 
     setCurrentConfigUrl(QString(), false);
     setCurrentConfigModified(false);
@@ -259,7 +278,7 @@ void MultiplotConfigWidget::resetConfig() {
 
 bool MultiplotConfigWidget::confirmSave(bool canCancel) {
   if (currentConfigModified_) {
-    QMessageBox messageBox;
+    QMessageBox messageBox(this);
     QMessageBox::StandardButtons buttons = QMessageBox::Save | QMessageBox::Discard;
 
     if (canCancel) {
@@ -270,6 +289,7 @@ bool MultiplotConfigWidget::confirmSave(bool canCancel) {
     messageBox.setInformativeText("Do you want to save your changes?");
     messageBox.setStandardButtons(buttons);
     messageBox.setDefaultButton(QMessageBox::Save);
+    applySavePromptIcons(messageBox);
 
     switch (messageBox.exec()) {
       case QMessageBox::Save:
@@ -296,6 +316,47 @@ bool MultiplotConfigWidget::confirmSave(bool canCancel) {
   }
 
   return true;
+}
+
+void MultiplotConfigWidget::applySavePromptIcons(QMessageBox& messageBox) {
+  if (QAbstractButton* saveButton = messageBox.button(QMessageBox::Save)) {
+    saveButton->setIcon(QIcon(packageResourcePath("resource/save.svg")));
+  }
+  if (QAbstractButton* discardButton = messageBox.button(QMessageBox::Discard)) {
+    discardButton->setIcon(QIcon(packageResourcePath("resource/trash-can.svg")));
+  }
+}
+
+QByteArray MultiplotConfigWidget::currentConfigSnapshot() const {
+  if (config_ == nullptr) {
+    return {};
+  }
+
+  QByteArray bytes;
+  QBuffer buffer(&bytes);
+  buffer.open(QIODevice::WriteOnly);
+  QDataStream stream(&buffer);
+  config_->write(stream);
+  return bytes;
+}
+
+void MultiplotConfigWidget::scheduleSettleSnapshot() {
+  if (settleSnapshotPending_) {
+    return;
+  }
+
+  settleSnapshotPending_ = true;
+  QTimer::singleShot(0, this, [this]() {
+    settleSnapshotPending_ = false;
+    savedConfigSnapshot_ = currentConfigSnapshot();
+    if (!currentConfigModified_) {
+      return;
+    }
+
+    currentConfigModified_ = false;
+    ui_->pushButtonSave->setEnabled(false);
+    emit currentConfigModifiedChanged(false);
+  });
 }
 
 void MultiplotConfigWidget::addConfigUrlToHistory(const QString& url) {
@@ -343,7 +404,19 @@ void MultiplotConfigWidget::clearConfigUrlHistory() {
 /*****************************************************************************/
 
 void MultiplotConfigWidget::configChanged() {
-  setCurrentConfigModified(true);
+  if (suppressDirtyTracking_) {
+    return;
+  }
+
+  const bool configDirty = currentConfigSnapshot() != savedConfigSnapshot_;
+  if (configDirty) {
+    setCurrentConfigModified(true);
+    return;
+  }
+
+  if (ui_->configComboBox->getCurrentUrl() == currentConfigUrl_) {
+    setCurrentConfigModified(false);
+  }
 }
 
 void MultiplotConfigWidget::configComboBoxEditTextChanged(const QString& text) {
@@ -359,6 +432,10 @@ void MultiplotConfigWidget::configComboBoxEditTextChanged(const QString& text) {
 }
 
 void MultiplotConfigWidget::configComboBoxCurrentUrlChanged(const QString& url) {
+  if (url.isEmpty()) {
+    return;
+  }
+
   if (url != currentConfigUrl_) {
     if (!isFile(url)) {
       if (!currentConfigUrl_.isEmpty()) {

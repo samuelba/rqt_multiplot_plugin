@@ -19,7 +19,12 @@
 #ifndef RQT_MULTIPLOT_MULTIPLOT_WIDGET_H
 #define RQT_MULTIPLOT_MULTIPLOT_WIDGET_H
 
+#include <QAbstractButton>
+#include <QCloseEvent>
 #include <QDockWidget>
+#include <QEvent>
+#include <QPointer>
+#include <QShowEvent>
 #include <QStringList>
 #include <QWidget>
 
@@ -55,13 +60,27 @@ class MultiplotWidget : public QWidget {
 
   bool confirmClose();
 
+ protected:
+  bool event(QEvent* event) override;
+  bool eventFilter(QObject* object, QEvent* event) override;
+  void closeEvent(QCloseEvent* event) override;
+  void showEvent(QShowEvent* event) override;
+
  private:
+  void installCloseGuard();
+  bool isCloseButtonActivation(QObject* object, QEvent* event) const;
+
   Ui::MultiplotWidget* ui_;
 
   MultiplotConfig* config_;
 
   MessageTypeRegistry* messageTypeRegistry_;
   PackageRegistry* packageRegistry_;
+
+  QPointer<QObject> guardedDock_;
+  QPointer<QAbstractButton> guardedCloseButton_;
+  bool closePromptCompleted_;
+  bool closePromptOpen_;
 
  private slots:
   void configWidgetCurrentConfigModifiedChanged(bool modified);

@@ -59,6 +59,7 @@ void MultiplotPlugin::initPlugin(qt_gui_cpp::PluginContext& context) {
 
 void MultiplotPlugin::shutdownPlugin() {
   if (widget_ != nullptr) {
+    widget_->confirmClose();
     widget_->pausePlots();
   }
 }

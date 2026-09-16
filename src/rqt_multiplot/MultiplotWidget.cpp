@@ -16,6 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QAbstractButton>
+#include <QCloseEvent>
+#include <QDockWidget>
+#include <QEvent>
+#include <QKeyEvent>
+#include <QMouseEvent>
+#include <QShowEvent>
+#include <QTimer>
+
 #include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
 
@@ -24,6 +33,27 @@
 #include "rqt_multiplot/MultiplotWidget.h"
 
 namespace rqt_multiplot {
+
+namespace {
+QAbstractButton* findDockCloseButton(QWidget* titleBar) {
+  if (titleBar == nullptr) {
+    return nullptr;
+  }
+
+  if (auto* named = titleBar->findChild<QAbstractButton*>(QStringLiteral("close_button"))) {
+    return named;
+  }
+
+  const QList<QAbstractButton*> buttons = titleBar->findChildren<QAbstractButton*>();
+  for (QAbstractButton* button : buttons) {
+    if (button->toolTip().contains(QStringLiteral("Close"), Qt::CaseInsensitive)) {
+      return button;
+    }
+  }
+
+  return nullptr;
+}
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -34,7 +64,9 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       ui_(new Ui::MultiplotWidget()),
       config_(new MultiplotConfig(this)),
       messageTypeRegistry_(new MessageTypeRegistry(this)),
-      packageRegistry_(new PackageRegistry(this)) {
+      packageRegistry_(new PackageRegistry(this)),
+      closePromptCompleted_(false),
+      closePromptOpen_(false) {
   ui_->setupUi(this);
 
   ui_->configWidget->setConfig(config_);
@@ -49,14 +81,13 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
           SLOT(plotTabCurrentPlotTableChanged(PlotTableWidget*)));
 
   configWidgetCurrentConfigUrlChanged(QString());
+  ui_->configWidget->setCurrentConfigModified(false);
 
   rqt_multiplot::MessageTypeRegistry::update();
   rqt_multiplot::PackageRegistry::update();
 }
 
 MultiplotWidget::~MultiplotWidget() {
-  confirmClose();
-
   delete ui_;
 }
 
@@ -122,7 +153,110 @@ void MultiplotWidget::readBag(const QString& url) {
 }
 
 bool MultiplotWidget::confirmClose() {
-  return ui_->configWidget->confirmSave(false);
+  if (closePromptCompleted_) {
+    return true;
+  }
+  if (closePromptOpen_) {
+    return false;
+  }
+
+  closePromptOpen_ = true;
+  const bool accepted = ui_->configWidget->confirmSave(false);
+  closePromptOpen_ = false;
+  if (accepted) {
+    closePromptCompleted_ = true;
+  }
+  return accepted;
+}
+
+bool MultiplotWidget::event(QEvent* event) {
+  if (event->type() == QEvent::ParentChange) {
+    installCloseGuard();
+  }
+  return QWidget::event(event);
+}
+
+bool MultiplotWidget::eventFilter(QObject* object, QEvent* event) {
+  if ((object == guardedDock_) && (event->type() == QEvent::Close)) {
+    if (!confirmClose()) {
+      static_cast<QCloseEvent*>(event)->ignore();
+      return true;
+    }
+    return false;
+  }
+
+  if (isCloseButtonActivation(object, event)) {
+    if (closePromptCompleted_) {
+      return false;
+    }
+    if (!confirmClose()) {
+      return true;
+    }
+    if (auto* button = qobject_cast<QAbstractButton*>(object)) {
+      QTimer::singleShot(0, button, &QAbstractButton::click);
+    }
+    return true;
+  }
+
+  return QWidget::eventFilter(object, event);
+}
+
+void MultiplotWidget::closeEvent(QCloseEvent* event) {
+  if (!confirmClose()) {
+    event->ignore();
+    return;
+  }
+  QWidget::closeEvent(event);
+}
+
+void MultiplotWidget::showEvent(QShowEvent* event) {
+  closePromptCompleted_ = false;
+  installCloseGuard();
+  QWidget::showEvent(event);
+}
+
+void MultiplotWidget::installCloseGuard() {
+  QDockWidget* dock = getDockWidget();
+  if (dock == nullptr) {
+    return;
+  }
+
+  if (guardedDock_ != dock) {
+    if (guardedDock_ != nullptr) {
+      guardedDock_->removeEventFilter(this);
+    }
+    dock->installEventFilter(this);
+    guardedDock_ = dock;
+  }
+
+  QAbstractButton* closeButton = findDockCloseButton(dock->titleBarWidget());
+  if ((closeButton == nullptr) || (guardedCloseButton_ == closeButton)) {
+    return;
+  }
+
+  if (guardedCloseButton_ != nullptr) {
+    guardedCloseButton_->removeEventFilter(this);
+  }
+  closeButton->installEventFilter(this);
+  guardedCloseButton_ = closeButton;
+}
+
+bool MultiplotWidget::isCloseButtonActivation(QObject* object, QEvent* event) const {
+  if ((object == nullptr) || (object != guardedCloseButton_)) {
+    return false;
+  }
+
+  if (event->type() == QEvent::MouseButtonRelease) {
+    auto* mouseEvent = static_cast<QMouseEvent*>(event);
+    return mouseEvent->button() == Qt::LeftButton;
+  }
+
+  if (event->type() == QEvent::KeyPress) {
+    auto* keyEvent = static_cast<QKeyEvent*>(event);
+    return (keyEvent->key() == Qt::Key_Space) || (keyEvent->key() == Qt::Key_Return) || (keyEvent->key() == Qt::Key_Enter);
+  }
+
+  return false;
 }
 
 /*****************************************************************************/
