@@ -130,7 +130,23 @@
     </layout>
    </item>
    <item row="0" column="17">
+    <spacer name="horizontalSpacerToolbar">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0" colspan="20">
     <widget class="rqt_multiplot::ProgressWidget" name="widgetProgress" native="true">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
        <horstretch>0</horstretch>

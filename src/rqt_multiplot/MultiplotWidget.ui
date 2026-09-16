@@ -22,7 +22,7 @@
      <item row="0" column="0" colspan="5">
       <widget class="QMenuBar" name="menuBar"/>
      </item>
-     <item row="1" column="0">
+     <item row="1" column="0" alignment="Qt::AlignTop">
       <widget class="QLabel" name="labelConfig">
        <property name="minimumSize">
         <size>
@@ -41,7 +41,7 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
+     <item row="1" column="1" alignment="Qt::AlignTop">
       <widget class="rqt_multiplot::MultiplotConfigWidget" name="configWidget" native="true">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -51,14 +51,14 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
+     <item row="1" column="2" alignment="Qt::AlignTop">
       <widget class="Line" name="lineToolbarSeparator">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
        </property>
       </widget>
      </item>
-     <item row="1" column="3">
+     <item row="1" column="3" alignment="Qt::AlignTop">
       <widget class="QLabel" name="labelPlots">
        <property name="minimumSize">
         <size>
@@ -77,7 +77,7 @@
        </property>
       </widget>
      </item>
-     <item row="1" column="4">
+     <item row="1" column="4" alignment="Qt::AlignTop">
       <widget class="rqt_multiplot::PlotTableConfigWidget" name="plotTableConfigWidget" native="true">
        <property name="sizePolicy">
         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">

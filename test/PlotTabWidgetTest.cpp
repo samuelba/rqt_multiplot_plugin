@@ -82,6 +82,12 @@ void finishBagJob(PlotTableWidget* plotTable) {
   EXPECT_TRUE(QMetaObject::invokeMethod(plotTable, "bagReaderReadingFinished", Qt::DirectConnection));
 }
 
+void failBagJob(PlotTableWidget* plotTable) {
+  EXPECT_NE(plotTable, nullptr);
+  EXPECT_TRUE(
+      QMetaObject::invokeMethod(plotTable, "bagReaderReadingFailed", Qt::DirectConnection, Q_ARG(QString, QStringLiteral("error"))));
+}
+
 TEST(PlotTabWidget, startsWithOneTabFromConfig) {
   ensureApplication();
 
@@ -332,6 +338,107 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
 }
 
+TEST(PlotTabWidget, progressRowHiddenWhenIdle) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+  EXPECT_TRUE(progress->isHidden());
+}
+
+TEST(PlotTabWidget, progressRowShownWhileBagJobActive) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  PlotTableConfigWidget toolbar;
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+  toolbar.show();
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  EXPECT_FALSE(progress->isHidden());
+  EXPECT_TRUE(progress->isStarted());
+}
+
+TEST(PlotTabWidget, progressRowHiddenAfterBagJobFinishes) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  PlotTableConfigWidget toolbar;
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  finishBagJob(tabs.getPlotTable(0));
+
+  EXPECT_FALSE(progress->isStarted());
+  EXPECT_TRUE(progress->isHidden());
+}
+
+TEST(PlotTabWidget, progressRowHiddenAfterBagJobFails) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  PlotTableConfigWidget toolbar;
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  failBagJob(tabs.getPlotTable(0));
+
+  EXPECT_FALSE(progress->isStarted());
+  EXPECT_TRUE(progress->isHidden());
+}
+
+TEST(PlotTabWidget, progressRowStaysVisibleWhileAnotherTabJobActive) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  PlotTableConfigWidget toolbar;
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+  toolbar.show();
+
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  startBagJob(tabs.getPlotTable(0));
+  startBagJob(tabs.getPlotTable(1));
+  finishBagJob(tabs.getPlotTable(0));
+
+  EXPECT_FALSE(progress->isHidden());
+  EXPECT_TRUE(progress->isStarted());
+}
+
 TEST(PlotTabWidget, closingTabWithActiveJobCompletesToolbarProgress) {
   ensureApplication();
 
@@ -353,6 +460,7 @@ TEST(PlotTabWidget, closingTabWithActiveJobCompletesToolbarProgress) {
 
   EXPECT_EQ(tabs.getNumPlotTables(), 1u);
   EXPECT_FALSE(progress->isStarted());
+  EXPECT_TRUE(progress->isHidden());
 }
 
 TEST(PlotTabWidget, switchingTabsDoesNotResetActiveJobCount) {
@@ -386,6 +494,7 @@ TEST(PlotTabWidget, switchingTabsDoesNotResetActiveJobCount) {
 
   finishBagJob(tabs.getPlotTable(1));
   EXPECT_FALSE(progress->isStarted());
+  EXPECT_TRUE(progress->isHidden());
 }
 
 TEST(PlotTabWidget, aggregatesProgressAcrossActiveTabs) {
