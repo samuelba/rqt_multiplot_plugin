@@ -387,6 +387,9 @@ if(BUILD_TESTING)
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/MultiplotConfigTest.cpp
+    test/MultiplotConfigWidgetTest.cpp
+    test/MultiplotWidgetTest.cpp
+    test/MultiplotFileMenuTest.cpp
     test/PlotConfigTest.cpp
     test/PlotLayoutConfigTest.cpp
     test/PlotTableConfigTest.cpp

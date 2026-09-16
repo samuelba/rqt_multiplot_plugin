@@ -19,7 +19,7 @@
 #ifndef RQT_MULTIPLOT_PLOT_TABLE_CONFIG_WIDGET_H
 #define RQT_MULTIPLOT_PLOT_TABLE_CONFIG_WIDGET_H
 
-#include <QMenu>
+#include <QAction>
 #include <QWidget>
 
 #include <rqt_multiplot/PlotTableConfig.h>
@@ -46,14 +46,21 @@ class PlotTableConfigWidget : public QWidget {
   PlotTableWidget* getPlotTableWidget() const;
   void runPlots();
 
+  QAction* getActionImportBagFile() const;
+  QAction* getActionImportBagDirectory() const;
+  QAction* getActionExportImageFile() const;
+  QAction* getActionExportTextFile() const;
+
  protected:
   bool eventFilter(QObject* object, QEvent* event) override;
 
  private:
   Ui::PlotTableConfigWidget* ui_;
 
-  QMenu* menuImport_;
-  QMenu* menuExport_;
+  QAction* actionImportBagFile_;
+  QAction* actionImportBagDirectory_;
+  QAction* actionExportImageFile_;
+  QAction* actionExportTextFile_;
 
   PlotTableConfig* config_;
   PlotTabWidget* plotTabs_;
@@ -79,8 +86,6 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonRunClicked();
   void pushButtonPauseClicked();
   void pushButtonClearClicked();
-  void pushButtonImportClicked();
-  void pushButtonExportClicked();
   void menuImportBagFileTriggered();
   void menuImportBagDirectoryTriggered();
   void menuExportImageFileTriggered();

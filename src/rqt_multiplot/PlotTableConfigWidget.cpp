@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QAction>
 #include <QColorDialog>
 #include <QFileDialog>
 
@@ -39,14 +40,26 @@ namespace rqt_multiplot {
 PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
     : QWidget(parent),
       ui_(new Ui::PlotTableConfigWidget()),
-      menuImport_(new QMenu(this)),
-      menuExport_(new QMenu(this)),
+      actionImportBagFile_(new QAction(tr("Import from bag file..."), this)),
+      actionImportBagDirectory_(new QAction(tr("Import from bag directory..."), this)),
+      actionExportImageFile_(new QAction(tr("Export to image file..."), this)),
+      actionExportTextFile_(new QAction(tr("Export to text file..."), this)),
       config_(nullptr),
       plotTabs_(nullptr),
       plotTable_(nullptr),
       playbackJobCount_(0),
       lastJobFailure_() {
   ui_->setupUi(this);
+
+  actionImportBagFile_->setObjectName(QStringLiteral("actionImportBagFile"));
+  actionImportBagDirectory_->setObjectName(QStringLiteral("actionImportBagDirectory"));
+  actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
+  actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
+
+  actionImportBagFile_->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
+  actionImportBagDirectory_->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
+  actionExportImageFile_->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
+  actionExportTextFile_->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
 
   ui_->labelBackgroundColor->setAutoFillBackground(true);
   ui_->labelForegroundColor->setAutoFillBackground(true);
@@ -56,15 +69,13 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/play.svg")));
   ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
-  ui_->pushButtonImport->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
-  ui_->pushButtonExport->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
 
   ui_->pushButtonPause->setEnabled(false);
 
-  menuImport_->addAction("Import from bag file...", this, SLOT(menuImportBagFileTriggered()));
-  menuImport_->addAction("Import from bag directory...", this, SLOT(menuImportBagDirectoryTriggered()));
-  menuExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
-  menuExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
+  connect(actionImportBagFile_, SIGNAL(triggered()), this, SLOT(menuImportBagFileTriggered()));
+  connect(actionImportBagDirectory_, SIGNAL(triggered()), this, SLOT(menuImportBagDirectoryTriggered()));
+  connect(actionExportImageFile_, SIGNAL(triggered()), this, SLOT(menuExportImageFileTriggered()));
+  connect(actionExportTextFile_, SIGNAL(triggered()), this, SLOT(menuExportTextFileTriggered()));
 
   connect(ui_->checkBoxLinkScale, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkScaleStateChanged(int)));
   connect(ui_->checkBoxLinkCursor, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkCursorStateChanged(int)));
@@ -73,8 +84,6 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->pushButtonRun, SIGNAL(clicked()), this, SLOT(pushButtonRunClicked()));
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
-  connect(ui_->pushButtonImport, SIGNAL(clicked()), this, SLOT(pushButtonImportClicked()));
-  connect(ui_->pushButtonExport, SIGNAL(clicked()), this, SLOT(pushButtonExportClicked()));
 
   ui_->labelBackgroundColor->installEventFilter(this);
   ui_->labelForegroundColor->installEventFilter(this);
@@ -157,6 +166,22 @@ void PlotTableConfigWidget::runPlots() {
   } else if (plotTable_ != nullptr) {
     plotTable_->runPlots();
   }
+}
+
+QAction* PlotTableConfigWidget::getActionImportBagFile() const {
+  return actionImportBagFile_;
+}
+
+QAction* PlotTableConfigWidget::getActionImportBagDirectory() const {
+  return actionImportBagDirectory_;
+}
+
+QAction* PlotTableConfigWidget::getActionExportImageFile() const {
+  return actionExportImageFile_;
+}
+
+QAction* PlotTableConfigWidget::getActionExportTextFile() const {
+  return actionExportTextFile_;
 }
 
 void PlotTableConfigWidget::unbindPlaybackSignals() {
@@ -288,14 +313,6 @@ void PlotTableConfigWidget::pushButtonClearClicked() {
   } else if (plotTable_ != nullptr) {
     plotTable_->clearPlots();
   }
-}
-
-void PlotTableConfigWidget::pushButtonImportClicked() {
-  menuImport_->popup(QCursor::pos());
-}
-
-void PlotTableConfigWidget::pushButtonExportClicked() {
-  menuExport_->popup(QCursor::pos());
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {

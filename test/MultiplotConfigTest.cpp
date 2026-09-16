@@ -317,6 +317,38 @@ TEST(MultiplotConfig, loadsLegacyTableStreamOntoSingleTab) {
   EXPECT_EQ(loaded.getCurrentTabIndex(), 0u);
 }
 
+QByteArray snapshotOf(const MultiplotConfig& config) {
+  QByteArray bytes;
+  QBuffer buffer(&bytes);
+  buffer.open(QIODevice::WriteOnly);
+  QDataStream stream(&buffer);
+  config.write(stream);
+  return bytes;
+}
+
+TEST(MultiplotConfig, snapshotMatchesAfterAddAndRemoveTab) {
+  MultiplotConfig config(nullptr);
+  const QByteArray original = snapshotOf(config);
+
+  config.addTab();
+  EXPECT_NE(snapshotOf(config), original);
+
+  config.removeTab(1);
+  EXPECT_EQ(snapshotOf(config), original);
+}
+
+TEST(MultiplotConfig, snapshotMatchesAfterSwitchingTabAndBack) {
+  MultiplotConfig config(nullptr);
+  config.addTab();
+  const QByteArray original = snapshotOf(config);
+
+  config.setCurrentTabIndex(0);
+  EXPECT_NE(snapshotOf(config), original);
+
+  config.setCurrentTabIndex(1);
+  EXPECT_EQ(snapshotOf(config), original);
+}
+
 TEST(MultiplotConfig, prefersTabsWhenBothGroupsExist) {
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());

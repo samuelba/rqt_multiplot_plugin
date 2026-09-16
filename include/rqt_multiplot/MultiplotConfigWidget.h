@@ -19,10 +19,14 @@
 #ifndef RQT_MULTIPLOT_MULTIPLOT_CONFIG_WIDGET_H
 #define RQT_MULTIPLOT_MULTIPLOT_CONFIG_WIDGET_H
 
+#include <QAction>
+#include <QByteArray>
 #include <QStringList>
 #include <QWidget>
 
 #include <rqt_multiplot/MultiplotConfig.h>
+
+class QMessageBox;
 
 namespace Ui {
 class MultiplotConfigWidget;
@@ -53,6 +57,13 @@ class MultiplotConfigWidget : public QWidget {
   void resetConfig();
 
   bool confirmSave(bool canCancel = true);
+  static void applySavePromptIcons(QMessageBox& messageBox);
+
+  QAction* getActionNew() const;
+  QAction* getActionOpen() const;
+  QAction* getActionSave() const;
+  QAction* getActionSaveAs() const;
+  QAction* getActionClearHistory() const;
 
   void addConfigUrlToHistory(const QString& url);
   void clearConfigUrlHistory();
@@ -68,7 +79,19 @@ class MultiplotConfigWidget : public QWidget {
 
   QString currentConfigUrl_;
   bool currentConfigModified_;
+  QByteArray savedConfigSnapshot_;
   size_t maxHistoryLength_;
+  bool suppressDirtyTracking_;
+  bool settleSnapshotPending_;
+
+  QAction* actionNew_;
+  QAction* actionOpen_;
+  QAction* actionSave_;
+  QAction* actionSaveAs_;
+  QAction* actionClearHistory_;
+
+  QByteArray currentConfigSnapshot() const;
+  void scheduleSettleSnapshot();
 
  private slots:
   void configChanged();
