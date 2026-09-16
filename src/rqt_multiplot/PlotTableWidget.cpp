@@ -259,6 +259,15 @@ void PlotTableWidget::saveToTextFile(const QString& fileName) {
   }
 }
 
+void PlotTableWidget::resetEvenDistribution() {
+  if ((config_ == nullptr) || (config_->getLayout() == nullptr)) {
+    return;
+  }
+
+  config_->getLayout()->equalizeStretch();
+  applyAllStretch();
+}
+
 void PlotTableWidget::storeSplitterRatios() {
   for (auto it = splitterNodes_.begin(); it != splitterNodes_.end(); ++it) {
     const QList<int> sizes = it.key()->sizes();

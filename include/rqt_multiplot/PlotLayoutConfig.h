@@ -52,6 +52,7 @@ class PlotLayoutConfig : public Config {
 
   QList<PlotConfig*> detachPlotConfigs();
   void resetToRectangularGrid(size_t numRows, size_t numColumns, QList<PlotConfig*>& preserved);
+  void equalizeStretch();
 
   void save(QSettings& settings) const override;
   void load(QSettings& settings) override;

@@ -71,6 +71,7 @@ class PlotTableWidget : public QWidget {
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
   void storeSplitterRatios();
+  void resetEvenDistribution();
 
  signals:
   void plotPausedChanged();

@@ -217,6 +217,23 @@ void PlotLayoutConfig::resetToRectangularGrid(size_t numRows, size_t numColumns,
   emit changed();
 }
 
+void PlotLayoutConfig::equalizeStretch() {
+  if (type_ == Plot) {
+    return;
+  }
+
+  QList<int> evenStretch;
+  evenStretch.reserve(children_.count());
+  for (int index = 0; index < children_.count(); ++index) {
+    evenStretch.append(1);
+  }
+  setStretch(evenStretch);
+
+  for (PlotLayoutConfig* child : children_) {
+    child->equalizeStretch();
+  }
+}
+
 void PlotLayoutConfig::save(QSettings& settings) const {
   settings.setValue("type", typeName(type_));
   settings.setValue("close_donates_to_next", closeDonatesToNext_);

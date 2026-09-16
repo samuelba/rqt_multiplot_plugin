@@ -69,8 +69,10 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/play.svg")));
   ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
+  ui_->pushButtonResetLayout->setIcon(QIcon(packageResourcePath("resource/reset-grid.svg")));
 
   ui_->pushButtonPause->setEnabled(false);
+  ui_->pushButtonResetLayout->setEnabled(false);
 
   connect(actionImportBagFile_, SIGNAL(triggered()), this, SLOT(menuImportBagFileTriggered()));
   connect(actionImportBagDirectory_, SIGNAL(triggered()), this, SLOT(menuImportBagDirectoryTriggered()));
@@ -84,6 +86,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->pushButtonRun, SIGNAL(clicked()), this, SLOT(pushButtonRunClicked()));
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
+  connect(ui_->pushButtonResetLayout, SIGNAL(clicked()), this, SLOT(pushButtonResetLayoutClicked()));
 
   ui_->labelBackgroundColor->installEventFilter(this);
   ui_->labelForegroundColor->installEventFilter(this);
@@ -105,6 +108,8 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      disconnect(config_, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
+      disconnect(config_, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
     }
 
     config_ = config;
@@ -115,6 +120,8 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      connect(config, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
+      connect(config, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
 
       configBackgroundColorChanged(config->getBackgroundColor());
       configForegroundColorChanged(config->getForegroundColor());
@@ -122,6 +129,8 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       configLinkCursorChanged(config_->isCursorLinked());
       configTrackPointsChanged(config_->arePointsTracked());
     }
+
+    updateResetLayoutButtonState();
   }
 }
 
@@ -148,6 +157,7 @@ void PlotTableConfigWidget::setPlotTable(PlotTableWidget* plotTable) {
 
   if (plotTabs_ != nullptr) {
     plotTable_ = plotTable;
+    updateResetLayoutButtonState();
     return;
   }
 
@@ -313,6 +323,16 @@ void PlotTableConfigWidget::pushButtonClearClicked() {
   } else if (plotTable_ != nullptr) {
     plotTable_->clearPlots();
   }
+}
+
+void PlotTableConfigWidget::pushButtonResetLayoutClicked() {
+  if (plotTable_ != nullptr) {
+    plotTable_->resetEvenDistribution();
+  }
+}
+
+void PlotTableConfigWidget::updateResetLayoutButtonState() {
+  ui_->pushButtonResetLayout->setEnabled(config_ != nullptr && config_->plotCount() >= 2);
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {

@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include <rqt_multiplot/MultiplotConfig.h>
+#include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 #include <rqt_multiplot/PlotTableConfigWidget.h>
@@ -23,6 +24,7 @@
 namespace {
 
 using rqt_multiplot::MultiplotConfig;
+using rqt_multiplot::PlotLayoutConfig;
 using rqt_multiplot::PlotTableConfig;
 using rqt_multiplot::PlotTableConfigWidget;
 using rqt_multiplot::PlotTableWidget;
@@ -429,6 +431,50 @@ TEST(PlotTabWidget, emptyTableDisablesRunAndPause) {
 
   EXPECT_FALSE(runButton->isEnabled());
   EXPECT_FALSE(pauseButton->isEnabled());
+}
+
+TEST(PlotTabWidget, resetLayoutButtonEqualizesOnlyCurrentTab) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  tabs.addTab();
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setConfig(config.getTableConfig(1));
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  PlotTableConfig* tab0 = config.getTableConfig(0);
+  PlotTableConfig* tab1 = config.getTableConfig(1);
+  tab0->splitPlot(tab0->getPlotConfig(0, 0), Qt::Horizontal);
+  tab0->getLayout()->setStretch({3, 1});
+  tab1->splitPlot(tab1->getPlotConfig(0, 0), Qt::Horizontal);
+  tab1->getLayout()->setStretch({4, 1});
+
+  auto* resetButton = toolbar.findChild<QPushButton*>("pushButtonResetLayout");
+  ASSERT_NE(resetButton, nullptr);
+  EXPECT_TRUE(resetButton->isEnabled());
+
+  resetButton->click();
+
+  EXPECT_EQ(tab1->getLayout()->getStretch(), (QList<int>{1, 1}));
+  EXPECT_EQ(tab0->getLayout()->getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotTabWidget, resetLayoutButtonDisabledForSinglePlot) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  PlotTableConfigWidget toolbar;
+  tabs.setConfig(&config);
+  toolbar.setPlotTabs(&tabs);
+  toolbar.setPlotTable(tabs.getCurrentPlotTable());
+
+  auto* resetButton = toolbar.findChild<QPushButton*>("pushButtonResetLayout");
+  ASSERT_NE(resetButton, nullptr);
+  EXPECT_FALSE(resetButton->isEnabled());
 }
 
 }  // namespace
