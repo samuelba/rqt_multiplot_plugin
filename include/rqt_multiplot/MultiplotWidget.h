@@ -23,7 +23,6 @@
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QEvent>
-#include <QPointer>
 #include <QShowEvent>
 #include <QStringList>
 #include <QWidget>
@@ -77,8 +76,8 @@ class MultiplotWidget : public QWidget {
   MessageTypeRegistry* messageTypeRegistry_;
   PackageRegistry* packageRegistry_;
 
-  QPointer<QObject> guardedDock_;
-  QPointer<QAbstractButton> guardedCloseButton_;
+  QObject* guardedDock_;
+  QAbstractButton* guardedCloseButton_;
   bool closePromptCompleted_;
   bool closePromptOpen_;
 

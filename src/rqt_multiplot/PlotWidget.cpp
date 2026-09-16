@@ -101,7 +101,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
   ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
   ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/settings-edit.svg")));
-  ui_->pushButtonSplit->setIcon(QIcon(packageResourcePath("resource/split/layout.svg")));
+  ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
   ui_->pushButtonClose->setIcon(packageIcon("resource/close.svg", QSize(16, 16)));
@@ -379,7 +379,7 @@ void PlotWidget::buildSplitMenu() {
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    button->setIcon(QIcon(packageResourcePath(iconPath)));
+    button->setIcon(packageIcon(iconPath, QSize(18, 18)));
     button->setIconSize(QSize(18, 18));
     button->setFixedSize(22, 22);
     button->setToolTip(toolTip);

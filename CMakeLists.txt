@@ -389,6 +389,7 @@ if(BUILD_TESTING)
     test/MultiplotConfigTest.cpp
     test/MultiplotConfigWidgetTest.cpp
     test/MultiplotWidgetTest.cpp
+    test/MultiplotFileMenuTest.cpp
     test/PlotConfigTest.cpp
     test/PlotLayoutConfigTest.cpp
     test/PlotTableConfigTest.cpp

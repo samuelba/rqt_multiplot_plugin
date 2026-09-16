@@ -21,6 +21,8 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QMenu>
+#include <QMenuBar>
 #include <QMouseEvent>
 #include <QShowEvent>
 #include <QTimer>
@@ -65,9 +67,27 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       config_(new MultiplotConfig(this)),
       messageTypeRegistry_(new MessageTypeRegistry(this)),
       packageRegistry_(new PackageRegistry(this)),
+      guardedDock_(nullptr),
+      guardedCloseButton_(nullptr),
       closePromptCompleted_(false),
       closePromptOpen_(false) {
   ui_->setupUi(this);
+
+  ui_->menuBar->setNativeMenuBar(false);
+  ui_->menuBar->setStyleSheet(QStringLiteral("QMenuBar { spacing: 0px; }"));
+  QMenu* fileMenu = ui_->menuBar->addMenu(tr("&File"));
+  fileMenu->addAction(ui_->configWidget->getActionNew());
+  fileMenu->addAction(ui_->configWidget->getActionOpen());
+  fileMenu->addAction(ui_->configWidget->getActionSave());
+  fileMenu->addAction(ui_->configWidget->getActionSaveAs());
+  fileMenu->addSeparator();
+  fileMenu->addAction(ui_->configWidget->getActionClearHistory());
+  fileMenu->addSeparator();
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionImportBagFile());
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionImportBagDirectory());
+  fileMenu->addSeparator();
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportImageFile());
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportTextFile());
 
   ui_->configWidget->setConfig(config_);
   ui_->plotTabWidget->setConfig(config_);
@@ -88,6 +108,12 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
 }
 
 MultiplotWidget::~MultiplotWidget() {
+  if (guardedCloseButton_ != nullptr) {
+    guardedCloseButton_->removeEventFilter(this);
+  }
+  if (guardedDock_ != nullptr) {
+    guardedDock_->removeEventFilter(this);
+  }
   delete ui_;
 }
 
@@ -179,7 +205,9 @@ bool MultiplotWidget::event(QEvent* event) {
 bool MultiplotWidget::eventFilter(QObject* object, QEvent* event) {
   if ((object == guardedDock_) && (event->type() == QEvent::Close)) {
     if (!confirmClose()) {
-      static_cast<QCloseEvent*>(event)->ignore();
+      if (auto* closeEvent = dynamic_cast<QCloseEvent*>(event)) {
+        closeEvent->ignore();
+      }
       return true;
     }
     return false;
@@ -224,8 +252,10 @@ void MultiplotWidget::installCloseGuard() {
   if (guardedDock_ != dock) {
     if (guardedDock_ != nullptr) {
       guardedDock_->removeEventFilter(this);
+      disconnect(guardedDock_, nullptr, this, nullptr);
     }
     dock->installEventFilter(this);
+    connect(dock, &QObject::destroyed, this, [this]() { guardedDock_ = nullptr; });
     guardedDock_ = dock;
   }
 
@@ -236,8 +266,10 @@ void MultiplotWidget::installCloseGuard() {
 
   if (guardedCloseButton_ != nullptr) {
     guardedCloseButton_->removeEventFilter(this);
+    disconnect(guardedCloseButton_, nullptr, this, nullptr);
   }
   closeButton->installEventFilter(this);
+  connect(closeButton, &QObject::destroyed, this, [this]() { guardedCloseButton_ = nullptr; });
   guardedCloseButton_ = closeButton;
 }
 
@@ -247,13 +279,14 @@ bool MultiplotWidget::isCloseButtonActivation(QObject* object, QEvent* event) co
   }
 
   if (event->type() == QEvent::MouseButtonRelease) {
-    auto* mouseEvent = static_cast<QMouseEvent*>(event);
-    return mouseEvent->button() == Qt::LeftButton;
+    const auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
+    return mouseEvent != nullptr && mouseEvent->button() == Qt::LeftButton;
   }
 
   if (event->type() == QEvent::KeyPress) {
-    auto* keyEvent = static_cast<QKeyEvent*>(event);
-    return (keyEvent->key() == Qt::Key_Space) || (keyEvent->key() == Qt::Key_Return) || (keyEvent->key() == Qt::Key_Enter);
+    const auto* keyEvent = dynamic_cast<QKeyEvent*>(event);
+    return keyEvent != nullptr &&
+           ((keyEvent->key() == Qt::Key_Space) || (keyEvent->key() == Qt::Key_Return) || (keyEvent->key() == Qt::Key_Enter));
   }
 
   return false;
