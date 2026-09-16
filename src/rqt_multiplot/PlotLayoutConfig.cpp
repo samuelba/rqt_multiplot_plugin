@@ -219,6 +219,7 @@ void PlotLayoutConfig::resetToRectangularGrid(size_t numRows, size_t numColumns,
 
 void PlotLayoutConfig::save(QSettings& settings) const {
   settings.setValue("type", typeName(type_));
+  settings.setValue("close_donates_to_next", closeDonatesToNext_);
 
   if (type_ == Plot) {
     if (plotConfig_ != nullptr) {
@@ -236,6 +237,7 @@ void PlotLayoutConfig::save(QSettings& settings) const {
 }
 
 void PlotLayoutConfig::load(QSettings& settings) {
+  closeDonatesToNext_ = settings.value("close_donates_to_next", false).toBool();
   const Type loadedType = typeFromName(settings.value("type", "plot").toString());
   if ((loadedType == Horizontal) || (loadedType == Vertical)) {
     clearContents();
@@ -281,6 +283,7 @@ void PlotLayoutConfig::reset() {
 
 void PlotLayoutConfig::write(QDataStream& stream) const {
   stream << static_cast<quint32>(type_);
+  stream << closeDonatesToNext_;
   if (type_ == Plot) {
     const bool hasPlot = plotConfig_ != nullptr;
     stream << hasPlot;
@@ -305,6 +308,7 @@ void PlotLayoutConfig::read(QDataStream& stream) {
   quint32 typeValue = 0;
   stream >> typeValue;
   const auto loadedType = static_cast<Type>(typeValue);
+  stream >> closeDonatesToNext_;
 
   if (loadedType == Plot) {
     bool hasPlot = false;
@@ -357,6 +361,7 @@ PlotLayoutConfig& PlotLayoutConfig::operator=(const PlotLayoutConfig& src) {
   clearContents();
   type_ = src.type_;
   stretch_ = src.stretch_;
+  closeDonatesToNext_ = src.closeDonatesToNext_;
 
   if (type_ == Plot) {
     if (src.plotConfig_ != nullptr) {
@@ -423,6 +428,8 @@ PlotConfig* PlotLayoutConfig::insertPlotSibling(PlotLayoutConfig* sibling, bool 
   newStretch.insert(insertIndex, half);
 
   auto* node = new PlotLayoutConfig(this);
+  node->closeDonatesToNext_ = insertBefore;
+  sibling->closeDonatesToNext_ = !insertBefore;
   addChild(node, half, insertIndex);
   stretch_ = reducedStretch(newStretch);
   emit structureChanged();
@@ -440,11 +447,14 @@ PlotConfig* PlotLayoutConfig::convertToSplit(Type splitType, bool insertBefore) 
   type_ = splitType;
 
   auto* added = new PlotLayoutConfig(this);
+  added->closeDonatesToNext_ = insertBefore;
+  auto* original = new PlotLayoutConfig(this, existing);
+  original->closeDonatesToNext_ = !insertBefore;
   if (insertBefore) {
     addChild(added);
-    addChild(new PlotLayoutConfig(this, existing));
+    addChild(original);
   } else {
-    addChild(new PlotLayoutConfig(this, existing));
+    addChild(original);
     addChild(added);
   }
   stretch_ = {1, 1};
@@ -472,6 +482,7 @@ void PlotLayoutConfig::removeChild(PlotLayoutConfig* child) {
   }
 
   const int donated = (index < stretch_.count()) ? std::max(1, stretch_[index]) : 1;
+  const bool donateToNext = child->closeDonatesToNext_;
   children_.removeAt(index);
   if (index < stretch_.count()) {
     stretch_.removeAt(index);
@@ -481,10 +492,14 @@ void PlotLayoutConfig::removeChild(PlotLayoutConfig* child) {
   if (children_.count() == 1) {
     collapseSingleChild();
   } else if (!stretch_.isEmpty()) {
-    const int recipient = (index > 0) ? (index - 1) : 0;
-    if (recipient < stretch_.count()) {
-      stretch_[recipient] += donated;
+    int recipient = donateToNext ? index : (index - 1);
+    if (recipient < 0) {
+      recipient = 0;
     }
+    if (recipient >= stretch_.count()) {
+      recipient = static_cast<int>(stretch_.count() - 1);
+    }
+    stretch_[recipient] += donated;
     stretch_ = reducedStretch(stretch_);
   }
 
