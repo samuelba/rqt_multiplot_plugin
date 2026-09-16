@@ -3,10 +3,13 @@
 #include <QAction>
 #include <QApplication>
 #include <QGridLayout>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QLayout>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
+#include <QSpacerItem>
 
 #include <gtest/gtest.h>
 
@@ -15,6 +18,7 @@
 #include <rqt_multiplot/MultiplotWidget.h>
 #include <rqt_multiplot/PlotTableConfigWidget.h>
 #include <rqt_multiplot/PlotWidget.h>
+#include <rqt_multiplot/ProgressWidget.h>
 
 namespace {
 
@@ -23,6 +27,7 @@ using rqt_multiplot::MultiplotConfigWidget;
 using rqt_multiplot::MultiplotWidget;
 using rqt_multiplot::PlotTableConfigWidget;
 using rqt_multiplot::PlotWidget;
+using rqt_multiplot::ProgressWidget;
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -70,6 +75,42 @@ int gridLayoutRow(QGridLayout& layout, const QWidget& widget) {
     int columnSpan = 0;
     layout.getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
     return row;
+  }
+
+  return -1;
+}
+
+int gridLayoutColumnForLayout(QGridLayout& layout, const QLayout& nestedLayout) {
+  for (int index = 0; index < layout.count(); ++index) {
+    QLayoutItem* item = layout.itemAt(index);
+    if (item == nullptr || item->layout() != &nestedLayout) {
+      continue;
+    }
+
+    int row = 0;
+    int column = 0;
+    int rowSpan = 0;
+    int columnSpan = 0;
+    layout.getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+    return column;
+  }
+
+  return -1;
+}
+
+int gridLayoutColumn(QGridLayout& layout, const QWidget& widget) {
+  for (int index = 0; index < layout.count(); ++index) {
+    QLayoutItem* item = layout.itemAt(index);
+    if (item == nullptr || item->widget() != &widget) {
+      continue;
+    }
+
+    int row = 0;
+    int column = 0;
+    int rowSpan = 0;
+    int columnSpan = 0;
+    layout.getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+    return column;
   }
 
   return -1;
@@ -158,6 +199,60 @@ TEST(MultiplotFileMenu, saveAndClearHistoryStartDisabled) {
   MultiplotConfigWidget configWidget;
   EXPECT_FALSE(configWidget.getActionSave()->isEnabled());
   EXPECT_FALSE(configWidget.getActionClearHistory()->isEnabled());
+}
+
+TEST(MultiplotFileMenu, progressWidgetNotOnMainToolbarRow) {
+  ensureApplication();
+
+  PlotTableConfigWidget toolbar;
+  auto* progress = toolbar.findChild<ProgressWidget*>("widgetProgress");
+  ASSERT_NE(progress, nullptr);
+
+  auto* gridLayout = toolbar.findChild<QGridLayout*>("gridLayout");
+  ASSERT_NE(gridLayout, nullptr);
+  EXPECT_EQ(gridLayoutRow(*gridLayout, *progress), 1);
+}
+
+TEST(MultiplotFileMenu, idleToolbarHasExpandingSpacerBeforePlaybackButtons) {
+  ensureApplication();
+
+  PlotTableConfigWidget toolbar;
+  auto* gridLayout = toolbar.findChild<QGridLayout*>("gridLayout");
+  auto* resetButton = toolbar.findChild<QPushButton*>("pushButtonResetLayout");
+  auto* playbackLayout = toolbar.findChild<QHBoxLayout*>("horizontalLayout");
+  ASSERT_NE(gridLayout, nullptr);
+  ASSERT_NE(resetButton, nullptr);
+  ASSERT_NE(playbackLayout, nullptr);
+
+  const int resetColumn = gridLayoutColumn(*gridLayout, *resetButton);
+  const int playbackColumn = gridLayoutColumnForLayout(*gridLayout, *playbackLayout);
+  ASSERT_GE(resetColumn, 0);
+  ASSERT_GE(playbackColumn, 0);
+
+  bool foundExpandingSpacer = false;
+  for (int index = 0; index < gridLayout->count(); ++index) {
+    QLayoutItem* item = gridLayout->itemAt(index);
+    if (item == nullptr) {
+      continue;
+    }
+
+    int row = 0;
+    int column = 0;
+    int rowSpan = 0;
+    int columnSpan = 0;
+    gridLayout->getItemPosition(index, &row, &column, &rowSpan, &columnSpan);
+    if (row != 0 || column <= resetColumn || column >= playbackColumn) {
+      continue;
+    }
+
+    QSpacerItem* spacer = item->spacerItem();
+    if (spacer != nullptr && spacer->expandingDirections().testFlag(Qt::Horizontal)) {
+      foundExpandingSpacer = true;
+      break;
+    }
+  }
+
+  EXPECT_TRUE(foundExpandingSpacer);
 }
 
 TEST(MultiplotFileMenu, perPlotExportButtonRemains) {

@@ -65,6 +65,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->labelForegroundColor->setAutoFillBackground(true);
 
   ui_->widgetProgress->setEnabled(false);
+  ui_->widgetProgress->hide();
 
   ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/play.svg")));
   ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
@@ -439,6 +440,7 @@ void PlotTableConfigWidget::plotTablePlotPausedChanged() {
 void PlotTableConfigWidget::plotTableJobStarted(const QString& toolTip) {
   ++playbackJobCount_;
   ui_->widgetProgress->setEnabled(true);
+  ui_->widgetProgress->show();
   ui_->widgetProgress->start(toolTip);
 }
 
@@ -473,6 +475,8 @@ void PlotTableConfigWidget::completePlaybackJob(const QString& toolTip, bool fai
   } else {
     ui_->widgetProgress->finish(toolTip);
   }
+
+  ui_->widgetProgress->hide();
 }
 
 }  // namespace rqt_multiplot
