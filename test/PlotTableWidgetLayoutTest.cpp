@@ -270,6 +270,65 @@ TEST(PlotTableWidget, closePlotOnlyExpandsSplitSibling) {
   EXPECT_NEAR(sizeRatio(sizes), 3.0, 0.2);
 }
 
+TEST(PlotTableWidget, closeInsertedBeforePlotExpandsOriginNotPrevious) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotConfig* first = config.getPlotConfig(0, 0);
+  PlotConfig* second = config.splitPlot(first, Qt::Horizontal);
+  config.getLayout()->setStretch({3, 1});
+  PlotConfig* added = config.splitPlot(second, Qt::Horizontal, true);
+  ASSERT_NE(added, nullptr);
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  EXPECT_TRUE(config.closePlot(added));
+  waitForLayout();
+
+  EXPECT_EQ(config.getLayout()->getStretch(), (QList<int>{3, 1}));
+
+  QSplitter* root = rootSplitter(widget);
+  ASSERT_NE(root, nullptr);
+  const QList<int> sizes = root->sizes();
+  ASSERT_EQ(sizes.count(), 2);
+  ASSERT_GT(sizes.at(1), 0);
+  EXPECT_NEAR(sizeRatio(sizes), 3.0, 0.2);
+}
+
+TEST(PlotTableWidget, closeInsertedAbovePlotExpandsOriginNotPrevious) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotConfig* first = config.getPlotConfig(0, 0);
+  PlotConfig* second = config.splitPlot(first, Qt::Vertical);
+  config.getLayout()->setStretch({3, 1});
+  PlotConfig* added = config.splitPlot(second, Qt::Vertical, true);
+  ASSERT_NE(added, nullptr);
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  EXPECT_TRUE(config.closePlot(added));
+  waitForLayout();
+
+  EXPECT_EQ(config.getLayout()->getStretch(), (QList<int>{3, 1}));
+
+  QSplitter* root = rootSplitter(widget);
+  ASSERT_NE(root, nullptr);
+  EXPECT_EQ(root->orientation(), Qt::Vertical);
+  const QList<int> sizes = root->sizes();
+  ASSERT_EQ(sizes.count(), 2);
+  ASSERT_GT(sizes.at(1), 0);
+  EXPECT_NEAR(sizeRatio(sizes), 3.0, 0.2);
+}
+
 TEST(PlotTableWidget, closeNestedPlotKeepsOtherPlotSize) {
   ensureApplication();
 

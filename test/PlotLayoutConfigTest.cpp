@@ -175,6 +175,81 @@ TEST(PlotLayoutConfig, closePlotGivesStretchToNextWhenClosingFirst) {
   EXPECT_EQ(layout.getStretch(), (QList<int>{7, 1}));
 }
 
+TEST(PlotLayoutConfig, closePlotGivesStretchToOriginWhenClosingInsertedBefore) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  first->setTitle("First");
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  second->setTitle("Second");
+  layout.setStretch({3, 1});
+
+  PlotConfig* added = layout.splitPlot(second, Qt::Horizontal, true);
+  ASSERT_NE(added, nullptr);
+  added->setTitle("Added");
+  EXPECT_EQ(layout.getStretch(), (QList<int>{6, 1, 1}));
+  EXPECT_EQ(layout.plotConfigs().at(1), added);
+
+  EXPECT_TRUE(layout.closePlot(added));
+  EXPECT_EQ(layout.plotConfigs().at(0), first);
+  EXPECT_EQ(layout.plotConfigs().at(1), second);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotLayoutConfig, closePlotGivesStretchToOriginWhenClosingInsertedAbove) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Vertical);
+  layout.setStretch({3, 1});
+
+  PlotConfig* added = layout.splitPlot(second, Qt::Vertical, true);
+  ASSERT_NE(added, nullptr);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{6, 1, 1}));
+
+  EXPECT_TRUE(layout.closePlot(added));
+  EXPECT_EQ(layout.plotConfigs().at(0), first);
+  EXPECT_EQ(layout.plotConfigs().at(1), second);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotLayoutConfig, closePlotGivesStretchToSpawnedWhenClosingOrigin) {
+  PlotLayoutConfig layout(nullptr);
+  PlotConfig* first = layout.getPlotConfig();
+  PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+  layout.setStretch({3, 1});
+  PlotConfig* third = layout.splitPlot(second, Qt::Horizontal);
+  ASSERT_NE(third, nullptr);
+
+  EXPECT_TRUE(layout.closePlot(second));
+  EXPECT_EQ(layout.plotConfigs().at(0), first);
+  EXPECT_EQ(layout.plotConfigs().at(1), third);
+  EXPECT_EQ(layout.getStretch(), (QList<int>{3, 1}));
+}
+
+TEST(PlotLayoutConfig, closePlotAfterReloadKeepsInsertedBeforePartner) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    PlotLayoutConfig layout(nullptr);
+    PlotConfig* first = layout.getPlotConfig();
+    PlotConfig* second = layout.splitPlot(first, Qt::Horizontal);
+    layout.setStretch({3, 1});
+    layout.splitPlot(second, Qt::Horizontal, true);
+
+    QSettings settings(settingsPath(dir, "partner.ini"), QSettings::IniFormat);
+    layout.save(settings);
+    settings.sync();
+  }
+
+  PlotLayoutConfig loaded(nullptr);
+  QSettings settings(settingsPath(dir, "partner.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  ASSERT_EQ(loaded.plotCount(), 3u);
+  EXPECT_TRUE(loaded.closePlot(loaded.plotConfigs().at(1)));
+  EXPECT_EQ(loaded.getStretch(), (QList<int>{3, 1}));
+}
+
 TEST(PlotLayoutConfig, setStretchReducesRatios) {
   PlotLayoutConfig layout(nullptr);
   layout.splitPlot(layout.getPlotConfig(), Qt::Horizontal);

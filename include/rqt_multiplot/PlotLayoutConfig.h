@@ -70,6 +70,7 @@ class PlotLayoutConfig : public Config {
   PlotConfig* plotConfig_;
   QList<PlotLayoutConfig*> children_;
   QList<int> stretch_;
+  bool closeDonatesToNext_{false};
 
   PlotLayoutConfig* parentLayout() const;
   PlotLayoutConfig* findLeaf(const PlotConfig* plot);
