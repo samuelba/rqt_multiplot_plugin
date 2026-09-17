@@ -249,6 +249,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotExport.h
   include/rqt_multiplot/PlotCurve.h
   include/rqt_multiplot/PlotLegend.h
+  include/rqt_multiplot/PlotLegendStyle.h
   include/rqt_multiplot/PlotLegendConfig.h
   include/rqt_multiplot/PlotLegendConfigWidget.h
   include/rqt_multiplot/PlotLayoutConfig.h
@@ -396,6 +397,7 @@ if(BUILD_TESTING)
     test/PlotTableWidgetLayoutTest.cpp
     test/PlotSplitterHandleTest.cpp
     test/PlotCurveTest.cpp
+    test/PlotLegendTest.cpp
     test/PlotWidgetSplitMenuTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp

@@ -8,6 +8,7 @@
 
 namespace {
 
+using rqt_multiplot::isLegendToggleClick;
 using rqt_multiplot::isPanMouse;
 using rqt_multiplot::isRectangleZoomMouse;
 using rqt_multiplot::isStationaryClick;
@@ -59,6 +60,16 @@ TEST(PlotMouseBindings, treatsSmallPointerJitterAsStationaryClick) {
   EXPECT_FALSE(isStationaryClick(press, QPoint(13, 22)));
   EXPECT_FALSE(isStationaryClick(press, QPoint(15, 20)));
   EXPECT_FALSE(isStationaryClick(press, QPoint(10, 30)));
+}
+
+TEST(PlotMouseBindings, togglesLegendCurveOnlyOnStationaryLeftClick) {
+  const QPoint press(10, 20);
+
+  EXPECT_TRUE(isLegendToggleClick(Qt::LeftButton, press, press));
+  EXPECT_TRUE(isLegendToggleClick(Qt::LeftButton, press, QPoint(12, 21)));
+  EXPECT_FALSE(isLegendToggleClick(Qt::LeftButton, press, QPoint(20, 20)));
+  EXPECT_FALSE(isLegendToggleClick(Qt::RightButton, press, press));
+  EXPECT_FALSE(isLegendToggleClick(Qt::MiddleButton, press, press));
 }
 
 TEST(PlotMouseBindings, treatsPlainLeftAsPan) {

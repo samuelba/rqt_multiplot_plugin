@@ -24,9 +24,12 @@
 #include <rqt_multiplot/CurveDataListTimeFrame.h>
 #include <rqt_multiplot/CurveDataSequencer.h>
 #include <rqt_multiplot/CurveDataVector.h>
+#include <rqt_multiplot/PlotLegendStyle.h>
 #include <rqt_multiplot/PlotWidget.h>
 
+#include <qwt/qwt_legend_data.h>
 #include <qwt/qwt_plot.h>
+#include <qwt/qwt_text.h>
 
 #include "rqt_multiplot/PlotCurve.h"
 
@@ -162,10 +165,41 @@ QPair<double, double> PlotCurve::getPreferredAxisScale(CurveConfig::Axis axis) c
 }
 
 BoundingRectangle PlotCurve::getPreferredScale() const {
+  if (!isVisible()) {
+    return BoundingRectangle();
+  }
+
   QPair<double, double> xAxisBounds = getPreferredAxisScale(CurveConfig::X);
   QPair<double, double> yAxisBounds = getPreferredAxisScale(CurveConfig::Y);
 
   return BoundingRectangle(QPointF(xAxisBounds.first, yAxisBounds.first), QPointF(xAxisBounds.second, yAxisBounds.second));
+}
+
+void PlotCurve::setVisible(bool on) {
+  const bool changed = (on != isVisible());
+  QwtPlotCurve::setVisible(on);
+  for (auto* ghost : ghosts_) {
+    ghost->setVisible(on);
+  }
+
+  if (changed) {
+    emit preferredScaleChanged(getPreferredScale());
+    emit replotRequested();
+  }
+}
+
+QList<QwtLegendData> PlotCurve::legendData() const {
+  QList<QwtLegendData> list = QwtPlotCurve::legendData();
+  if (isVisible()) {
+    return list;
+  }
+
+  for (QwtLegendData& data : list) {
+    QwtText title = data.title();
+    applyLegendVisibilityStyle(title, false);
+    data.setValue(QwtLegendData::TitleRole, QVariant::fromValue(title));
+  }
+  return list;
 }
 
 /*****************************************************************************/
@@ -312,6 +346,7 @@ void PlotCurve::syncGhosts() {
     auto* ghost = new QwtPlotCurve();
     ghost->setItemAttribute(QwtPlotItem::Legend, false);
     ghost->setTitle(QString());
+    ghost->setVisible(isVisible());
     if (attachedPlot != nullptr) {
       ghost->attach(attachedPlot);
     }

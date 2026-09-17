@@ -19,6 +19,11 @@
 #ifndef RQT_MULTIPLOT_PLOT_LEGEND_H
 #define RQT_MULTIPLOT_PLOT_LEGEND_H
 
+#include <QPoint>
+#include <QTimer>
+#include <QWidget>
+#include <Qt>
+
 #include <qwt/qwt_legend.h>
 
 namespace rqt_multiplot {
@@ -33,6 +38,21 @@ class PlotLegend : public QwtLegend {
   PlotCurve* findCurve(QWidget* widget) const;
 
   bool eventFilter(QObject* object, QEvent* event) override;
+
+ private:
+  void startCurveDrag(QWidget* widget, PlotCurve* curve, Qt::MouseButton button);
+  void scheduleToggle(QWidget* widget, PlotCurve* curve);
+  void cancelPendingToggle();
+
+  QPoint pressPos_;
+  Qt::MouseButton pressButton_;
+  bool dragging_;
+  QWidget* pendingToggleWidget_;
+  PlotCurve* pendingToggleCurve_;
+  QTimer* toggleTimer_;
+
+ private slots:
+  void applyPendingToggle();
 };
 }  // namespace rqt_multiplot
 

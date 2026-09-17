@@ -95,6 +95,7 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 | Mouse wheel | Zoom in / out |
 | Right click | Reset zoom |
 | Hover (Points enabled) | Crosshair; nearest-sample marker and title / x, y readout |
+| Click a legend item | Toggle that curve's visibility |
 | Drag a legend item onto another plot | Copy that curve |
 
 Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. Older row×column files still load.
