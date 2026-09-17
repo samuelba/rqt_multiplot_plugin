@@ -62,7 +62,7 @@ class CurveAxisConfigWidget : public QWidget {
   bool validateScale();
   bool applyFieldStatusAfterLocalOk();
   bool isSyntheticFieldType() const;
-  void updateLabelFromZeroControl();
+  void syncLabelFromZero();
   void updateFieldWidgetEnabled();
   void setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType);
 
@@ -71,7 +71,6 @@ class CurveAxisConfigWidget : public QWidget {
   void configTypeChanged(const QString& type);
   void configFieldTypeChanged(int fieldType);
   void configFieldChanged(const QString& field);
-  void configLabelFromZeroChanged(bool labelFromZero);
   void configScaleConfigChanged();
 
   void comboBoxTopicUpdateStarted();
@@ -92,7 +91,6 @@ class CurveAxisConfigWidget : public QWidget {
 
   void checkBoxFieldReceiptTimeStateChanged(int state);
   void checkBoxFieldArrayIndexStateChanged(int state);
-  void checkBoxLabelFromZeroStateChanged(int state);
 };
 }  // namespace rqt_multiplot
 

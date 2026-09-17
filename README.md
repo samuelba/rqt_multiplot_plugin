@@ -101,6 +101,8 @@ Use the plot toolbar to run, pause, clear, configure, export, split (left / righ
 
 **Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
 
+The timer and calendar toggles set the X-axis time labels for the active tab: start from zero (default), date and time (`HH:mm:ss.z` / `yyyy MMM dd` UTC), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged.
+
 ### Configure a plot
 
 Open the gear on a plot. Add curves, set axis titles, legend, and plot rate.
@@ -116,7 +118,6 @@ Pick topic, message type, and field for each axis. X and Y can come from differe
 Useful curve options:
 
 - **Message receipt time** — plot against the time the message arrived
-- **Start time from 0** — shift timestamps so the first sample is zero
 - **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
 
 Whole-array fields use a different curve mode. See [Array curves](#array-curves).

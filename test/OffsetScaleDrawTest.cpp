@@ -3,6 +3,7 @@
 #include <qwt/qwt_scale_div.h>
 #include <qwt/qwt_scale_draw.h>
 
+#include <rqt_multiplot/AxisTimeFormat.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
 
 namespace {
@@ -28,6 +29,35 @@ TEST(OffsetScaleDraw, formatsRelativeWhenTimeScaleEnabled) {
 
   EXPECT_EQ(draw.label(1789065570.0).text(), QStringLiteral("0"));
   EXPECT_EQ(draw.label(1789065571.0).text(), QStringLiteral("1"));
+}
+
+TEST(OffsetScaleDraw, formatsEpochWhenTimestampMode) {
+  OffsetScaleDraw draw;
+  draw.setTimeLabelMode(rqt_multiplot::AxisTimeFormat::LabelMode::Timestamp);
+  draw.setOffset(1789028000.0);
+  draw.setScaleDiv(QwtScaleDiv(1789028000.0, 1789028010.0));
+
+  const QString text = draw.label(1789028000.0).text();
+  EXPECT_TRUE(text.startsWith(QStringLiteral("1789028000")));
+  EXPECT_FALSE(text.contains(QLatin1Char('\n')));
+}
+
+TEST(OffsetScaleDraw, formatsTwoLineDateTime) {
+  OffsetScaleDraw draw;
+  draw.setTimeLabelMode(rqt_multiplot::AxisTimeFormat::LabelMode::DateTime);
+  draw.setScaleDiv(QwtScaleDiv(1789028000.0, 1789028010.0));
+
+  EXPECT_EQ(draw.label(1789028000.0).text(), QStringLiteral("08:13:20.0\n2026 Sep 10"));
+}
+
+TEST(OffsetScaleDraw, relativeModeStillOffsetsWhenSetDirectly) {
+  OffsetScaleDraw draw;
+  draw.setTimeLabelMode(rqt_multiplot::AxisTimeFormat::LabelMode::Relative);
+  draw.setOffset(1789065570.0);
+  draw.setScaleDiv(QwtScaleDiv(1789065570.0, 1789065580.0));
+
+  EXPECT_EQ(draw.label(1789065570.0).text(), QStringLiteral("0"));
+  EXPECT_EQ(draw.timeLabelMode(), rqt_multiplot::AxisTimeFormat::LabelMode::Relative);
 }
 
 }  // namespace

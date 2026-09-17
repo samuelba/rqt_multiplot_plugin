@@ -54,8 +54,8 @@ PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
       mouseControl_(false),
       xOffset_(0.0),
       yOffset_(0.0),
-      xUsesTimeScale_(false),
-      yUsesTimeScale_(false) {
+      xTimeLabelMode_(AxisTimeFormat::LabelMode::Off),
+      yTimeLabelMode_(AxisTimeFormat::LabelMode::Off) {
   setTrackerMode(QwtPicker::AlwaysOn);
   setTrackerPen(QPen(Qt::black));
   setStateMachine(new PlotCursorMachine());
@@ -147,20 +147,20 @@ double PlotCursor::getYOffset() const {
   return yOffset_;
 }
 
-void PlotCursor::setXUsesTimeScale(bool useTimeScale) {
-  xUsesTimeScale_ = useTimeScale;
+void PlotCursor::setXTimeLabelMode(AxisTimeFormat::LabelMode mode) {
+  xTimeLabelMode_ = mode;
 }
 
-bool PlotCursor::xUsesTimeScale() const {
-  return xUsesTimeScale_;
+AxisTimeFormat::LabelMode PlotCursor::xTimeLabelMode() const {
+  return xTimeLabelMode_;
 }
 
-void PlotCursor::setYUsesTimeScale(bool useTimeScale) {
-  yUsesTimeScale_ = useTimeScale;
+void PlotCursor::setYTimeLabelMode(AxisTimeFormat::LabelMode mode) {
+  yTimeLabelMode_ = mode;
 }
 
-bool PlotCursor::yUsesTimeScale() const {
-  return yUsesTimeScale_;
+AxisTimeFormat::LabelMode PlotCursor::yTimeLabelMode() const {
+  return yTimeLabelMode_;
 }
 
 QString PlotCursor::formatCoordinate(double value, bool isX) const {
@@ -168,8 +168,8 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
   const QwtScaleMap map = plot()->canvasMap(axis);
   const double span = fabs(map.invTransform(1.0) - map.invTransform(0.0));
   const double offset = isX ? xOffset_ : yOffset_;
-  const bool timeScale = isX ? xUsesTimeScale_ : yUsesTimeScale_;
-  return AxisTimeFormat::coordinate(value, offset, span, timeScale);
+  const AxisTimeFormat::LabelMode mode = isX ? xTimeLabelMode_ : yTimeLabelMode_;
+  return AxisTimeFormat::coordinate(value, offset, span, mode);
 }
 
 QStringList PlotCursor::trackedReadoutLines() const {

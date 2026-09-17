@@ -7,12 +7,14 @@
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
 
 namespace {
 
+using rqt_multiplot::CurveConfig;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotLayoutConfig;
 using rqt_multiplot::PlotTableConfig;
@@ -228,6 +230,165 @@ TEST(PlotTableConfig, splitAndCloseUpdateLayout) {
   EXPECT_TRUE(config.closePlot(second));
   EXPECT_EQ(config.plotCount(), 1u);
   EXPECT_EQ(config.getLayout()->getType(), PlotLayoutConfig::Plot);
+}
+
+TEST(PlotTableConfig, defaultsToStartFromZeroTimeAxisFormat) {
+  PlotTableConfig config(nullptr);
+
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+  EXPECT_TRUE(config.isTimeAxisStartFromZero());
+  EXPECT_FALSE(config.isTimeAxisDateTime());
+}
+
+TEST(PlotTableConfig, timeAxisTogglesAreExclusive) {
+  PlotTableConfig config(nullptr);
+
+  config.setTimeAxisStartFromZero(true);
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+  EXPECT_TRUE(config.isTimeAxisStartFromZero());
+  EXPECT_FALSE(config.isTimeAxisDateTime());
+
+  config.setTimeAxisDateTime(true);
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::DateTime);
+  EXPECT_FALSE(config.isTimeAxisStartFromZero());
+  EXPECT_TRUE(config.isTimeAxisDateTime());
+
+  config.setTimeAxisDateTime(false);
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
+  EXPECT_FALSE(config.isTimeAxisStartFromZero());
+  EXPECT_FALSE(config.isTimeAxisDateTime());
+}
+
+TEST(PlotTableConfig, disablingStartFromZeroDoesNotClearDateTime) {
+  PlotTableConfig config(nullptr);
+  config.setTimeAxisDateTime(true);
+
+  config.setTimeAxisStartFromZero(false);
+
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::DateTime);
+}
+
+TEST(PlotTableConfig, savesAndLoadsTimeAxisFormat) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+    QSettings settings(settingsPath(dir, "time.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  loaded.setTimeAxisFormat(PlotTableConfig::StartFromZero);
+  QSettings settings(settingsPath(dir, "time.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
+}
+
+TEST(PlotTableConfig, missingTimeAxisFormatMigratesFromLabelFromZero) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "legacy_time.ini");
+
+  {
+    PlotTableConfig config(nullptr);
+    CurveConfig* curve = config.getPlotConfig(0, 0)->addCurve();
+    curve->getAxisConfig(CurveConfig::X)->setLabelFromZero(true);
+    config.setTimeAxisFormat(PlotTableConfig::Timestamp);
+
+    QSettings settings(path, QSettings::IniFormat);
+    config.save(settings);
+    settings.remove("time_axis_format");
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  QSettings settings(path, QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+}
+
+TEST(PlotTableConfig, missingTimeAxisFormatStaysTimestampWithoutLabelFromZero) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "legacy_epoch.ini");
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setTimeAxisFormat(PlotTableConfig::StartFromZero);
+
+    QSettings settings(path, QSettings::IniFormat);
+    config.save(settings);
+    settings.remove("time_axis_format");
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  QSettings settings(path, QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::Timestamp);
+}
+
+TEST(PlotTableConfig, roundTripsTimeAxisFormatThroughDataStream) {
+  PlotTableConfig source(nullptr);
+  source.setTitle("IMU");
+  source.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("IMU"));
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
+}
+
+TEST(PlotTableConfig, emptyTitleStillLoadsTimeAxisFormatFromStream) {
+  PlotTableConfig source(nullptr);
+  source.setTitle(QString());
+  source.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
+}
+
+TEST(PlotTableConfig, resetRestoresStartFromZeroTimeAxisFormat) {
+  PlotTableConfig config(nullptr);
+  config.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  config.reset();
+
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+}
+
+TEST(PlotTableConfig, assignmentCopiesTimeAxisFormat) {
+  PlotTableConfig source(nullptr);
+  source.setTimeAxisFormat(PlotTableConfig::StartFromZero);
+
+  PlotTableConfig dest(nullptr);
+  dest = source;
+
+  EXPECT_EQ(dest.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
 }
 
 }  // namespace

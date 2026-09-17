@@ -112,6 +112,7 @@ class PlotTableWidget : public QWidget {
   void configLayoutChanged();
   void configLinkScaleChanged(bool link);
   void configTrackPointsChanged(bool track);
+  void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
 
   void plotPreferredScaleChanged(const BoundingRectangle& bounds);
   void plotCurrentScaleChanged(const BoundingRectangle& bounds);

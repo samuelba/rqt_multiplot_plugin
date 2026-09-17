@@ -12,10 +12,14 @@ namespace rqt_multiplot {
 
 class AxisTimeFormat {
  public:
+  enum class LabelMode { Off, Timestamp, Relative, DateTime };
+
   static int decimalPlaces(double span);
   static QString fixed(double value, double span);
   static QString relative(double value, double t0, double span);
+  static QString dateTime(double epochSeconds);
   static QString coordinate(double value, double offset, double span, bool timeScale);
+  static QString coordinate(double value, double offset, double span, LabelMode mode);
 };
 
 }  // namespace rqt_multiplot

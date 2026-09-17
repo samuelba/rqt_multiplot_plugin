@@ -11,7 +11,15 @@
 
 #include <gtest/gtest.h>
 
+#include <qwt/qwt_plot.h>
+#include <qwt/qwt_scale_widget.h>
+
+#include <rqt_multiplot/AxisTimeFormat.h>
+#include <rqt_multiplot/CurveAxisConfig.h>
+#include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MultiplotConfig.h>
+#include <rqt_multiplot/OffsetScaleDraw.h>
+#include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableConfig.h>
@@ -23,7 +31,12 @@
 
 namespace {
 
+using rqt_multiplot::AxisTimeFormat;
+using rqt_multiplot::CurveAxisConfig;
+using rqt_multiplot::CurveConfig;
 using rqt_multiplot::MultiplotConfig;
+using rqt_multiplot::OffsetScaleDraw;
+using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotLayoutConfig;
 using rqt_multiplot::PlotTableConfig;
 using rqt_multiplot::PlotTableConfigWidget;
@@ -584,6 +597,134 @@ TEST(PlotTabWidget, resetLayoutButtonDisabledForSinglePlot) {
   auto* resetButton = toolbar.findChild<QPushButton*>("pushButtonResetLayout");
   ASSERT_NE(resetButton, nullptr);
   EXPECT_FALSE(resetButton->isEnabled());
+}
+
+TEST(PlotTabWidget, timeAxisButtonsAreExclusiveAndAllowBothOff) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableConfigWidget toolbar;
+  toolbar.setConfig(&config);
+
+  auto* startAtZero = toolbar.findChild<QPushButton*>("pushButtonStartAtZero");
+  auto* dateTime = toolbar.findChild<QPushButton*>("pushButtonDateTime");
+  ASSERT_NE(startAtZero, nullptr);
+  ASSERT_NE(dateTime, nullptr);
+  EXPECT_TRUE(startAtZero->isChecked());
+  EXPECT_FALSE(dateTime->isChecked());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+
+  startAtZero->click();
+  EXPECT_FALSE(startAtZero->isChecked());
+  EXPECT_FALSE(dateTime->isChecked());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
+
+  dateTime->click();
+  EXPECT_FALSE(startAtZero->isChecked());
+  EXPECT_TRUE(dateTime->isChecked());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::DateTime);
+
+  dateTime->click();
+  EXPECT_FALSE(startAtZero->isChecked());
+  EXPECT_FALSE(dateTime->isChecked());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
+}
+
+TEST(PlotTabWidget, timeAxisButtonsRestoreFromConfig) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  config.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  PlotTableConfigWidget toolbar;
+  toolbar.setConfig(&config);
+
+  auto* startAtZero = toolbar.findChild<QPushButton*>("pushButtonStartAtZero");
+  auto* dateTime = toolbar.findChild<QPushButton*>("pushButtonDateTime");
+  ASSERT_NE(startAtZero, nullptr);
+  ASSERT_NE(dateTime, nullptr);
+  EXPECT_FALSE(startAtZero->isChecked());
+  EXPECT_TRUE(dateTime->isChecked());
+}
+
+OffsetScaleDraw* plotXScaleDraw(PlotWidget* plot) {
+  auto* qwtPlot = plot->findChild<QwtPlot*>("plot");
+  if (qwtPlot == nullptr) {
+    return nullptr;
+  }
+  return dynamic_cast<OffsetScaleDraw*>(qwtPlot->axisScaleDraw(QwtPlot::xBottom));
+}
+
+TEST(PlotTabWidget, dateTimeFormatDoesNotRelabelArrayIndexXAxis) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  CurveConfig* curve = config.getPlotConfig(0, 0)->addCurve();
+  curve->getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+
+  PlotTableWidget table;
+  table.setConfig(&config);
+  config.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  ASSERT_FALSE(table.getPlotWidgets().isEmpty());
+  OffsetScaleDraw* draw = plotXScaleDraw(table.getPlotWidgets().front());
+  ASSERT_NE(draw, nullptr);
+  EXPECT_EQ(draw->timeLabelMode(), AxisTimeFormat::LabelMode::Off);
+}
+
+TEST(PlotTabWidget, dateTimeFormatRelabelsTimeXAxis) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  CurveConfig* curve = config.getPlotConfig(0, 0)->addCurve();
+  curve->getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+
+  PlotTableWidget table;
+  table.setConfig(&config);
+  config.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  ASSERT_FALSE(table.getPlotWidgets().isEmpty());
+  OffsetScaleDraw* draw = plotXScaleDraw(table.getPlotWidgets().front());
+  ASSERT_NE(draw, nullptr);
+  EXPECT_EQ(draw->timeLabelMode(), AxisTimeFormat::LabelMode::DateTime);
+}
+
+TEST(PlotTabWidget, dateTimeButtonFromTimestampRelayoutsTimeXAxis) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  CurveConfig* curve = config.getPlotConfig(0, 0)->addCurve();
+  curve->getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+
+  PlotTableWidget table;
+  table.setConfig(&config);
+
+  ASSERT_FALSE(table.getPlotWidgets().isEmpty());
+  PlotWidget* plot = table.getPlotWidgets().front();
+  auto* qwtPlot = plot->findChild<QwtPlot*>("plot");
+  ASSERT_NE(qwtPlot, nullptr);
+
+  PlotTableConfigWidget toolbar;
+  toolbar.setConfig(&config);
+  auto* startAtZero = toolbar.findChild<QPushButton*>("pushButtonStartAtZero");
+  auto* dateTime = toolbar.findChild<QPushButton*>("pushButtonDateTime");
+  ASSERT_NE(startAtZero, nullptr);
+  ASSERT_NE(dateTime, nullptr);
+  if (startAtZero->isChecked()) {
+    startAtZero->click();
+  }
+  ASSERT_FALSE(dateTime->isChecked());
+
+  int scaleChanges = 0;
+  QObject::connect(qwtPlot->axisWidget(QwtPlot::xBottom), &QwtScaleWidget::scaleDivChanged, [&scaleChanges]() { ++scaleChanges; });
+
+  dateTime->click();
+
+  OffsetScaleDraw* draw = plotXScaleDraw(plot);
+  ASSERT_NE(draw, nullptr);
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::DateTime);
+  EXPECT_EQ(draw->timeLabelMode(), AxisTimeFormat::LabelMode::DateTime);
+  EXPECT_GE(scaleChanges, 1);
 }
 
 }  // namespace

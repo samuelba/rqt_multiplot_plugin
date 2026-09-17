@@ -30,6 +30,7 @@
 
 #include <qwt/qwt_plot_picker.h>
 
+#include <rqt_multiplot/AxisTimeFormat.h>
 #include <rqt_multiplot/PlotCursorLabel.h>
 
 class QwtPlotCanvas;
@@ -54,10 +55,10 @@ class PlotCursor : public QwtPlotPicker {
   double getXOffset() const;
   void setYOffset(double offset);
   double getYOffset() const;
-  void setXUsesTimeScale(bool useTimeScale);
-  bool xUsesTimeScale() const;
-  void setYUsesTimeScale(bool useTimeScale);
-  bool yUsesTimeScale() const;
+  void setXTimeLabelMode(AxisTimeFormat::LabelMode mode);
+  AxisTimeFormat::LabelMode xTimeLabelMode() const;
+  void setYTimeLabelMode(AxisTimeFormat::LabelMode mode);
+  AxisTimeFormat::LabelMode yTimeLabelMode() const;
 
   void update();
 
@@ -100,8 +101,8 @@ class PlotCursor : public QwtPlotPicker {
   bool mouseControl_;
   double xOffset_;
   double yOffset_;
-  bool xUsesTimeScale_;
-  bool yUsesTimeScale_;
+  AxisTimeFormat::LabelMode xTimeLabelMode_;
+  AxisTimeFormat::LabelMode yTimeLabelMode_;
 
  private slots:
   void plotXAxisScaleDivChanged();

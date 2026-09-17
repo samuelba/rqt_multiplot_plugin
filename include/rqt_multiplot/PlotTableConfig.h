@@ -60,6 +60,15 @@ class PlotTableConfig : public Config {
   void setTrackPoints(bool track);
   bool arePointsTracked() const;
 
+  enum TimeAxisFormat { Timestamp = 0, StartFromZero = 1, DateTime = 2 };
+  Q_ENUM(TimeAxisFormat)
+  void setTimeAxisFormat(TimeAxisFormat format);
+  TimeAxisFormat getTimeAxisFormat() const;
+  void setTimeAxisStartFromZero(bool enabled);
+  bool isTimeAxisStartFromZero() const;
+  void setTimeAxisDateTime(bool enabled);
+  bool isTimeAxisDateTime() const;
+
   void save(QSettings& settings) const override;
   void load(QSettings& settings) override;
   void reset() override;
@@ -78,6 +87,7 @@ class PlotTableConfig : public Config {
   void linkScaleChanged(bool link);
   void linkCursorChanged(bool link);
   void trackPointsChanged(bool track);
+  void timeAxisFormatChanged(TimeAxisFormat format);
 
  private:
   QString title_;
@@ -87,10 +97,12 @@ class PlotTableConfig : public Config {
   bool linkScale_;
   bool linkCursor_;
   bool trackPoints_;
+  TimeAxisFormat timeAxisFormat_;
 
   void connectLayout();
   void loadLegacyPlots(QSettings& settings);
   void readLegacyGridStream(QDataStream& stream);
+  bool anyXAxisLabelFromZero() const;
 
  private slots:
   void layoutConfigChanged();

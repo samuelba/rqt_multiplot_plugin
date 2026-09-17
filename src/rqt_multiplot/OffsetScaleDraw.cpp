@@ -7,11 +7,9 @@
 
 #include <cmath>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-
 namespace rqt_multiplot {
 
-OffsetScaleDraw::OffsetScaleDraw() : offset_(0.0), useTimeScale_(false) {}
+OffsetScaleDraw::OffsetScaleDraw() : offset_(0.0), timeLabelMode_(AxisTimeFormat::LabelMode::Off) {}
 
 OffsetScaleDraw::~OffsetScaleDraw() = default;
 
@@ -26,22 +24,38 @@ double OffsetScaleDraw::offset() const {
   return offset_;
 }
 
-void OffsetScaleDraw::setUseTimeScale(bool useTimeScale) {
-  if (useTimeScale != useTimeScale_) {
-    useTimeScale_ = useTimeScale;
+void OffsetScaleDraw::setTimeLabelMode(AxisTimeFormat::LabelMode mode) {
+  if (mode != timeLabelMode_) {
+    timeLabelMode_ = mode;
     invalidateCache();
   }
 }
 
+AxisTimeFormat::LabelMode OffsetScaleDraw::timeLabelMode() const {
+  return timeLabelMode_;
+}
+
+void OffsetScaleDraw::setUseTimeScale(bool useTimeScale) {
+  setTimeLabelMode(useTimeScale ? AxisTimeFormat::LabelMode::Relative : AxisTimeFormat::LabelMode::Off);
+}
+
 bool OffsetScaleDraw::useTimeScale() const {
-  return useTimeScale_;
+  return timeLabelMode_ != AxisTimeFormat::LabelMode::Off;
 }
 
 QwtText OffsetScaleDraw::label(double value) const {
-  if (!useTimeScale_) {
-    return QwtScaleDraw::label(value);
+  const double span = std::fabs(scaleDiv().range());
+  switch (timeLabelMode_) {
+    case AxisTimeFormat::LabelMode::Timestamp:
+      return QwtText(AxisTimeFormat::fixed(value, span));
+    case AxisTimeFormat::LabelMode::Relative:
+      return QwtText(AxisTimeFormat::relative(value, offset_, span));
+    case AxisTimeFormat::LabelMode::DateTime:
+      return QwtText(AxisTimeFormat::dateTime(value));
+    case AxisTimeFormat::LabelMode::Off:
+    default:
+      return QwtScaleDraw::label(value);
   }
-  return QwtText(AxisTimeFormat::relative(value, offset_, std::fabs(scaleDiv().range())));
 }
 
 }  // namespace rqt_multiplot

@@ -34,6 +34,7 @@
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MessageBroker.h>
 #include <rqt_multiplot/PlotConfig.h>
+#include <rqt_multiplot/PlotTableConfig.h>
 
 namespace Ui {
 class PlotWidget;
@@ -60,6 +61,8 @@ class PlotWidget : public QWidget {
   void setBroker(MessageBroker* broker);
   MessageBroker* getBroker() const;
   PlotCursor* getCursor() const;
+  void setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format);
+  PlotTableConfig::TimeAxisFormat getTimeAxisFormat() const;
   BoundingRectangle getPreferredScale() const;
   void setCurrentScale(const BoundingRectangle& bounds);
   const BoundingRectangle& getCurrentScale() const;
@@ -142,6 +145,7 @@ class PlotWidget : public QWidget {
   bool yOriginSet_;
   double xOrigin_;
   double yOrigin_;
+  PlotTableConfig::TimeAxisFormat timeAxisFormat_;
 
   void updateAxisTitle(PlotAxesConfig::Axis axis);
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;

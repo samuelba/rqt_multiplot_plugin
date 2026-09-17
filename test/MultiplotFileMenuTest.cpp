@@ -2,10 +2,12 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLayout>
+#include <QMargins>
 #include <QMenu>
 #include <QMenuBar>
 #include <QPushButton>
@@ -211,6 +213,28 @@ TEST(MultiplotFileMenu, progressWidgetNotOnMainToolbarRow) {
   auto* gridLayout = toolbar.findChild<QGridLayout*>("gridLayout");
   ASSERT_NE(gridLayout, nullptr);
   EXPECT_EQ(gridLayoutRow(*gridLayout, *progress), 1);
+}
+
+TEST(MultiplotFileMenu, plotsToolbarLayoutHasNoContentsMargins) {
+  ensureApplication();
+
+  PlotTableConfigWidget toolbar;
+  auto* gridLayout = toolbar.findChild<QGridLayout*>("gridLayout");
+  ASSERT_NE(gridLayout, nullptr);
+  EXPECT_EQ(gridLayout->contentsMargins(), QMargins());
+}
+
+TEST(MultiplotFileMenu, plotsToolbarSeparatorsAreVerticalLines) {
+  ensureApplication();
+
+  PlotTableConfigWidget toolbar;
+  const QStringList names({QStringLiteral("line"), QStringLiteral("line_2"), QStringLiteral("line_3"), QStringLiteral("line_4"),
+                           QStringLiteral("line_5"), QStringLiteral("line_6")});
+  for (const QString& name : names) {
+    auto* line = toolbar.findChild<QFrame*>(name);
+    ASSERT_NE(line, nullptr) << qPrintable(name);
+    EXPECT_EQ(line->frameShape(), QFrame::VLine) << qPrintable(name);
+  }
 }
 
 TEST(MultiplotFileMenu, idleToolbarHasExpandingSpacerBeforePlaybackButtons) {

@@ -77,6 +77,7 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, SIGNAL(layoutChanged()), this, SLOT(configLayoutChanged()));
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      disconnect(config_, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
     }
 
     config_ = config;
@@ -87,12 +88,14 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(layoutChanged()), this, SLOT(configLayoutChanged()));
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      connect(config, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
 
       configBackgroundColorChanged(config->getBackgroundColor());
       configForegroundColorChanged(config->getForegroundColor());
       configLayoutChanged();
       configLinkScaleChanged(config->isScaleLinked());
       configTrackPointsChanged(config->arePointsTracked());
+      configTimeAxisFormatChanged(config->getTimeAxisFormat());
     }
   }
 }
@@ -385,6 +388,7 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     plot->setConfig(node->getPlotConfig());
     plot->setBroker(registry_);
     plot->getCursor()->setTrackPoints(config_->arePointsTracked());
+    plot->setTimeAxisFormat(config_->getTimeAxisFormat());
     if (config_->isScaleLinked() && !plotWidgets_.isEmpty()) {
       plot->setCurrentScale(plotWidgets_.front()->getCurrentScale());
     }
@@ -541,6 +545,12 @@ void PlotTableWidget::configLinkScaleChanged(bool link) {
 void PlotTableWidget::configTrackPointsChanged(bool track) {
   for (PlotWidget* plot : plotWidgets_) {
     plot->getCursor()->setTrackPoints(track);
+  }
+}
+
+void PlotTableWidget::configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format) {
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setTimeAxisFormat(format);
   }
 }
 
