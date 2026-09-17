@@ -9,6 +9,8 @@
 #include <qwt/qwt_scale_draw.h>
 #include <qwt/qwt_text.h>
 
+#include <rqt_multiplot/AxisTimeFormat.h>
+
 namespace rqt_multiplot {
 
 class OffsetScaleDraw : public QwtScaleDraw {
@@ -18,6 +20,8 @@ class OffsetScaleDraw : public QwtScaleDraw {
 
   void setOffset(double offset);
   double offset() const;
+  void setTimeLabelMode(AxisTimeFormat::LabelMode mode);
+  AxisTimeFormat::LabelMode timeLabelMode() const;
   void setUseTimeScale(bool useTimeScale);
   bool useTimeScale() const;
 
@@ -25,7 +29,7 @@ class OffsetScaleDraw : public QwtScaleDraw {
 
  private:
   double offset_;
-  bool useTimeScale_;
+  AxisTimeFormat::LabelMode timeLabelMode_;
 };
 
 }  // namespace rqt_multiplot

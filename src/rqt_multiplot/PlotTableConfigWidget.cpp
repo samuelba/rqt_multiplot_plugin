@@ -19,6 +19,7 @@
 #include <QAction>
 #include <QColorDialog>
 #include <QFileDialog>
+#include <QSignalBlocker>
 
 #include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotExport.h>
@@ -71,6 +72,8 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
   ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
   ui_->pushButtonResetLayout->setIcon(QIcon(packageResourcePath("resource/reset-grid.svg")));
+  ui_->pushButtonStartAtZero->setIcon(packageIcon("resource/start-at-zero.svg", QSize(16, 16)));
+  ui_->pushButtonDateTime->setIcon(packageIcon("resource/calendar.svg", QSize(16, 16)));
 
   ui_->pushButtonPause->setEnabled(false);
   ui_->pushButtonResetLayout->setEnabled(false);
@@ -83,6 +86,8 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->checkBoxLinkScale, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkScaleStateChanged(int)));
   connect(ui_->checkBoxLinkCursor, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLinkCursorStateChanged(int)));
   connect(ui_->checkBoxTrackPoints, SIGNAL(stateChanged(int)), this, SLOT(checkBoxTrackPointsStateChanged(int)));
+  connect(ui_->pushButtonStartAtZero, SIGNAL(toggled(bool)), this, SLOT(pushButtonStartAtZeroToggled(bool)));
+  connect(ui_->pushButtonDateTime, SIGNAL(toggled(bool)), this, SLOT(pushButtonDateTimeToggled(bool)));
 
   connect(ui_->pushButtonRun, SIGNAL(clicked()), this, SLOT(pushButtonRunClicked()));
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
@@ -109,6 +114,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      disconnect(config_, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableConfigWidget::configTimeAxisFormatChanged);
       disconnect(config_, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
       disconnect(config_, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
     }
@@ -121,6 +127,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
+      connect(config, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableConfigWidget::configTimeAxisFormatChanged);
       connect(config, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
       connect(config, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
 
@@ -129,6 +136,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       configLinkScaleChanged(config_->isScaleLinked());
       configLinkCursorChanged(config_->isCursorLinked());
       configTrackPointsChanged(config_->arePointsTracked());
+      configTimeAxisFormatChanged(config_->getTimeAxisFormat());
     }
 
     updateResetLayoutButtonState();
@@ -288,6 +296,13 @@ void PlotTableConfigWidget::configTrackPointsChanged(bool track) {
   ui_->checkBoxTrackPoints->setCheckState(track ? Qt::Checked : Qt::Unchecked);
 }
 
+void PlotTableConfigWidget::configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format) {
+  const QSignalBlocker startBlocker(ui_->pushButtonStartAtZero);
+  const QSignalBlocker dateBlocker(ui_->pushButtonDateTime);
+  ui_->pushButtonStartAtZero->setChecked(format == PlotTableConfig::StartFromZero);
+  ui_->pushButtonDateTime->setChecked(format == PlotTableConfig::DateTime);
+}
+
 void PlotTableConfigWidget::checkBoxLinkScaleStateChanged(int state) {
   if (config_ != nullptr) {
     config_->setLinkScale(state == Qt::Checked);
@@ -303,6 +318,18 @@ void PlotTableConfigWidget::checkBoxLinkCursorStateChanged(int state) {
 void PlotTableConfigWidget::checkBoxTrackPointsStateChanged(int state) {
   if (config_ != nullptr) {
     config_->setTrackPoints(state == Qt::Checked);
+  }
+}
+
+void PlotTableConfigWidget::pushButtonStartAtZeroToggled(bool checked) {
+  if (config_ != nullptr) {
+    config_->setTimeAxisStartFromZero(checked);
+  }
+}
+
+void PlotTableConfigWidget::pushButtonDateTimeToggled(bool checked) {
+  if (config_ != nullptr) {
+    config_->setTimeAxisDateTime(checked);
   }
 }
 

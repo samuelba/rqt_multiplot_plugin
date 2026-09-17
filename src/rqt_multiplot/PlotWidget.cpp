@@ -23,6 +23,7 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QGridLayout>
+#include <QMetaObject>
 #include <QMimeData>
 #include <QPainter>
 #include <QPixmap>
@@ -41,6 +42,8 @@
 #include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotExport.h>
 
+#include <rqt_multiplot/AxisTimeFormat.h>
+#include <rqt_multiplot/CurveAxisConfig.h>
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
 #include <rqt_multiplot/OffsetScaleEngine.h>
@@ -59,6 +62,19 @@
 #include "rqt_multiplot/PlotWidget.h"
 
 namespace rqt_multiplot {
+namespace {
+
+void relayoutScaleWidget(QwtScaleWidget* widget) {
+  if ((widget == nullptr) || (widget->scaleDraw() == nullptr)) {
+    return;
+  }
+  // Qwt skips layoutScale when the scale division is unchanged (Timestamp <-> DateTime).
+  widget->setLabelAlignment(widget->scaleDraw()->labelAlignment());
+  [[maybe_unused]] const bool emitted = QMetaObject::invokeMethod(widget, "scaleDivChanged");
+  Q_ASSERT(emitted);
+}
+
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -85,7 +101,8 @@ PlotWidget::PlotWidget(QWidget* parent)
       xOriginSet_(false),
       yOriginSet_(false),
       xOrigin_(0.0),
-      yOrigin_(0.0) {
+      yOrigin_(0.0),
+      timeAxisFormat_(PlotTableConfig::Timestamp) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);
@@ -267,6 +284,18 @@ MessageBroker* PlotWidget::getBroker() const {
 
 PlotCursor* PlotWidget::getCursor() const {
   return cursor_;
+}
+
+void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
+  if (format == timeAxisFormat_) {
+    return;
+  }
+  timeAxisFormat_ = format;
+  updateAxisTimeLabels();
+}
+
+PlotTableConfig::TimeAxisFormat PlotWidget::getTimeAxisFormat() const {
+  return timeAxisFormat_;
 }
 
 BoundingRectangle PlotWidget::getPreferredScale() const {
@@ -611,6 +640,10 @@ void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
 }
 
 bool PlotWidget::axisLabelsFromZero(CurveConfig::Axis axis) const {
+  if (axis == CurveConfig::X) {
+    return (timeAxisFormat_ == PlotTableConfig::StartFromZero) && axisUsesTimeFormat(CurveConfig::X);
+  }
+
   if (config_ == nullptr) {
     return false;
   }
@@ -641,7 +674,15 @@ bool PlotWidget::axisUsesTimeFormat(CurveConfig::Axis axis) const {
 void PlotWidget::seedAxisOrigin(CurveConfig::Axis axis) {
   for (auto* curve : curves_) {
     CurveConfig* curveConfig = curve->getConfig();
-    if ((curveConfig == nullptr) || !curveConfig->getAxisConfig(axis)->isLabelFromZero()) {
+    if (curveConfig == nullptr) {
+      continue;
+    }
+    CurveAxisConfig* axisConfig = curveConfig->getAxisConfig(axis);
+    if (axis == CurveConfig::X) {
+      if (!axisConfig->usesTimeScale()) {
+        continue;
+      }
+    } else if (!axisConfig->isLabelFromZero()) {
       continue;
     }
     CurveData* data = curve->getData();
@@ -683,23 +724,40 @@ void PlotWidget::applyAxisTimeOffsets() {
   const bool xTimeScale = axisUsesTimeFormat(CurveConfig::X);
   const bool yTimeScale = axisUsesTimeFormat(CurveConfig::Y);
 
+  AxisTimeFormat::LabelMode xMode = AxisTimeFormat::LabelMode::Off;
+  if (xTimeScale) {
+    switch (timeAxisFormat_) {
+      case PlotTableConfig::StartFromZero:
+        xMode = AxisTimeFormat::LabelMode::Relative;
+        break;
+      case PlotTableConfig::DateTime:
+        xMode = AxisTimeFormat::LabelMode::DateTime;
+        break;
+      case PlotTableConfig::Timestamp:
+      default:
+        xMode = AxisTimeFormat::LabelMode::Timestamp;
+        break;
+    }
+  }
+  const AxisTimeFormat::LabelMode yMode = yTimeScale ? AxisTimeFormat::LabelMode::Relative : AxisTimeFormat::LabelMode::Off;
+
   if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::xBottom))) {
-    draw->setUseTimeScale(xTimeScale);
+    draw->setTimeLabelMode(xMode);
     draw->setOffset(xOffset);
   }
   if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::xBottom))) {
     engine->setOffset(xOffset);
   }
   if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::yLeft))) {
-    draw->setUseTimeScale(yTimeScale);
+    draw->setTimeLabelMode(yMode);
     draw->setOffset(yOffset);
   }
   if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::yLeft))) {
     engine->setOffset(yOffset);
   }
   if (cursor_ != nullptr) {
-    cursor_->setXUsesTimeScale(xTimeScale);
-    cursor_->setYUsesTimeScale(yTimeScale);
+    cursor_->setXTimeLabelMode(xMode);
+    cursor_->setYTimeLabelMode(yMode);
     cursor_->setXOffset(xOffset);
     cursor_->setYOffset(yOffset);
   }
@@ -708,7 +766,11 @@ void PlotWidget::applyAxisTimeOffsets() {
     ui_->plot->setAxisScale(QwtPlot::xBottom, currentBounds_.getMinimum().x(), currentBounds_.getMaximum().x());
     ui_->plot->setAxisScale(QwtPlot::yLeft, currentBounds_.getMinimum().y(), currentBounds_.getMaximum().y());
   }
-  requestReplot();
+
+  relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::xBottom));
+  relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::yLeft));
+  ui_->plot->updateLayout();
+  forceReplot();
 }
 
 void PlotWidget::bindAxisOrigin(CurveConfig::Axis axis, double value) {

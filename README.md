@@ -99,7 +99,7 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 
 Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. Older row×column files still load.
 
-**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
+**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y. The timer and calendar toggles set the X-axis time labels for the active tab: start from zero, date and time (`HH:mm:ss.z` / `yyyy MMM dd` UTC), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged.
 
 ### Configure a plot
 

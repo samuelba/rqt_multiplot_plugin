@@ -23,11 +23,47 @@
 
 #include <QIODevice>
 
+#include <rqt_multiplot/CurveConfig.h>
+
 namespace rqt_multiplot {
 
 namespace {
 constexpr quint32 kLayoutStreamMagic = 0x52544C31;  // "RTL1"
+
+QString timeAxisFormatName(PlotTableConfig::TimeAxisFormat format) {
+  switch (format) {
+    case PlotTableConfig::StartFromZero:
+      return QStringLiteral("start_from_zero");
+    case PlotTableConfig::DateTime:
+      return QStringLiteral("date_time");
+    case PlotTableConfig::Timestamp:
+    default:
+      return QStringLiteral("timestamp");
+  }
 }
+
+PlotTableConfig::TimeAxisFormat timeAxisFormatFromName(const QString& name) {
+  if (name == QLatin1String("start_from_zero")) {
+    return PlotTableConfig::StartFromZero;
+  }
+  if (name == QLatin1String("date_time")) {
+    return PlotTableConfig::DateTime;
+  }
+  return PlotTableConfig::Timestamp;
+}
+
+PlotTableConfig::TimeAxisFormat timeAxisFormatFromInt(quint32 value) {
+  switch (value) {
+    case PlotTableConfig::StartFromZero:
+      return PlotTableConfig::StartFromZero;
+    case PlotTableConfig::DateTime:
+      return PlotTableConfig::DateTime;
+    case PlotTableConfig::Timestamp:
+    default:
+      return PlotTableConfig::Timestamp;
+  }
+}
+}  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
@@ -42,7 +78,8 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       layout_(new PlotLayoutConfig(this)),
       linkScale_(linkScale),
       linkCursor_(linkCursor),
-      trackPoints_(trackPoints) {
+      trackPoints_(trackPoints),
+      timeAxisFormat_(Timestamp) {
   connectLayout();
   if ((numRows != 1u) || (numColumns != 1u)) {
     setNumPlots(numRows, numColumns);
@@ -193,6 +230,43 @@ bool PlotTableConfig::arePointsTracked() const {
   return trackPoints_;
 }
 
+void PlotTableConfig::setTimeAxisFormat(TimeAxisFormat format) {
+  if (format != timeAxisFormat_) {
+    timeAxisFormat_ = format;
+
+    emit timeAxisFormatChanged(format);
+    emit changed();
+  }
+}
+
+PlotTableConfig::TimeAxisFormat PlotTableConfig::getTimeAxisFormat() const {
+  return timeAxisFormat_;
+}
+
+void PlotTableConfig::setTimeAxisStartFromZero(bool enabled) {
+  if (enabled) {
+    setTimeAxisFormat(StartFromZero);
+  } else if (timeAxisFormat_ == StartFromZero) {
+    setTimeAxisFormat(Timestamp);
+  }
+}
+
+bool PlotTableConfig::isTimeAxisStartFromZero() const {
+  return timeAxisFormat_ == StartFromZero;
+}
+
+void PlotTableConfig::setTimeAxisDateTime(bool enabled) {
+  if (enabled) {
+    setTimeAxisFormat(DateTime);
+  } else if (timeAxisFormat_ == DateTime) {
+    setTimeAxisFormat(Timestamp);
+  }
+}
+
+bool PlotTableConfig::isTimeAxisDateTime() const {
+  return timeAxisFormat_ == DateTime;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -209,6 +283,7 @@ void PlotTableConfig::save(QSettings& settings) const {
   settings.setValue("link_scale", linkScale_);
   settings.setValue("link_cursor", linkCursor_);
   settings.setValue("track_points", trackPoints_);
+  settings.setValue("time_axis_format", timeAxisFormatName(timeAxisFormat_));
 }
 
 void PlotTableConfig::load(QSettings& settings) {
@@ -233,6 +308,11 @@ void PlotTableConfig::load(QSettings& settings) {
   setLinkScale(settings.value("link_scale", false).toBool());
   setLinkCursor(settings.value("link_cursor", false).toBool());
   setTrackPoints(settings.value("track_points", false).toBool());
+  if (settings.contains("time_axis_format")) {
+    setTimeAxisFormat(timeAxisFormatFromName(settings.value("time_axis_format").toString()));
+  } else {
+    setTimeAxisFormat(anyXAxisLabelFromZero() ? StartFromZero : Timestamp);
+  }
 }
 
 void PlotTableConfig::reset() {
@@ -248,6 +328,7 @@ void PlotTableConfig::reset() {
   setLinkScale(false);
   setLinkCursor(false);
   setTrackPoints(false);
+  setTimeAxisFormat(Timestamp);
 }
 
 void PlotTableConfig::write(QDataStream& stream) const {
@@ -259,6 +340,7 @@ void PlotTableConfig::write(QDataStream& stream) const {
   stream << linkCursor_;
   stream << trackPoints_;
   stream << title_;
+  stream << static_cast<quint32>(timeAxisFormat_);
 }
 
 void PlotTableConfig::read(QDataStream& stream) {
@@ -296,8 +378,22 @@ void PlotTableConfig::read(QDataStream& stream) {
 
     QString title;
     stream >> title;
-    if ((stream.status() == QDataStream::Ok) && !title.isEmpty()) {
+    if (stream.status() != QDataStream::Ok) {
+      stream.resetStatus();
+      return;
+    }
+    if (!title.isEmpty()) {
       setTitle(title);
+    }
+
+    if (stream.atEnd()) {
+      return;
+    }
+
+    quint32 timeAxisFormat = 0;
+    stream >> timeAxisFormat;
+    if (stream.status() == QDataStream::Ok) {
+      setTimeAxisFormat(timeAxisFormatFromInt(timeAxisFormat));
     } else {
       stream.resetStatus();
     }
@@ -328,6 +424,7 @@ PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
   setLinkScale(src.linkScale_);
   setLinkCursor(src.linkCursor_);
   setTrackPoints(src.trackPoints_);
+  setTimeAxisFormat(src.timeAxisFormat_);
 
   return *this;
 }
@@ -384,6 +481,21 @@ void PlotTableConfig::loadLegacyPlots(QSettings& settings) {
   QList<PlotConfig*> discarded = layout_->detachPlotConfigs();
   qDeleteAll(discarded);
   layout_->resetToRectangularGrid(numRows, numColumns, preserved);
+}
+
+bool PlotTableConfig::anyXAxisLabelFromZero() const {
+  for (PlotConfig* plot : plotConfigs()) {
+    if (plot == nullptr) {
+      continue;
+    }
+    for (size_t index = 0; index < plot->getNumCurves(); ++index) {
+      CurveConfig* curve = plot->getCurveConfig(index);
+      if ((curve != nullptr) && curve->getAxisConfig(CurveConfig::X)->isLabelFromZero()) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 void PlotTableConfig::readLegacyGridStream(QDataStream& stream) {

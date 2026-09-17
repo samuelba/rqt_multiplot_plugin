@@ -40,4 +40,24 @@ TEST(AxisTimeFormat, coordinateKeepsGeneralFormatOnNumericScale) {
   EXPECT_EQ(AxisTimeFormat::coordinate(123.456, 0.0, 2.0, false), QStringLiteral("123.456"));
 }
 
+TEST(AxisTimeFormat, dateTimeFormatsUtcTwoLineLabel) {
+  EXPECT_EQ(AxisTimeFormat::dateTime(1789028000.0), QStringLiteral("08:13:20.0\n2026 Sep 10"));
+}
+
+TEST(AxisTimeFormat, dateTimeIncludesTenthsOfASecond) {
+  EXPECT_EQ(AxisTimeFormat::dateTime(1789028000.127), QStringLiteral("08:13:20.1\n2026 Sep 10"));
+}
+
+TEST(AxisTimeFormat, coordinateUsesDateTimeOnDateTimeMode) {
+  EXPECT_EQ(AxisTimeFormat::coordinate(1789028000.0, 0.0, 10.0, AxisTimeFormat::LabelMode::DateTime),
+            QStringLiteral("08:13:20.0 2026 Sep 10"));
+}
+
+TEST(AxisTimeFormat, coordinateUsesFixedOnTimestampMode) {
+  const QString text = AxisTimeFormat::coordinate(1789028000.0, 0.0, 10.0, AxisTimeFormat::LabelMode::Timestamp);
+
+  EXPECT_TRUE(text.startsWith(QStringLiteral("1789028000")));
+  EXPECT_FALSE(text.contains(QLatin1Char('\n')));
+}
+
 }  // namespace
