@@ -1,7 +1,9 @@
 #include <cstdlib>
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QColor>
+#include <QIcon>
 #include <QMetaObject>
 #include <QPushButton>
 #include <QSettings>
@@ -19,6 +21,7 @@
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/MultiplotConfig.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
+#include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTabWidget.h>
@@ -195,6 +198,44 @@ TEST(PlotTabWidget, hidesCloseButtonOnLastTab) {
   ASSERT_NE(secondClose, nullptr);
   EXPECT_TRUE(firstClose->isVisibleTo(tabWidget));
   EXPECT_TRUE(secondClose->isVisibleTo(tabWidget));
+}
+
+TEST(PlotTabWidget, closeButtonsUseCloseTabIcon) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget widget;
+  widget.setConfig(&config);
+  widget.addTab();
+
+  auto* tabWidget = widget.findChild<QTabWidget*>();
+  ASSERT_NE(tabWidget, nullptr);
+  auto* closeButton = qobject_cast<QAbstractButton*>(tabWidget->tabBar()->tabButton(0, QTabBar::RightSide));
+  ASSERT_NE(closeButton, nullptr);
+
+  const QIcon expected = rqt_multiplot::packageIcon("resource/close-tab.svg", QSize(16, 16));
+  ASSERT_FALSE(expected.isNull());
+  ASSERT_FALSE(closeButton->icon().isNull());
+  EXPECT_EQ(closeButton->icon().pixmap(QSize(16, 16)).toImage(), expected.pixmap(QSize(16, 16)).toImage());
+}
+
+TEST(PlotTabWidget, closeButtonClickRemovesTab) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget widget;
+  widget.setConfig(&config);
+  widget.addTab();
+
+  auto* tabWidget = widget.findChild<QTabWidget*>();
+  ASSERT_NE(tabWidget, nullptr);
+  auto* closeButton = qobject_cast<QAbstractButton*>(tabWidget->tabBar()->tabButton(1, QTabBar::RightSide));
+  ASSERT_NE(closeButton, nullptr);
+
+  closeButton->click();
+
+  EXPECT_EQ(widget.getNumPlotTables(), 1u);
+  EXPECT_EQ(config.getNumTabs(), 1u);
 }
 
 TEST(PlotTabWidget, rebuildsTabsFromLoadedConfig) {

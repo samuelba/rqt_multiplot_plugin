@@ -109,15 +109,15 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   setAcceptDrops(true);
 
-  runIcon_ = QIcon(packageResourcePath("resource/play.svg"));
-  pauseIcon_ = QIcon(packageResourcePath("resource/pause.svg"));
-  normalIcon_ = QIcon(packageResourcePath("resource/maximize.svg"));
-  maximizedIcon_ = QIcon(packageResourcePath("resource/minimize.svg"));
+  runIcon_ = packageIcon("resource/play.svg", QSize(16, 16));
+  pauseIcon_ = packageIcon("resource/pause.svg", QSize(16, 16));
+  normalIcon_ = packageIcon("resource/maximize.svg", QSize(16, 16));
+  maximizedIcon_ = packageIcon("resource/minimize.svg", QSize(16, 16));
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
-  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
-  ui_->pushButtonImportExport->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
-  ui_->pushButtonSetup->setIcon(QIcon(packageResourcePath("resource/settings-edit.svg")));
+  ui_->pushButtonClear->setIcon(packageIcon("resource/delete-data.svg", QSize(16, 16)));
+  ui_->pushButtonImportExport->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
+  ui_->pushButtonSetup->setIcon(packageIcon("resource/settings-edit.svg", QSize(16, 16)));
   ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);

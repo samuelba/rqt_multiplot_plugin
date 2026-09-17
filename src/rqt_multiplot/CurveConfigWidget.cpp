@@ -16,8 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <QIcon>
-#include <QPixmap>
 #include <QStringList>
 
 #include <rqt_multiplot/CurveDataSequencer.h>
@@ -40,9 +38,9 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
       messageTopicRegistry_(new MessageTopicRegistry(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonCopyRight->setIcon(QIcon(packageResourcePath("resource/axis-copy-right.svg")));
-  ui_->pushButtonCopyLeft->setIcon(QIcon(packageResourcePath("resource/axis-copy-left.svg")));
-  ui_->pushButtonSwap->setIcon(QIcon(packageResourcePath("resource/axis-swap.svg")));
+  ui_->pushButtonCopyRight->setIcon(packageIcon("resource/axis-copy-right.svg", QSize(22, 22)));
+  ui_->pushButtonCopyLeft->setIcon(packageIcon("resource/axis-copy-left.svg", QSize(22, 22)));
+  ui_->pushButtonSwap->setIcon(packageIcon("resource/axis-swap.svg", QSize(22, 22)));
 
   ui_->curveAxisConfigWidgetX->setConfig(config_->getAxisConfig(CurveConfig::X));
   ui_->curveAxisConfigWidgetY->setConfig(config_->getAxisConfig(CurveConfig::Y));
@@ -69,7 +67,7 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   connect(ui_->curveAxisConfigWidgetX, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
   connect(ui_->curveAxisConfigWidgetY, &CurveAxisConfigWidget::validationChanged, this, &CurveConfigWidget::updateValidationErrorBanner);
 
-  ui_->labelValidationErrorIcon->setPixmap(QIcon(packageResourcePath("resource/status-error.svg")).pixmap(22, 22));
+  ui_->labelValidationErrorIcon->setPixmap(packagePixmap("resource/status-error.svg", QSize(22, 22)));
   ui_->widgetValidationError->setVisible(false);
   ui_->lineValidationError->setVisible(false);
 

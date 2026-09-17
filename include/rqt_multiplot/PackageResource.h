@@ -6,7 +6,9 @@
 #ifndef RQT_MULTIPLOT_PACKAGE_RESOURCE_H
 #define RQT_MULTIPLOT_PACKAGE_RESOURCE_H
 
+#include <QFileInfo>
 #include <QIcon>
+#include <QImage>
 #include <QPainter>
 #include <QPixmap>
 #include <QSize>
@@ -25,10 +27,13 @@ inline QString packageResourcePath(const QString& relativePath) {
   return packageShareDirectory() + "/" + relativePath;
 }
 
-inline QIcon packageIcon(const QString& relativePath, const QSize& size = QSize(32, 32)) {
+inline QPixmap packagePixmap(const QString& relativePath, const QSize& size = QSize(32, 32)) {
   const QString path = packageResourcePath(relativePath);
+  if (!QFileInfo::exists(path)) {
+    return {};
+  }
   if (!path.endsWith(".svg", Qt::CaseInsensitive)) {
-    return QIcon(path);
+    return QPixmap(path);
   }
 
   QSvgRenderer renderer(path);
@@ -36,10 +41,21 @@ inline QIcon packageIcon(const QString& relativePath, const QSize& size = QSize(
     return {};
   }
 
-  QPixmap pixmap(size);
-  pixmap.fill(Qt::transparent);
-  QPainter painter(&pixmap);
-  renderer.render(&painter);
+  QImage image(size, QImage::Format_ARGB32_Premultiplied);
+  image.fill(Qt::transparent);
+  {
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    renderer.render(&painter);
+  }
+  return QPixmap::fromImage(image);
+}
+
+inline QIcon packageIcon(const QString& relativePath, const QSize& size = QSize(32, 32)) {
+  const QPixmap pixmap = packagePixmap(relativePath, size);
+  if (pixmap.isNull()) {
+    return {};
+  }
   return QIcon(pixmap);
 }
 

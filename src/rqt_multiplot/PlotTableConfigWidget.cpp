@@ -57,10 +57,10 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
   actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
 
-  actionImportBagFile_->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
-  actionImportBagDirectory_->setIcon(QIcon(packageResourcePath("resource/data-import.svg")));
-  actionExportImageFile_->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
-  actionExportTextFile_->setIcon(QIcon(packageResourcePath("resource/data-export.svg")));
+  actionImportBagFile_->setIcon(packageIcon("resource/data-import.svg", QSize(16, 16)));
+  actionImportBagDirectory_->setIcon(packageIcon("resource/data-import.svg", QSize(16, 16)));
+  actionExportImageFile_->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
+  actionExportTextFile_->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
 
   ui_->labelBackgroundColor->setAutoFillBackground(true);
   ui_->labelForegroundColor->setAutoFillBackground(true);
@@ -68,10 +68,10 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->widgetProgress->setEnabled(false);
   ui_->widgetProgress->hide();
 
-  ui_->pushButtonRun->setIcon(QIcon(packageResourcePath("resource/play.svg")));
-  ui_->pushButtonPause->setIcon(QIcon(packageResourcePath("resource/pause.svg")));
-  ui_->pushButtonClear->setIcon(QIcon(packageResourcePath("resource/delete-data.svg")));
-  ui_->pushButtonResetLayout->setIcon(QIcon(packageResourcePath("resource/reset-grid.svg")));
+  ui_->pushButtonRun->setIcon(packageIcon("resource/play.svg", QSize(16, 16)));
+  ui_->pushButtonPause->setIcon(packageIcon("resource/pause.svg", QSize(16, 16)));
+  ui_->pushButtonClear->setIcon(packageIcon("resource/delete-data.svg", QSize(16, 16)));
+  ui_->pushButtonResetLayout->setIcon(packageIcon("resource/reset-grid.svg", QSize(16, 16)));
   ui_->pushButtonStartAtZero->setIcon(packageIcon("resource/start-at-zero.svg", QSize(16, 16)));
   ui_->pushButtonDateTime->setIcon(packageIcon("resource/calendar.svg", QSize(16, 16)));
 

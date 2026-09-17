@@ -16,8 +16,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <QIcon>
-
 #include <rqt_multiplot/PackageResource.h>
 
 #include <ui_ProgressWidget.h>
@@ -37,8 +35,8 @@ ProgressWidget::ProgressWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::P
   ui_->progressBar->setMaximum(100);
   ui_->progressBar->setValue(0);
 
-  ui_->widgetStatus->setIcon(StatusWidget::Okay, QIcon(packageResourcePath("resource/status-okay.svg")).pixmap(16, 16));
-  ui_->widgetStatus->setIcon(StatusWidget::Error, QIcon(packageResourcePath("resource/status-error.svg")).pixmap(16, 16));
+  ui_->widgetStatus->setIcon(StatusWidget::Okay, packagePixmap("resource/status-okay.svg", QSize(16, 16)));
+  ui_->widgetStatus->setIcon(StatusWidget::Error, packagePixmap("resource/status-error.svg", QSize(16, 16)));
   ui_->widgetStatus->setFrames(StatusWidget::Busy, QPixmap(packageResourcePath("resource/16x16/busy.png")), 8);
 }
 
