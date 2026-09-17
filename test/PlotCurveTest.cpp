@@ -2,12 +2,16 @@
 
 #include <QApplication>
 #include <QMetaObject>
+#include <QPalette>
 #include <QStringList>
 #include <QVector>
 #include <QWidget>
 
 #include <gtest/gtest.h>
+#include <qwt/qwt_legend_data.h>
 #include <qwt/qwt_plot.h>
+#include <qwt/qwt_plot_item.h>
+#include <qwt/qwt_text.h>
 
 #include <rqt_multiplot/CurveAxisConfig.h>
 #include <rqt_multiplot/CurveConfig.h>
@@ -104,6 +108,76 @@ TEST(PlotCurve, clearingConfigDoesNotWarnAboutMissingChangedSignal) {
   for (const QString& warning : warnings) {
     EXPECT_FALSE(warning.contains(QStringLiteral("No such signal"))) << warning.toStdString();
   }
+}
+
+TEST(PlotCurve, hidingCurveHidesSnapshotGhosts) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureSnapshotCurve(&config);
+
+  auto* parent = new QWidget();
+  auto* plot = new QwtPlot(parent);
+  auto* curve = new PlotCurve(parent);
+  curve->attach(plot);
+  curve->setConfig(&config);
+  curve->run();
+
+  const QVector<QPointF> first{QPointF(0.0, 1.0), QPointF(1.0, 2.0)};
+  const QVector<QPointF> second{QPointF(0.0, 3.0), QPointF(1.0, 4.0)};
+  ASSERT_TRUE(QMetaObject::invokeMethod(curve, "dataSequencerSeriesReceived", Qt::DirectConnection, Q_ARG(QVector<QPointF>, first)));
+  ASSERT_TRUE(QMetaObject::invokeMethod(curve, "dataSequencerSeriesReceived", Qt::DirectConnection, Q_ARG(QVector<QPointF>, second)));
+  ASSERT_EQ(plot->itemList().count(), 3);
+
+  curve->setVisible(false);
+
+  EXPECT_FALSE(curve->isVisible());
+  for (QwtPlotItem* item : plot->itemList()) {
+    EXPECT_FALSE(item->isVisible());
+  }
+
+  curve->setVisible(true);
+
+  EXPECT_TRUE(curve->isVisible());
+  for (QwtPlotItem* item : plot->itemList()) {
+    EXPECT_TRUE(item->isVisible());
+  }
+
+  delete parent;
+}
+
+TEST(PlotCurve, hiddenLegendDataUsesStrikeoutAndDisabledColor) {
+  ensureApplication();
+
+  PlotCurve curve;
+  curve.setTitle(QStringLiteral("alpha"));
+
+  const auto visibleData = curve.legendData();
+  ASSERT_FALSE(visibleData.isEmpty());
+  EXPECT_FALSE(visibleData.front().title().font().strikeOut());
+
+  curve.setVisible(false);
+
+  const auto hiddenData = curve.legendData();
+  ASSERT_FALSE(hiddenData.isEmpty());
+  EXPECT_TRUE(hiddenData.front().title().font().strikeOut());
+  EXPECT_EQ(hiddenData.front().title().color(), QApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
+}
+
+TEST(PlotCurve, hiddenCurveReportsEmptyPreferredScale) {
+  ensureApplication();
+
+  CurveConfig config;
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.getData()->appendPoint(QPointF(1.0, 2.0));
+  curve.getData()->appendPoint(QPointF(3.0, 4.0));
+
+  EXPECT_TRUE(curve.getPreferredScale().isValid());
+
+  curve.setVisible(false);
+
+  EXPECT_FALSE(curve.getPreferredScale().isValid());
 }
 
 TEST(PlotWidget, destroyingAfterPlottedSamplesDoesNotCrash) {

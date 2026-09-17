@@ -43,6 +43,10 @@ inline bool isZoomResetClick(Qt::MouseButton button, const QPoint& press, const 
   return isZoomResetMouse(button) && isStationaryClick(press, release);
 }
 
+inline bool isLegendToggleClick(Qt::MouseButton button, const QPoint& press, const QPoint& release) {
+  return (button == Qt::LeftButton) && isStationaryClick(press, release);
+}
+
 inline bool shouldApplyPreferredScale(bool rescaleRequested, bool userScaleLocked) {
   return rescaleRequested && !userScaleLocked;
 }

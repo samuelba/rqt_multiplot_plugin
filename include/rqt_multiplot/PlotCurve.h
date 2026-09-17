@@ -25,6 +25,7 @@
 #include <QPointF>
 #include <QVector>
 
+#include <qwt/qwt_legend_data.h>
 #include <qwt/qwt_plot_curve.h>
 
 #include <rqt_multiplot/BoundingRectangle.h>
@@ -50,6 +51,8 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   CurveDataSequencer* getDataSequencer() const;
   QPair<double, double> getPreferredAxisScale(CurveConfig::Axis axis) const;
   BoundingRectangle getPreferredScale() const;
+  void setVisible(bool on) override;
+  QList<QwtLegendData> legendData() const override;
 
   void attach(QwtPlot* plot);
   void detach();
