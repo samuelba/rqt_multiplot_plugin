@@ -1,6 +1,7 @@
 #include <cstdlib>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QObject>
@@ -139,6 +140,14 @@ TEST(CurveConfigWidget, timeSeriesDoesNotShowArrayPairingError) {
   widget.setConfig(config);
 
   EXPECT_FALSE(widget.validationErrorText().contains(QString(kUnpairedArrayMessage)));
+}
+
+TEST(CurveConfigWidget, curveAxisHasNoStartTimeFromZeroCheckbox) {
+  ensureApplication();
+
+  CurveConfigWidget widget;
+
+  EXPECT_TRUE(widget.findChildren<QCheckBox*>("checkBoxLabelFromZero").isEmpty());
 }
 
 }  // namespace

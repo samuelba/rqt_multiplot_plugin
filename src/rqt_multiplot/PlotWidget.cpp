@@ -102,7 +102,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       yOriginSet_(false),
       xOrigin_(0.0),
       yOrigin_(0.0),
-      timeAxisFormat_(PlotTableConfig::Timestamp) {
+      timeAxisFormat_(PlotTableConfig::StartFromZero) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);

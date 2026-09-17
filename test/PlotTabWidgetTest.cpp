@@ -610,13 +610,14 @@ TEST(PlotTabWidget, timeAxisButtonsAreExclusiveAndAllowBothOff) {
   auto* dateTime = toolbar.findChild<QPushButton*>("pushButtonDateTime");
   ASSERT_NE(startAtZero, nullptr);
   ASSERT_NE(dateTime, nullptr);
-  EXPECT_FALSE(startAtZero->isChecked());
-  EXPECT_FALSE(dateTime->isChecked());
-
-  startAtZero->click();
   EXPECT_TRUE(startAtZero->isChecked());
   EXPECT_FALSE(dateTime->isChecked());
   EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+
+  startAtZero->click();
+  EXPECT_FALSE(startAtZero->isChecked());
+  EXPECT_FALSE(dateTime->isChecked());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
 
   dateTime->click();
   EXPECT_FALSE(startAtZero->isChecked());
@@ -703,14 +704,19 @@ TEST(PlotTabWidget, dateTimeButtonFromTimestampRelayoutsTimeXAxis) {
   auto* qwtPlot = plot->findChild<QwtPlot*>("plot");
   ASSERT_NE(qwtPlot, nullptr);
 
-  int scaleChanges = 0;
-  QObject::connect(qwtPlot->axisWidget(QwtPlot::xBottom), &QwtScaleWidget::scaleDivChanged, [&scaleChanges]() { ++scaleChanges; });
-
   PlotTableConfigWidget toolbar;
   toolbar.setConfig(&config);
+  auto* startAtZero = toolbar.findChild<QPushButton*>("pushButtonStartAtZero");
   auto* dateTime = toolbar.findChild<QPushButton*>("pushButtonDateTime");
+  ASSERT_NE(startAtZero, nullptr);
   ASSERT_NE(dateTime, nullptr);
+  if (startAtZero->isChecked()) {
+    startAtZero->click();
+  }
   ASSERT_FALSE(dateTime->isChecked());
+
+  int scaleChanges = 0;
+  QObject::connect(qwtPlot->axisWidget(QwtPlot::xBottom), &QwtScaleWidget::scaleDivChanged, [&scaleChanges]() { ++scaleChanges; });
 
   dateTime->click();
 

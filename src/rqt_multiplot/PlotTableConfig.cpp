@@ -79,7 +79,7 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       linkScale_(linkScale),
       linkCursor_(linkCursor),
       trackPoints_(trackPoints),
-      timeAxisFormat_(Timestamp) {
+      timeAxisFormat_(StartFromZero) {
   connectLayout();
   if ((numRows != 1u) || (numColumns != 1u)) {
     setNumPlots(numRows, numColumns);
@@ -328,7 +328,7 @@ void PlotTableConfig::reset() {
   setLinkScale(false);
   setLinkCursor(false);
   setTrackPoints(false);
-  setTimeAxisFormat(Timestamp);
+  setTimeAxisFormat(StartFromZero);
 }
 
 void PlotTableConfig::write(QDataStream& stream) const {

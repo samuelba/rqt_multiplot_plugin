@@ -232,11 +232,11 @@ TEST(PlotTableConfig, splitAndCloseUpdateLayout) {
   EXPECT_EQ(config.getLayout()->getType(), PlotLayoutConfig::Plot);
 }
 
-TEST(PlotTableConfig, defaultsToTimestampTimeAxisFormat) {
+TEST(PlotTableConfig, defaultsToStartFromZeroTimeAxisFormat) {
   PlotTableConfig config(nullptr);
 
-  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
-  EXPECT_FALSE(config.isTimeAxisStartFromZero());
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
+  EXPECT_TRUE(config.isTimeAxisStartFromZero());
   EXPECT_FALSE(config.isTimeAxisDateTime());
 }
 
@@ -372,13 +372,13 @@ TEST(PlotTableConfig, emptyTitleStillLoadsTimeAxisFormatFromStream) {
   EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
 }
 
-TEST(PlotTableConfig, resetRestoresTimestampTimeAxisFormat) {
+TEST(PlotTableConfig, resetRestoresStartFromZeroTimeAxisFormat) {
   PlotTableConfig config(nullptr);
   config.setTimeAxisFormat(PlotTableConfig::DateTime);
 
   config.reset();
 
-  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::Timestamp);
+  EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
 }
 
 TEST(PlotTableConfig, assignmentCopiesTimeAxisFormat) {
