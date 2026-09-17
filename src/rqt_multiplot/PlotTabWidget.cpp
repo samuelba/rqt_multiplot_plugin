@@ -18,7 +18,7 @@
 
 #include "rqt_multiplot/PlotTabWidget.h"
 
-#include <QIcon>
+#include <QCursor>
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QSize>
@@ -47,7 +47,7 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
 
   addButton_->setAutoRaise(true);
   addButton_->setToolTip("Add tab");
-  addButton_->setIcon(QIcon(packageResourcePath("resource/new-tab.svg")));
+  addButton_->setIcon(packageIcon("resource/new-tab.svg", QSize(16, 16)));
   addButton_->setIconSize(QSize(16, 16));
   tabWidget_->setCornerWidget(addButton_, Qt::TopRightCorner);
 
@@ -236,10 +236,27 @@ void PlotTabWidget::updateCloseButtons() {
   const bool closable = tabWidget_->count() > 1;
 
   for (int index = 0; index < tabWidget_->count(); ++index) {
-    if (QWidget* button = bar->tabButton(index, QTabBar::RightSide)) {
-      button->setVisible(closable);
+    auto* button = qobject_cast<QToolButton*>(bar->tabButton(index, QTabBar::RightSide));
+    if ((button == nullptr) || (button->objectName() != QLatin1String("tabCloseButton"))) {
+      button = createTabCloseButton(bar);
+      bar->setTabButton(index, QTabBar::RightSide, button);
     }
+    button->setVisible(closable);
   }
+}
+
+QToolButton* PlotTabWidget::createTabCloseButton(QTabBar* bar) {
+  auto* button = new QToolButton(bar);
+  button->setObjectName("tabCloseButton");
+  button->setAutoRaise(true);
+  button->setIcon(packageIcon("resource/close-tab.svg", QSize(16, 16)));
+  button->setIconSize(QSize(16, 16));
+  button->setFixedSize(QSize(16, 16));
+  button->setToolTip("Close tab");
+  button->setCursor(Qt::PointingHandCursor);
+  button->setFocusPolicy(Qt::NoFocus);
+  connect(button, SIGNAL(clicked()), this, SLOT(tabCloseButtonClicked()));
+  return button;
 }
 
 void PlotTabWidget::forEachPlotTable(void (PlotTableWidget::*method)()) {
@@ -314,6 +331,17 @@ void PlotTabWidget::currentChanged(int index) {
 void PlotTabWidget::tabCloseRequested(int index) {
   if (index >= 0) {
     closeTab(static_cast<size_t>(index));
+  }
+}
+
+void PlotTabWidget::tabCloseButtonClicked() {
+  auto* clicked = qobject_cast<QWidget*>(sender());
+  QTabBar* bar = tabWidget_->tabBar();
+  for (int index = 0; index < bar->count(); ++index) {
+    if (bar->tabButton(index, QTabBar::RightSide) == clicked) {
+      tabCloseRequested(index);
+      return;
+    }
   }
 }
 

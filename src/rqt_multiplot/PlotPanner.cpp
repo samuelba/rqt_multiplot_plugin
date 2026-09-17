@@ -16,8 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QCursor>
 #include <QEvent>
-#include <QIcon>
 #include <QMouseEvent>
 
 #include <qwt/qwt_plot.h>
@@ -36,7 +36,7 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
-  cursor_ = QCursor(QIcon(packageResourcePath("resource/move.svg")).pixmap(23, 23), 11, 11);
+  cursor_ = QCursor(packagePixmap("resource/move.svg", QSize(23, 23)), 11, 11);
 
   if (canvas != nullptr) {
     canvas->installEventFilter(this);

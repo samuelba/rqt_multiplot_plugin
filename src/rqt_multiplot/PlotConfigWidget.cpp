@@ -41,15 +41,15 @@ namespace rqt_multiplot {
 PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotConfigWidget()), config_(new PlotConfig(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonAddCurve->setIcon(QIcon(packageResourcePath("resource/add-curve.svg")));
-  ui_->pushButtonEditCurve->setIcon(QIcon(packageResourcePath("resource/edit-curve.svg")));
-  ui_->pushButtonRemoveCurves->setIcon(QIcon(packageResourcePath("resource/remove-curve.svg")));
+  ui_->pushButtonAddCurve->setIcon(packageIcon("resource/add-curve.svg", QSize(16, 16)));
+  ui_->pushButtonEditCurve->setIcon(packageIcon("resource/edit-curve.svg", QSize(16, 16)));
+  ui_->pushButtonRemoveCurves->setIcon(packageIcon("resource/remove-curve.svg", QSize(16, 16)));
 
   ui_->pushButtonEditCurve->setEnabled(false);
   ui_->pushButtonRemoveCurves->setEnabled(false);
 
-  ui_->pushButtonCopyCurves->setIcon(QIcon(packageResourcePath("resource/copy.svg")));
-  ui_->pushButtonPasteCurves->setIcon(QIcon(packageResourcePath("resource/paste.svg")));
+  ui_->pushButtonCopyCurves->setIcon(packageIcon("resource/copy.svg", QSize(16, 16)));
+  ui_->pushButtonPasteCurves->setIcon(packageIcon("resource/paste.svg", QSize(16, 16)));
 
   ui_->pushButtonCopyCurves->setEnabled(false);
   ui_->pushButtonPasteCurves->setEnabled(false);

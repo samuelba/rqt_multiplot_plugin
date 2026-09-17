@@ -407,6 +407,7 @@ if(BUILD_TESTING)
     test/PlotMouseBindingsTest.cpp
     test/PlotTabWidgetTest.cpp
     test/AmentIndexTest.cpp
+    test/PackageResourceTest.cpp
     test/MatchFilterCompleterModelTest.cpp
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
   )

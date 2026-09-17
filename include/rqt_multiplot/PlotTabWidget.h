@@ -25,6 +25,7 @@
 
 #include <rqt_multiplot/MultiplotConfig.h>
 
+class QTabBar;
 class QTabWidget;
 class QToolButton;
 
@@ -74,6 +75,7 @@ class PlotTabWidget : public QWidget {
   void completeTableJob(PlotTableWidget* plotTable);
   void emitAggregatedProgress();
   void updateCloseButtons();
+  QToolButton* createTabCloseButton(QTabBar* bar);
   void forEachPlotTable(void (PlotTableWidget::*method)());
   void forEachPlotTable(void (PlotTableWidget::*method)(const QString&), const QString& argument);
 
@@ -86,6 +88,7 @@ class PlotTabWidget : public QWidget {
 
   void currentChanged(int index);
   void tabCloseRequested(int index);
+  void tabCloseButtonClicked();
   void tabBarDoubleClicked(int index);
   void addButtonClicked();
 
