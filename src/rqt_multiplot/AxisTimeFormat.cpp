@@ -10,6 +10,7 @@
 
 #include <QDateTime>
 #include <QLocale>
+#include <QTimeZone>
 #include <QtGlobal>
 
 namespace rqt_multiplot {
@@ -51,7 +52,7 @@ QString AxisTimeFormat::dateTime(double epochSeconds) {
   }
 
   const qint64 msec = qRound64(epochSeconds * 1000.0);
-  const QDateTime dt = QDateTime::fromMSecsSinceEpoch(msec, Qt::UTC);
+  const QDateTime dt = QDateTime::fromMSecsSinceEpoch(msec, QTimeZone::utc());
   const QLocale locale(QLocale::English, QLocale::UnitedStates);
   const int tenths = dt.time().msec() / 100;
   const QString time = dt.toString(QStringLiteral("HH:mm:ss")) + QLatin1Char('.') + QString::number(tenths);
