@@ -455,6 +455,68 @@ TEST(PlotTableWidget, hostsHiddenCurveValuesSidebar) {
   EXPECT_TRUE(widget.getCurveValuesWidget()->hasLiveUpdates());
 }
 
+TEST(PlotTableWidget, defaultPlotsHideGrid) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  ASSERT_EQ(widget.getPlotWidgets().count(), 1);
+  EXPECT_FALSE(widget.getPlotWidgets().front()->isGridVisible());
+}
+
+TEST(PlotTableWidget, gridVisibleAppliesToExistingPlots) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  config.setGridVisible(true);
+  waitForLayout();
+
+  for (PlotWidget* plot : widget.getPlotWidgets()) {
+    EXPECT_TRUE(plot->isGridVisible());
+  }
+
+  config.setGridVisible(false);
+  waitForLayout();
+
+  for (PlotWidget* plot : widget.getPlotWidgets()) {
+    EXPECT_FALSE(plot->isGridVisible());
+  }
+}
+
+TEST(PlotTableWidget, newPlotsFollowGridConfig) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  config.setGridVisible(true);
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  PlotWidget* first = widget.getPlotWidgets().front();
+  ASSERT_NE(first, nullptr);
+  config.splitPlot(first->getConfig(), Qt::Horizontal);
+  waitForLayout();
+
+  ASSERT_EQ(widget.getPlotWidgets().count(), 2);
+  for (PlotWidget* plot : widget.getPlotWidgets()) {
+    EXPECT_TRUE(plot->isGridVisible());
+  }
+}
+
 TEST(PlotTableWidget, restoresSidebarWidthFromConfig) {
   ensureApplication();
 

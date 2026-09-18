@@ -35,6 +35,7 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
+#include <qwt/qwt_plot_grid.h>
 #include <qwt/qwt_plot_picker.h>
 #include <qwt/qwt_plot_renderer.h>
 #include <qwt/qwt_scale_widget.h>
@@ -90,19 +91,22 @@ PlotWidget::PlotWidget(QWidget* parent)
       broker_(nullptr),
       legend_(nullptr),
       cursor_(nullptr),
+      grid_(nullptr),
       panner_(nullptr),
       magnifier_(nullptr),
       zoomer_(nullptr),
       paused_(true),
       rescale_(false),
       replot_(false),
+      gridVisible_(false),
       userScaleLocked_(false),
       state_(Normal),
       xOriginSet_(false),
       yOriginSet_(false),
       xOrigin_(0.0),
       yOrigin_(0.0),
-      timeAxisFormat_(PlotTableConfig::StartFromZero) {
+      timeAxisFormat_(PlotTableConfig::StartFromZero),
+      gridForegroundColor_(Qt::black) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);
@@ -159,6 +163,14 @@ PlotWidget::PlotWidget(QWidget* parent)
     canvas->setContextMenuPolicy(Qt::NoContextMenu);
   }
   cursor_ = new PlotCursor(canvas);
+  grid_ = new QwtPlotGrid();
+  grid_->attach(ui_->plot);
+  grid_->enableX(true);
+  grid_->enableY(true);
+  grid_->enableXMin(false);
+  grid_->enableYMin(false);
+  grid_->setVisible(false);
+  updateGridPen();
   magnifier_ = new PlotMagnifier(canvas);
   panner_ = new PlotPanner(canvas);
   zoomer_ = new PlotZoomer(canvas);
@@ -206,6 +218,11 @@ PlotWidget::~PlotWidget() {
     delete curve;
   }
   curves_.clear();
+  if (grid_ != nullptr) {
+    grid_->detach();
+    delete grid_;
+    grid_ = nullptr;
+  }
   delete ui_;
 }
 
@@ -300,6 +317,29 @@ void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
 
 PlotTableConfig::TimeAxisFormat PlotWidget::getTimeAxisFormat() const {
   return timeAxisFormat_;
+}
+
+void PlotWidget::setGridVisible(bool visible) {
+  if (visible == gridVisible_) {
+    return;
+  }
+  gridVisible_ = visible;
+  if (grid_ != nullptr) {
+    grid_->setVisible(visible);
+    requestReplot();
+  }
+}
+
+bool PlotWidget::isGridVisible() const {
+  return gridVisible_;
+}
+
+void PlotWidget::setGridForegroundColor(const QColor& color) {
+  if (color == gridForegroundColor_) {
+    return;
+  }
+  gridForegroundColor_ = color;
+  updateGridPen();
 }
 
 BoundingRectangle PlotWidget::getPreferredScale() const {
@@ -399,6 +439,19 @@ bool PlotWidget::isUserScaleLocked() const {
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
+
+void PlotWidget::updateGridPen() {
+  if (grid_ == nullptr) {
+    return;
+  }
+  QColor penColor = gridForegroundColor_;
+  penColor.setAlpha(64);
+  QPen pen(penColor, 0.0, Qt::DotLine);
+  grid_->setMajorPen(pen);
+  if (gridVisible_) {
+    requestReplot();
+  }
+}
 
 void PlotWidget::buildSplitMenu() {
   auto* grid = new QWidget();

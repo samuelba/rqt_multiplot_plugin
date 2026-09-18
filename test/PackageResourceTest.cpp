@@ -129,6 +129,7 @@ TEST(PlotTableConfigWidget, toolbarButtonsHaveVisibleRasterIcons) {
   expectVisibleButtonIcon(&widget, "pushButtonStartAtZero");
   expectVisibleButtonIcon(&widget, "pushButtonDateTime");
   expectVisibleButtonIcon(&widget, "pushButtonSidebar");
+  expectVisibleButtonIcon(&widget, "pushButtonGrid");
 }
 
 TEST(CurveConfigWidget, axisCopyButtonsHaveVisibleRasterIcons) {

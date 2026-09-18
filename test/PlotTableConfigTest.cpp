@@ -527,6 +527,145 @@ TEST(PlotTableConfig, roundTripsSidebarStateThroughDataStream) {
   EXPECT_EQ(loaded.getSidebarWidth(), 310);
 }
 
+TEST(PlotTableConfig, defaultsToHiddenGrid) {
+  PlotTableConfig config(nullptr);
+
+  EXPECT_FALSE(config.isGridVisible());
+}
+
+TEST(PlotTableConfig, setGridVisibleEmitsChanged) {
+  PlotTableConfig config(nullptr);
+  bool visible = false;
+  int changedCount = 0;
+  QObject::connect(&config, &PlotTableConfig::gridVisibleChanged, [&visible](bool value) { visible = value; });
+  QObject::connect(&config, &PlotTableConfig::changed, [&changedCount]() { ++changedCount; });
+
+  config.setGridVisible(true);
+
+  EXPECT_TRUE(config.isGridVisible());
+  EXPECT_TRUE(visible);
+  EXPECT_EQ(changedCount, 1);
+
+  config.setGridVisible(true);
+  EXPECT_EQ(changedCount, 1);
+}
+
+TEST(PlotTableConfig, savesAndLoadsGridState) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setGridVisible(true);
+
+    QSettings settings(settingsPath(dir, "grid.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  QSettings settings(settingsPath(dir, "grid.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_TRUE(loaded.isGridVisible());
+}
+
+TEST(PlotTableConfig, missingGridKeyKeepsDefault) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "legacy_grid.ini");
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setGridVisible(true);
+
+    QSettings settings(path, QSettings::IniFormat);
+    config.save(settings);
+    settings.remove("grid_visible");
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  loaded.setGridVisible(true);
+  QSettings settings(path, QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_FALSE(loaded.isGridVisible());
+}
+
+TEST(PlotTableConfig, resetRestoresHiddenGrid) {
+  PlotTableConfig config(nullptr);
+  config.setGridVisible(true);
+
+  config.reset();
+
+  EXPECT_FALSE(config.isGridVisible());
+}
+
+TEST(PlotTableConfig, assignmentCopiesGridState) {
+  PlotTableConfig source(nullptr);
+  source.setGridVisible(true);
+
+  PlotTableConfig dest(nullptr);
+  dest = source;
+
+  EXPECT_TRUE(dest.isGridVisible());
+}
+
+TEST(PlotTableConfig, roundTripsGridStateThroughDataStream) {
+  PlotTableConfig source(nullptr);
+  source.setTitle("Motors");
+  source.setGridVisible(true);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("Motors"));
+  EXPECT_TRUE(loaded.isGridVisible());
+}
+
+TEST(PlotTableConfig, legacyStreamWithoutGridKeepsDefault) {
+  constexpr quint32 kLayoutStreamMagic = 0x52544C31;
+  PlotTableConfig source(nullptr);
+  source.setTitle("Motors");
+  source.setSidebarVisible(true);
+  source.setSidebarWidth(310);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << kLayoutStreamMagic;
+  out << source.getBackgroundColor();
+  out << source.getForegroundColor();
+  source.getLayout()->write(out);
+  out << source.isScaleLinked();
+  out << source.isCursorLinked();
+  out << source.arePointsTracked();
+  out << source.getTitle();
+  out << static_cast<quint32>(source.getTimeAxisFormat());
+  out << source.isSidebarVisible();
+  out << source.getSidebarWidth();
+
+  PlotTableConfig loaded(nullptr);
+  loaded.setGridVisible(true);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("Motors"));
+  EXPECT_TRUE(loaded.isSidebarVisible());
+  EXPECT_EQ(loaded.getSidebarWidth(), 310);
+  EXPECT_FALSE(loaded.isGridVisible());
+}
+
 TEST(PlotTableConfig, legacyStreamWithoutSidebarKeepsDefaults) {
   constexpr quint32 kLayoutStreamMagic = 0x52544C31;
   PlotTableConfig source(nullptr);

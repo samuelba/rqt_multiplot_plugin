@@ -81,7 +81,8 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       trackPoints_(trackPoints),
       timeAxisFormat_(StartFromZero),
       sidebarVisible_(false),
-      sidebarWidth_(kDefaultSidebarWidth) {
+      sidebarWidth_(kDefaultSidebarWidth),
+      gridVisible_(false) {
   connectLayout();
   if ((numRows != 1u) || (numColumns != 1u)) {
     setNumPlots(numRows, numColumns);
@@ -295,6 +296,19 @@ int PlotTableConfig::getSidebarWidth() const {
   return sidebarWidth_;
 }
 
+void PlotTableConfig::setGridVisible(bool visible) {
+  if (visible != gridVisible_) {
+    gridVisible_ = visible;
+
+    emit gridVisibleChanged(visible);
+    emit changed();
+  }
+}
+
+bool PlotTableConfig::isGridVisible() const {
+  return gridVisible_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -314,6 +328,7 @@ void PlotTableConfig::save(QSettings& settings) const {
   settings.setValue("time_axis_format", timeAxisFormatName(timeAxisFormat_));
   settings.setValue("sidebar_visible", sidebarVisible_);
   settings.setValue("sidebar_width", sidebarWidth_);
+  settings.setValue("grid_visible", gridVisible_);
 }
 
 void PlotTableConfig::load(QSettings& settings) {
@@ -345,6 +360,7 @@ void PlotTableConfig::load(QSettings& settings) {
   }
   setSidebarVisible(settings.value("sidebar_visible", false).toBool());
   setSidebarWidth(settings.value("sidebar_width", kDefaultSidebarWidth).toInt());
+  setGridVisible(settings.value("grid_visible", false).toBool());
 }
 
 void PlotTableConfig::reset() {
@@ -363,6 +379,7 @@ void PlotTableConfig::reset() {
   setTimeAxisFormat(StartFromZero);
   setSidebarVisible(false);
   setSidebarWidth(kDefaultSidebarWidth);
+  setGridVisible(false);
 }
 
 void PlotTableConfig::write(QDataStream& stream) const {
@@ -377,6 +394,7 @@ void PlotTableConfig::write(QDataStream& stream) const {
   stream << static_cast<quint32>(timeAxisFormat_);
   stream << sidebarVisible_;
   stream << sidebarWidth_;
+  stream << gridVisible_;
 }
 
 void PlotTableConfig::read(QDataStream& stream) {
@@ -453,6 +471,20 @@ void PlotTableConfig::read(QDataStream& stream) {
       setSidebarVisible(false);
       setSidebarWidth(kDefaultSidebarWidth);
     }
+
+    if (stream.atEnd()) {
+      setGridVisible(false);
+      return;
+    }
+
+    bool gridVisible = false;
+    stream >> gridVisible;
+    if (stream.status() == QDataStream::Ok) {
+      setGridVisible(gridVisible);
+    } else {
+      stream.resetStatus();
+      setGridVisible(false);
+    }
     return;
   }
 
@@ -483,6 +515,7 @@ PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
   setTimeAxisFormat(src.timeAxisFormat_);
   setSidebarVisible(src.sidebarVisible_);
   setSidebarWidth(src.sidebarWidth_);
+  setGridVisible(src.gridVisible_);
 
   return *this;
 }

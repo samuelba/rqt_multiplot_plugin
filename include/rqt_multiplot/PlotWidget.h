@@ -19,6 +19,7 @@
 #ifndef RQT_MULTIPLOT_PLOT_WIDGET_H
 #define RQT_MULTIPLOT_PLOT_WIDGET_H
 
+#include <QColor>
 #include <QIcon>
 #include <QList>
 #include <QMenu>
@@ -29,6 +30,8 @@
 #include <QTimer>
 #include <QVector>
 #include <QWidget>
+
+#include <qwt/qwt_plot_grid.h>
 
 #include <rqt_multiplot/BoundingRectangle.h>
 #include <rqt_multiplot/CurveConfig.h>
@@ -63,6 +66,9 @@ class PlotWidget : public QWidget {
   PlotCursor* getCursor() const;
   void setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format);
   PlotTableConfig::TimeAxisFormat getTimeAxisFormat() const;
+  void setGridVisible(bool visible);
+  bool isGridVisible() const;
+  void setGridForegroundColor(const QColor& color);
   BoundingRectangle getPreferredScale() const;
   void setCurrentScale(const BoundingRectangle& bounds);
   const BoundingRectangle& getCurrentScale() const;
@@ -131,6 +137,7 @@ class PlotWidget : public QWidget {
 
   PlotLegend* legend_;
   PlotCursor* cursor_;
+  QwtPlotGrid* grid_;
   PlotPanner* panner_;
   PlotMagnifier* magnifier_;
   PlotZoomer* zoomer_;
@@ -138,6 +145,7 @@ class PlotWidget : public QWidget {
   bool paused_;
   bool rescale_;
   bool replot_;
+  bool gridVisible_;
   bool userScaleLocked_;
   State state_;
 
@@ -148,6 +156,7 @@ class PlotWidget : public QWidget {
   double xOrigin_;
   double yOrigin_;
   PlotTableConfig::TimeAxisFormat timeAxisFormat_;
+  QColor gridForegroundColor_;
 
   void updateAxisTitle(PlotAxesConfig::Axis axis);
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;
@@ -156,6 +165,7 @@ class PlotWidget : public QWidget {
   void resetAxisOrigins();
   void updateAxisTimeLabels();
   void applyAxisTimeOffsets();
+  void updateGridPen();
   void buildSplitMenu();
 
  private slots:
