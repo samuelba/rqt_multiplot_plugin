@@ -79,12 +79,15 @@ class PlotTableConfigWidget : public QWidget {
   void configLinkCursorChanged(bool link);
   void configTrackPointsChanged(bool track);
   void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
+  void configSidebarVisibleChanged(bool visible);
 
   void checkBoxLinkScaleStateChanged(int state);
   void checkBoxLinkCursorStateChanged(int state);
   void checkBoxTrackPointsStateChanged(int state);
   void pushButtonStartAtZeroToggled(bool checked);
   void pushButtonDateTimeToggled(bool checked);
+  void pushButtonSidebarToggled(bool checked);
+  void updateSidebarButton();
 
   void pushButtonRunClicked();
   void pushButtonPauseClicked();

@@ -77,6 +77,8 @@ class PlotWidget : public QWidget {
   void setUserScaleLocked(bool locked);
   bool isUserScaleLocked() const;
 
+  const QVector<PlotCurve*>& getCurves() const;
+
   void run();
   void pause();
   void clear();

@@ -38,6 +38,7 @@ class QSplitter;
 namespace rqt_multiplot {
 class PlotLayoutConfig;
 class PlotWidget;
+class CurveValuesWidget;
 
 class PlotTableWidget : public QWidget {
   Q_OBJECT
@@ -72,6 +73,7 @@ class PlotTableWidget : public QWidget {
   void saveToTextFile(const QString& fileName);
   void storeSplitterRatios();
   void resetEvenDistribution();
+  CurveValuesWidget* getCurveValuesWidget() const;
 
  signals:
   void plotPausedChanged();
@@ -86,6 +88,9 @@ class PlotTableWidget : public QWidget {
 
  private:
   QVBoxLayout* layout_;
+  QSplitter* chromeSplitter_;
+  CurveValuesWidget* sidebar_;
+  QWidget* plotHost_;
   QWidget* rootWidget_;
   QList<PlotWidget*> plotWidgets_;
   QHash<QSplitter*, PlotLayoutConfig*> splitterNodes_;
@@ -105,6 +110,8 @@ class PlotTableWidget : public QWidget {
   void applyStretchRecursive(QWidget* widget);
   void applyAllStretch();
   void updatePlotControls();
+  void applySidebarState();
+  void storeSidebarWidth();
 
  private slots:
   void configBackgroundColorChanged(const QColor& color);
@@ -113,6 +120,8 @@ class PlotTableWidget : public QWidget {
   void configLinkScaleChanged(bool link);
   void configTrackPointsChanged(bool track);
   void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
+  void configSidebarVisibleChanged(bool visible);
+  void configSidebarWidthChanged(int width);
 
   void plotPreferredScaleChanged(const BoundingRectangle& bounds);
   void plotCurrentScaleChanged(const BoundingRectangle& bounds);

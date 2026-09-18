@@ -103,6 +103,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CurveListWidget.cpp
   src/rqt_multiplot/CurveStyleConfig.cpp
   src/rqt_multiplot/CurveStyleConfigWidget.cpp
+  src/rqt_multiplot/CurveValuesWidget.cpp
   src/rqt_multiplot/DataTypeRegistry.cpp
   src/rqt_multiplot/FileScheme.cpp
   src/rqt_multiplot/MatchFilterComboBox.cpp
@@ -205,6 +206,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/CurveListWidget.h
   include/rqt_multiplot/CurveStyleConfig.h
   include/rqt_multiplot/CurveStyleConfigWidget.h
+  include/rqt_multiplot/CurveValuesWidget.h
   include/rqt_multiplot/DataTypeRegistry.h
   include/rqt_multiplot/FileScheme.h
   include/rqt_multiplot/MatchFilterComboBox.h
@@ -385,6 +387,7 @@ if(BUILD_TESTING)
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
+    test/CurveValuesWidgetTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/MultiplotConfigTest.cpp

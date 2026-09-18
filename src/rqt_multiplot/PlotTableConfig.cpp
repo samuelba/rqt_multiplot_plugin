@@ -79,7 +79,9 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
       linkScale_(linkScale),
       linkCursor_(linkCursor),
       trackPoints_(trackPoints),
-      timeAxisFormat_(StartFromZero) {
+      timeAxisFormat_(StartFromZero),
+      sidebarVisible_(false),
+      sidebarWidth_(kDefaultSidebarWidth) {
   connectLayout();
   if ((numRows != 1u) || (numColumns != 1u)) {
     setNumPlots(numRows, numColumns);
@@ -267,6 +269,32 @@ bool PlotTableConfig::isTimeAxisDateTime() const {
   return timeAxisFormat_ == DateTime;
 }
 
+void PlotTableConfig::setSidebarVisible(bool visible) {
+  if (visible != sidebarVisible_) {
+    sidebarVisible_ = visible;
+
+    emit sidebarVisibleChanged(visible);
+    emit changed();
+  }
+}
+
+bool PlotTableConfig::isSidebarVisible() const {
+  return sidebarVisible_;
+}
+
+void PlotTableConfig::setSidebarWidth(int width) {
+  if (width != sidebarWidth_) {
+    sidebarWidth_ = width;
+
+    emit sidebarWidthChanged(width);
+    emit changed();
+  }
+}
+
+int PlotTableConfig::getSidebarWidth() const {
+  return sidebarWidth_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -284,6 +312,8 @@ void PlotTableConfig::save(QSettings& settings) const {
   settings.setValue("link_cursor", linkCursor_);
   settings.setValue("track_points", trackPoints_);
   settings.setValue("time_axis_format", timeAxisFormatName(timeAxisFormat_));
+  settings.setValue("sidebar_visible", sidebarVisible_);
+  settings.setValue("sidebar_width", sidebarWidth_);
 }
 
 void PlotTableConfig::load(QSettings& settings) {
@@ -313,6 +343,8 @@ void PlotTableConfig::load(QSettings& settings) {
   } else {
     setTimeAxisFormat(anyXAxisLabelFromZero() ? StartFromZero : Timestamp);
   }
+  setSidebarVisible(settings.value("sidebar_visible", false).toBool());
+  setSidebarWidth(settings.value("sidebar_width", kDefaultSidebarWidth).toInt());
 }
 
 void PlotTableConfig::reset() {
@@ -329,6 +361,8 @@ void PlotTableConfig::reset() {
   setLinkCursor(false);
   setTrackPoints(false);
   setTimeAxisFormat(StartFromZero);
+  setSidebarVisible(false);
+  setSidebarWidth(kDefaultSidebarWidth);
 }
 
 void PlotTableConfig::write(QDataStream& stream) const {
@@ -341,6 +375,8 @@ void PlotTableConfig::write(QDataStream& stream) const {
   stream << trackPoints_;
   stream << title_;
   stream << static_cast<quint32>(timeAxisFormat_);
+  stream << sidebarVisible_;
+  stream << sidebarWidth_;
 }
 
 void PlotTableConfig::read(QDataStream& stream) {
@@ -396,6 +432,26 @@ void PlotTableConfig::read(QDataStream& stream) {
       setTimeAxisFormat(timeAxisFormatFromInt(timeAxisFormat));
     } else {
       stream.resetStatus();
+      return;
+    }
+
+    if (stream.atEnd()) {
+      setSidebarVisible(false);
+      setSidebarWidth(kDefaultSidebarWidth);
+      return;
+    }
+
+    bool sidebarVisible = false;
+    int sidebarWidth = kDefaultSidebarWidth;
+    stream >> sidebarVisible;
+    stream >> sidebarWidth;
+    if (stream.status() == QDataStream::Ok) {
+      setSidebarVisible(sidebarVisible);
+      setSidebarWidth(sidebarWidth);
+    } else {
+      stream.resetStatus();
+      setSidebarVisible(false);
+      setSidebarWidth(kDefaultSidebarWidth);
     }
     return;
   }
@@ -425,6 +481,8 @@ PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
   setLinkCursor(src.linkCursor_);
   setTrackPoints(src.trackPoints_);
   setTimeAxisFormat(src.timeAxisFormat_);
+  setSidebarVisible(src.sidebarVisible_);
+  setSidebarWidth(src.sidebarWidth_);
 
   return *this;
 }

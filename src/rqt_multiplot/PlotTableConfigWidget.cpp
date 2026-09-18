@@ -74,6 +74,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonResetLayout->setIcon(packageIcon("resource/reset-grid.svg", QSize(16, 16)));
   ui_->pushButtonStartAtZero->setIcon(packageIcon("resource/start-at-zero.svg", QSize(16, 16)));
   ui_->pushButtonDateTime->setIcon(packageIcon("resource/calendar.svg", QSize(16, 16)));
+  updateSidebarButton();
 
   ui_->pushButtonPause->setEnabled(false);
   ui_->pushButtonResetLayout->setEnabled(false);
@@ -88,6 +89,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->checkBoxTrackPoints, SIGNAL(stateChanged(int)), this, SLOT(checkBoxTrackPointsStateChanged(int)));
   connect(ui_->pushButtonStartAtZero, SIGNAL(toggled(bool)), this, SLOT(pushButtonStartAtZeroToggled(bool)));
   connect(ui_->pushButtonDateTime, SIGNAL(toggled(bool)), this, SLOT(pushButtonDateTimeToggled(bool)));
+  connect(ui_->pushButtonSidebar, SIGNAL(toggled(bool)), this, SLOT(pushButtonSidebarToggled(bool)));
 
   connect(ui_->pushButtonRun, SIGNAL(clicked()), this, SLOT(pushButtonRunClicked()));
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
@@ -115,6 +117,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
       disconnect(config_, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableConfigWidget::configTimeAxisFormatChanged);
+      disconnect(config_, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableConfigWidget::configSidebarVisibleChanged);
       disconnect(config_, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
       disconnect(config_, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
     }
@@ -128,6 +131,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
       connect(config, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableConfigWidget::configTimeAxisFormatChanged);
+      connect(config, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableConfigWidget::configSidebarVisibleChanged);
       connect(config, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
       connect(config, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
 
@@ -137,6 +141,7 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       configLinkCursorChanged(config_->isCursorLinked());
       configTrackPointsChanged(config_->arePointsTracked());
       configTimeAxisFormatChanged(config_->getTimeAxisFormat());
+      configSidebarVisibleChanged(config_->isSidebarVisible());
     }
 
     updateResetLayoutButtonState();
@@ -331,6 +336,24 @@ void PlotTableConfigWidget::pushButtonDateTimeToggled(bool checked) {
   if (config_ != nullptr) {
     config_->setTimeAxisDateTime(checked);
   }
+}
+
+void PlotTableConfigWidget::pushButtonSidebarToggled(bool checked) {
+  if (config_ != nullptr) {
+    config_->setSidebarVisible(checked);
+  }
+}
+
+void PlotTableConfigWidget::configSidebarVisibleChanged(bool /*visible*/) {
+  updateSidebarButton();
+}
+
+void PlotTableConfigWidget::updateSidebarButton() {
+  const bool visible = (config_ != nullptr) && config_->isSidebarVisible();
+  const QSignalBlocker blocker(ui_->pushButtonSidebar);
+  ui_->pushButtonSidebar->setChecked(visible);
+  ui_->pushButtonSidebar->setIcon(packageIcon(visible ? "resource/side-panel-close.svg" : "resource/side-panel-open.svg", QSize(16, 16)));
+  ui_->pushButtonSidebar->setToolTip(visible ? tr("Hide curve values") : tr("Show curve values"));
 }
 
 void PlotTableConfigWidget::pushButtonRunClicked() {

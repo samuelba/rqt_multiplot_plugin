@@ -68,6 +68,12 @@ class PlotTableConfig : public Config {
   bool isTimeAxisStartFromZero() const;
   void setTimeAxisDateTime(bool enabled);
   bool isTimeAxisDateTime() const;
+  void setSidebarVisible(bool visible);
+  bool isSidebarVisible() const;
+  void setSidebarWidth(int width);
+  int getSidebarWidth() const;
+
+  static constexpr int kDefaultSidebarWidth = 280;
 
   void save(QSettings& settings) const override;
   void load(QSettings& settings) override;
@@ -88,6 +94,8 @@ class PlotTableConfig : public Config {
   void linkCursorChanged(bool link);
   void trackPointsChanged(bool track);
   void timeAxisFormatChanged(TimeAxisFormat format);
+  void sidebarVisibleChanged(bool visible);
+  void sidebarWidthChanged(int width);
 
  private:
   QString title_;
@@ -98,6 +106,8 @@ class PlotTableConfig : public Config {
   bool linkCursor_;
   bool trackPoints_;
   TimeAxisFormat timeAxisFormat_;
+  bool sidebarVisible_;
+  int sidebarWidth_;
 
   void connectLayout();
   void loadLegacyPlots(QSettings& settings);
