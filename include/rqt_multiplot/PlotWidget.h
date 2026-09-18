@@ -167,6 +167,7 @@ class PlotWidget : public QWidget {
   void applyAxisTimeOffsets();
   void updateGridPen();
   void buildSplitMenu();
+  void applyPlotTimeWindow();
 
  private slots:
   void timerTimeout();
@@ -180,6 +181,8 @@ class PlotWidget : public QWidget {
   void configYAxisConfigChanged();
   void configLegendConfigChanged();
   void configPlotRateChanged(double rate);
+  void configTimeWindowEnabledChanged(bool enabled);
+  void configTimeWindowLengthChanged(int length);
 
   void curveReplotRequested();
 

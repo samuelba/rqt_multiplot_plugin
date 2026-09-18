@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <optional>
 
 #include <QApplication>
 #include <QMetaObject>
@@ -16,6 +17,9 @@
 #include <rqt_multiplot/CurveAxisConfig.h>
 #include <rqt_multiplot/CurveConfig.h>
 #include <rqt_multiplot/CurveData.h>
+#include <rqt_multiplot/CurveDataCircularBuffer.h>
+#include <rqt_multiplot/CurveDataConfig.h>
+#include <rqt_multiplot/CurveDataListTimeFrame.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotCurve.h>
 #include <rqt_multiplot/PlotWidget.h>
@@ -24,6 +28,9 @@ namespace {
 
 using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
+using rqt_multiplot::CurveDataCircularBuffer;
+using rqt_multiplot::CurveDataConfig;
+using rqt_multiplot::CurveDataListTimeFrame;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotCurve;
 using rqt_multiplot::PlotWidget;
@@ -178,6 +185,87 @@ TEST(PlotCurve, hiddenCurveReportsEmptyPreferredScale) {
   curve.setVisible(false);
 
   EXPECT_FALSE(curve.getPreferredScale().isValid());
+}
+
+void configureReceiptTimeCurve(CurveConfig* config) {
+  config->getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config->getAxisConfig(CurveConfig::Y)->setField("linear/x");
+  config->getDataConfig()->setType(CurveDataConfig::CircularBuffer);
+  config->getDataConfig()->setCircularBufferCapacity(100);
+}
+
+TEST(PlotCurve, plotTimeWindowOverridePrunesToLastSeconds) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.setPlotTimeWindowLength(10);
+
+  ASSERT_TRUE(dynamic_cast<CurveDataListTimeFrame*>(curve.getData()) != nullptr);
+
+  curve.getData()->appendPoint(QPointF(0.0, 1.0));
+  curve.getData()->appendPoint(QPointF(5.0, 2.0));
+  curve.getData()->appendPoint(QPointF(12.0, 3.0));
+
+  ASSERT_EQ(curve.getData()->getNumPoints(), 2u);
+  EXPECT_DOUBLE_EQ(curve.getData()->getPoint(0).x(), 5.0);
+  EXPECT_DOUBLE_EQ(curve.getData()->getPoint(1).x(), 12.0);
+}
+
+TEST(PlotCurve, clearingPlotTimeWindowRestoresCurveDataBackend) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.setPlotTimeWindowLength(10);
+  ASSERT_TRUE(dynamic_cast<CurveDataListTimeFrame*>(curve.getData()) != nullptr);
+
+  curve.setPlotTimeWindowLength(std::nullopt);
+  ASSERT_TRUE(dynamic_cast<CurveDataCircularBuffer*>(curve.getData()) != nullptr);
+}
+
+TEST(PlotWidget, plotTimeWindowAppliesToAllCurvesWhenEligible) {
+  ensureApplication();
+
+  PlotConfig config;
+  configureReceiptTimeCurve(config.addCurve());
+  configureReceiptTimeCurve(config.addCurve());
+  config.setTimeWindowEnabled(true);
+  config.setTimeWindowLength(10);
+
+  PlotWidget widget;
+  widget.setConfig(&config);
+
+  const auto curves = widget.getCurves();
+  ASSERT_EQ(curves.size(), 2);
+  for (PlotCurve* curve : curves) {
+    EXPECT_TRUE(dynamic_cast<CurveDataListTimeFrame*>(curve->getData()) != nullptr);
+  }
+}
+
+TEST(PlotWidget, plotTimeWindowDoesNotApplyWhenIneligible) {
+  ensureApplication();
+
+  PlotConfig config;
+  configureReceiptTimeCurve(config.addCurve());
+  config.addCurve()->getAxisConfig(CurveConfig::X)->setField("linear/x");
+  config.setTimeWindowEnabled(true);
+  config.setTimeWindowLength(10);
+
+  PlotWidget widget;
+  widget.setConfig(&config);
+
+  const auto curves = widget.getCurves();
+  ASSERT_EQ(curves.size(), 2);
+  for (PlotCurve* curve : curves) {
+    EXPECT_EQ(dynamic_cast<CurveDataListTimeFrame*>(curve->getData()), nullptr);
+  }
 }
 
 TEST(PlotWidget, destroyingAfterPlottedSamplesDoesNotCrash) {

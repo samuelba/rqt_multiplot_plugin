@@ -20,6 +20,17 @@ QVector<QPointF> indexSeries(int count) {
   return points;
 }
 
+TEST(CurveDataListTimeFrame, appendPointDropsPointsOutsideWindow) {
+  CurveDataListTimeFrame data(10.0);
+  data.appendPoint(QPointF(0.0, 1.0));
+  data.appendPoint(QPointF(5.0, 2.0));
+  data.appendPoint(QPointF(12.0, 3.0));
+
+  ASSERT_EQ(data.getNumPoints(), 2u);
+  EXPECT_DOUBLE_EQ(data.getPoint(0).x(), 5.0);
+  EXPECT_DOUBLE_EQ(data.getPoint(1).x(), 12.0);
+}
+
 TEST(CurveDataListTimeFrame, replacePointsKeepsFullIndexSnapshot) {
   CurveDataListTimeFrame data(10.0);
   data.appendPoint(QPointF(100.0, 1.0));

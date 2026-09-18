@@ -19,6 +19,8 @@
 #ifndef RQT_MULTIPLOT_PLOT_CURVE_H
 #define RQT_MULTIPLOT_PLOT_CURVE_H
 
+#include <optional>
+
 #include <QList>
 #include <QObject>
 #include <QPair>
@@ -45,6 +47,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
 
   void setConfig(CurveConfig* config);
   CurveConfig* getConfig() const;
+  void setPlotTimeWindowLength(std::optional<int> length);
   void setBroker(MessageBroker* broker);
   MessageBroker* getBroker() const;
   CurveData* getData() const;
@@ -77,6 +80,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
 
   bool paused_;
   bool snapshotDataBackend_;
+  std::optional<int> plotTimeWindowLength_;
 
   void createDataBackend();
   void updateSnapshotHistoryCapacity();

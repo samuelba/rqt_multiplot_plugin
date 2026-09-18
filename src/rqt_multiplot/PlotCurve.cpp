@@ -108,6 +108,14 @@ CurveConfig* PlotCurve::getConfig() const {
   return config_;
 }
 
+void PlotCurve::setPlotTimeWindowLength(std::optional<int> length) {
+  if (length != plotTimeWindowLength_) {
+    plotTimeWindowLength_ = length;
+    createDataBackend();
+    emit replotRequested();
+  }
+}
+
 void PlotCurve::setBroker(MessageBroker* broker) {
   if (broker != broker_) {
     broker_ = broker;
@@ -273,6 +281,8 @@ void PlotCurve::createDataBackend() {
 
   if (snapshot || (config_ == nullptr)) {
     data_ = new CurveDataVector();
+  } else if (plotTimeWindowLength_.has_value()) {
+    data_ = new CurveDataListTimeFrame(static_cast<double>(*plotTimeWindowLength_));
   } else {
     CurveDataConfig* dataConfig = config_->getDataConfig();
     switch (dataConfig->getType()) {
