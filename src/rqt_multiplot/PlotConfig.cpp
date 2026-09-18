@@ -33,7 +33,9 @@ PlotConfig::PlotConfig(QObject* parent, QString title, double plotRate)
       title_(std::move(title)),
       axesConfig_(new PlotAxesConfig(this)),
       legendConfig_(new PlotLegendConfig(this)),
-      plotRate_(plotRate) {
+      plotRate_(plotRate),
+      timeWindowEnabled_(false),
+      timeWindowLength_(10) {
   connect(axesConfig_, SIGNAL(changed()), this, SLOT(axesConfigChanged()));
   connect(legendConfig_, SIGNAL(changed()), this, SLOT(legendConfigChanged()));
 }
@@ -102,6 +104,46 @@ void PlotConfig::setPlotRate(double rate) {
 
 double PlotConfig::getPlotRate() const {
   return plotRate_;
+}
+
+void PlotConfig::setTimeWindowEnabled(bool enabled) {
+  if (enabled != timeWindowEnabled_) {
+    timeWindowEnabled_ = enabled;
+
+    emit timeWindowEnabledChanged(enabled);
+    emit changed();
+  }
+}
+
+bool PlotConfig::isTimeWindowEnabled() const {
+  return timeWindowEnabled_;
+}
+
+void PlotConfig::setTimeWindowLength(int length) {
+  if (length != timeWindowLength_) {
+    timeWindowLength_ = length;
+
+    emit timeWindowLengthChanged(length);
+    emit changed();
+  }
+}
+
+int PlotConfig::getTimeWindowLength() const {
+  return timeWindowLength_;
+}
+
+bool PlotConfig::canApplyTimeWindow() const {
+  if (curveConfig_.isEmpty()) {
+    return false;
+  }
+
+  for (CurveConfig* curveConfig : curveConfig_) {
+    if (!curveConfig->getAxisConfig(CurveConfig::X)->isTimeSource()) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /*****************************************************************************/
@@ -203,6 +245,8 @@ void PlotConfig::save(QSettings& settings) const {
   settings.endGroup();
 
   settings.setValue("plot_rate", plotRate_);
+  settings.setValue("time_window_enabled", timeWindowEnabled_);
+  settings.setValue("time_window_length", timeWindowLength_);
 }
 
 void PlotConfig::load(QSettings& settings) {
@@ -244,6 +288,8 @@ void PlotConfig::load(QSettings& settings) {
   settings.endGroup();
 
   setPlotRate(settings.value("plot_rate", 30.0).toDouble());
+  setTimeWindowEnabled(settings.value("time_window_enabled", false).toBool());
+  setTimeWindowLength(settings.value("time_window_length", 10).toInt());
 }
 
 void PlotConfig::reset() {
@@ -255,6 +301,8 @@ void PlotConfig::reset() {
   legendConfig_->reset();
 
   setPlotRate(30.0);
+  setTimeWindowEnabled(false);
+  setTimeWindowLength(10);
 }
 
 void PlotConfig::write(QDataStream& stream) const {
@@ -269,12 +317,16 @@ void PlotConfig::write(QDataStream& stream) const {
   legendConfig_->write(stream);
 
   stream << plotRate_;
+  stream << timeWindowEnabled_;
+  stream << timeWindowLength_;
 }
 
 void PlotConfig::read(QDataStream& stream) {
   QString title;
   quint64 numCurves = 0;
   double plotRate = NAN;
+  bool timeWindowEnabled = false;
+  int timeWindowLength = 10;
 
   stream >> title;
   setTitle(title);
@@ -290,6 +342,10 @@ void PlotConfig::read(QDataStream& stream) {
 
   stream >> plotRate;
   setPlotRate(plotRate);
+  stream >> timeWindowEnabled;
+  setTimeWindowEnabled(timeWindowEnabled);
+  stream >> timeWindowLength;
+  setTimeWindowLength(timeWindowLength);
 }
 
 /*****************************************************************************/
@@ -318,6 +374,8 @@ PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
   *legendConfig_ = *src.legendConfig_;
 
   setPlotRate(src.plotRate_);
+  setTimeWindowEnabled(src.timeWindowEnabled_);
+  setTimeWindowLength(src.timeWindowLength_);
 
   return *this;
 }

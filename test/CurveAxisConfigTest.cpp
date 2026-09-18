@@ -167,6 +167,34 @@ TEST(CurveAxisConfig, writesAndReadsArrayIndex) {
   EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::ArrayIndex);
 }
 
+TEST(CurveAxisConfig, isTimeSourceForReceiptTimeAndStampField) {
+  CurveAxisConfig receiptTime;
+  receiptTime.setFieldType(CurveAxisConfig::MessageReceiptTime);
+  EXPECT_TRUE(receiptTime.isTimeSource());
+
+  CurveAxisConfig stamp;
+  stamp.setField("header/stamp");
+  EXPECT_TRUE(stamp.isTimeSource());
+}
+
+TEST(CurveAxisConfig, isTimeSourceFalseForNonTimeField) {
+  CurveAxisConfig numeric;
+  numeric.setField("linear/x");
+  EXPECT_FALSE(numeric.isTimeSource());
+
+  numeric.setLabelFromZero(true);
+  EXPECT_FALSE(numeric.isTimeSource());
+}
+
+TEST(CurveAxisConfig, isTimeSourceFalseForArrayIndexAndEmptyField) {
+  CurveAxisConfig arrayIndex;
+  arrayIndex.setFieldType(CurveAxisConfig::ArrayIndex);
+  EXPECT_FALSE(arrayIndex.isTimeSource());
+
+  CurveAxisConfig empty;
+  EXPECT_FALSE(empty.isTimeSource());
+}
+
 TEST(CurveAxisConfig, writesAndReadsLabelFromZero) {
   CurveAxisConfig source;
   source.setLabelFromZero(true);

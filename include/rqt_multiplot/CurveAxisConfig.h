@@ -45,6 +45,7 @@ class CurveAxisConfig : public Config {
   void setLabelFromZero(bool labelFromZero);
   bool isLabelFromZero() const;
   bool usesTimeScale() const;
+  bool isTimeSource() const;
   bool hasConfiguredSource() const;
   QString getFieldLabel() const;
   static bool isTimeFieldPath(const QString& field);

@@ -43,6 +43,11 @@ class PlotConfig : public Config {
   PlotLegendConfig* getLegendConfig() const;
   void setPlotRate(double rate);
   double getPlotRate() const;
+  void setTimeWindowEnabled(bool enabled);
+  bool isTimeWindowEnabled() const;
+  void setTimeWindowLength(int length);
+  int getTimeWindowLength() const;
+  bool canApplyTimeWindow() const;
 
   CurveConfig* addCurve();
   void removeCurve(CurveConfig* curveConfig);
@@ -67,6 +72,8 @@ class PlotConfig : public Config {
   void curvesCleared();
   void curveConfigChanged(size_t index);
   void plotRateChanged(double rate);
+  void timeWindowEnabledChanged(bool enabled);
+  void timeWindowLengthChanged(int length);
 
  private:
   QString title_;
@@ -74,6 +81,8 @@ class PlotConfig : public Config {
   PlotAxesConfig* axesConfig_;
   PlotLegendConfig* legendConfig_;
   double plotRate_;
+  bool timeWindowEnabled_;
+  int timeWindowLength_;
 
  private slots:
   void curveConfigChanged();

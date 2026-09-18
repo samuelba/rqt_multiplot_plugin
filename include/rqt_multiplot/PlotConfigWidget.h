@@ -51,6 +51,11 @@ class PlotConfigWidget : public QWidget {
  private slots:
   void configTitleChanged(const QString& title);
   void configPlotRateChanged(double rate);
+  void configTimeWindowEnabledChanged(bool enabled);
+  void configTimeWindowLengthChanged(int length);
+  void configCurveAdded(size_t index);
+  void configCurveRemoved(size_t index);
+  void configCurveConfigChanged(size_t index);
 
   void lineEditTitleEditingFinished();
 
@@ -65,7 +70,10 @@ class PlotConfigWidget : public QWidget {
   void curveListWidgetItemDoubleClicked(QListWidgetItem* item);
 
   void doubleSpinBoxPlotRateValueChanged(double value);
+  void checkBoxTimeWindowToggled(bool checked);
+  void spinBoxTimeWindowLengthValueChanged(int value);
 
+  void updateTimeWindowControls();
   void clipboardDataChanged();
 };
 }  // namespace rqt_multiplot

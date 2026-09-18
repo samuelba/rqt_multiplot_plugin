@@ -107,7 +107,7 @@ The timer and calendar toggles set the X-axis time labels for the active tab: st
 
 ### Configure a plot
 
-Open the gear on a plot. Add curves, set axis titles, legend, and plot rate.
+Open the gear on a plot. Add curves, set axis titles, legend, plot rate, and an optional **Time window** (last *N* seconds for all curves when every X axis uses message receipt time or header stamp).
 
 ![Configure plot](images/configure_plot.png)
 

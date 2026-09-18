@@ -86,6 +86,56 @@
     </widget>
    </item>
    <item row="10" column="1">
+    <layout class="QHBoxLayout" name="horizontalLayoutTimeWindow">
+     <item>
+      <widget class="QCheckBox" name="checkBoxTimeWindow">
+       <property name="toolTip">
+        <string>Keep only the last N seconds of data for all curves. Requires every curve X axis to use message receipt time or header stamp.</string>
+       </property>
+       <property name="text">
+        <string>Time window</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="spinBoxTimeWindowLength">
+       <property name="toolTip">
+        <string>Length of the time window in seconds</string>
+       </property>
+       <property name="minimum">
+        <number>1</number>
+       </property>
+       <property name="maximum">
+        <number>600</number>
+       </property>
+       <property name="value">
+        <number>10</number>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelTimeWindowUnit">
+       <property name="text">
+        <string>s</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacerTimeWindow">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item row="11" column="1">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QLabel" name="label_5">
@@ -377,7 +427,7 @@
      </property>
     </widget>
    </item>
-   <item row="10" column="0">
+   <item row="10" column="0" rowspan="2">
     <widget class="QLabel" name="label_4">
      <property name="font">
       <font>
@@ -387,6 +437,9 @@
      </property>
      <property name="text">
       <string>Misc:</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignTop</set>
      </property>
     </widget>
    </item>

@@ -133,6 +133,13 @@ bool CurveAxisConfig::usesTimeScale() const {
   return labelFromZero_ || (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
 }
 
+bool CurveAxisConfig::isTimeSource() const {
+  if (fieldType_ == ArrayIndex) {
+    return false;
+  }
+  return (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
+}
+
 bool CurveAxisConfig::hasConfiguredSource() const {
   return fieldType_ == MessageReceiptTime || fieldType_ == ArrayIndex || !field_.isEmpty();
 }

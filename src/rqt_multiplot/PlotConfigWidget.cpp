@@ -61,6 +61,11 @@ PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new U
 
   connect(config_, SIGNAL(titleChanged(const QString&)), this, SLOT(configTitleChanged(const QString&)));
   connect(config_, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+  connect(config_, SIGNAL(timeWindowEnabledChanged(bool)), this, SLOT(configTimeWindowEnabledChanged(bool)));
+  connect(config_, SIGNAL(timeWindowLengthChanged(int)), this, SLOT(configTimeWindowLengthChanged(int)));
+  connect(config_, SIGNAL(curveAdded(size_t)), this, SLOT(configCurveAdded(size_t)));
+  connect(config_, SIGNAL(curveRemoved(size_t)), this, SLOT(configCurveRemoved(size_t)));
+  connect(config_, SIGNAL(curveConfigChanged(size_t)), this, SLOT(configCurveConfigChanged(size_t)));
 
   connect(ui_->lineEditTitle, SIGNAL(editingFinished()), this, SLOT(lineEditTitleEditingFinished()));
 
@@ -76,11 +81,16 @@ PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new U
           SLOT(curveListWidgetItemDoubleClicked(QListWidgetItem*)));
 
   connect(ui_->doubleSpinBoxPlotRate, SIGNAL(valueChanged(double)), this, SLOT(doubleSpinBoxPlotRateValueChanged(double)));
+  connect(ui_->checkBoxTimeWindow, SIGNAL(toggled(bool)), this, SLOT(checkBoxTimeWindowToggled(bool)));
+  connect(ui_->spinBoxTimeWindowLength, SIGNAL(valueChanged(int)), this, SLOT(spinBoxTimeWindowLengthValueChanged(int)));
 
   connect(QApplication::clipboard(), SIGNAL(dataChanged()), this, SLOT(clipboardDataChanged()));
 
   configTitleChanged(config_->getTitle());
   configPlotRateChanged(config_->getPlotRate());
+  configTimeWindowEnabledChanged(config_->isTimeWindowEnabled());
+  configTimeWindowLengthChanged(config_->getTimeWindowLength());
+  updateTimeWindowControls();
 
   clipboardDataChanged();
 }
@@ -101,6 +111,10 @@ void PlotConfigWidget::setConfig(const PlotConfig& config) {
   for (size_t index = 0; index < config_->getNumCurves(); ++index) {
     ui_->curveListWidget->addCurve(config_->getCurveConfig(index));
   }
+
+  configTimeWindowEnabledChanged(config_->isTimeWindowEnabled());
+  configTimeWindowLengthChanged(config_->getTimeWindowLength());
+  updateTimeWindowControls();
 }
 
 const PlotConfig& PlotConfigWidget::getConfig() const {
@@ -186,6 +200,33 @@ void PlotConfigWidget::configPlotRateChanged(double rate) {
   ui_->doubleSpinBoxPlotRate->setValue(rate);
 }
 
+void PlotConfigWidget::configTimeWindowEnabledChanged(bool enabled) {
+  ui_->checkBoxTimeWindow->setChecked(enabled);
+  updateTimeWindowControls();
+}
+
+void PlotConfigWidget::configTimeWindowLengthChanged(int length) {
+  ui_->spinBoxTimeWindowLength->setValue(length);
+}
+
+void PlotConfigWidget::configCurveAdded(size_t /*index*/) {
+  updateTimeWindowControls();
+}
+
+void PlotConfigWidget::configCurveRemoved(size_t /*index*/) {
+  updateTimeWindowControls();
+}
+
+void PlotConfigWidget::configCurveConfigChanged(size_t /*index*/) {
+  updateTimeWindowControls();
+}
+
+void PlotConfigWidget::updateTimeWindowControls() {
+  const bool eligible = config_->canApplyTimeWindow();
+  ui_->checkBoxTimeWindow->setEnabled(eligible);
+  ui_->spinBoxTimeWindowLength->setEnabled(eligible && config_->isTimeWindowEnabled());
+}
+
 void PlotConfigWidget::lineEditTitleEditingFinished() {
   config_->setTitle(ui_->lineEditTitle->text());
 }
@@ -259,6 +300,15 @@ void PlotConfigWidget::curveListWidgetItemDoubleClicked(QListWidgetItem*
 
 void PlotConfigWidget::doubleSpinBoxPlotRateValueChanged(double value) {
   config_->setPlotRate(value);
+}
+
+void PlotConfigWidget::checkBoxTimeWindowToggled(bool checked) {
+  config_->setTimeWindowEnabled(checked);
+  updateTimeWindowControls();
+}
+
+void PlotConfigWidget::spinBoxTimeWindowLengthValueChanged(int value) {
+  config_->setTimeWindowLength(value);
 }
 
 void PlotConfigWidget::clipboardDataChanged() {

@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <optional>
+
 #include <QCursor>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -242,6 +244,8 @@ void PlotWidget::setConfig(PlotConfig* config) {
       disconnect(config_->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       disconnect(config_->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       disconnect(config_, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      disconnect(config_, SIGNAL(timeWindowEnabledChanged(bool)), this, SLOT(configTimeWindowEnabledChanged(bool)));
+      disconnect(config_, SIGNAL(timeWindowLengthChanged(int)), this, SLOT(configTimeWindowLengthChanged(int)));
       disconnect(config_, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configCurvesCleared();
@@ -264,6 +268,8 @@ void PlotWidget::setConfig(PlotConfig* config) {
       connect(config->getAxesConfig()->getAxisConfig(PlotAxesConfig::Y), SIGNAL(changed()), this, SLOT(configYAxisConfigChanged()));
       connect(config->getLegendConfig(), SIGNAL(changed()), this, SLOT(configLegendConfigChanged()));
       connect(config, SIGNAL(plotRateChanged(double)), this, SLOT(configPlotRateChanged(double)));
+      connect(config, SIGNAL(timeWindowEnabledChanged(bool)), this, SLOT(configTimeWindowEnabledChanged(bool)));
+      connect(config, SIGNAL(timeWindowLengthChanged(int)), this, SLOT(configTimeWindowLengthChanged(int)));
       connect(config, SIGNAL(destroyed()), this, SLOT(configDestroyed()));
 
       configTitleChanged(config->getTitle());
@@ -874,6 +880,7 @@ void PlotWidget::configCurveAdded(size_t index) {
   configXAxisConfigChanged();
   configYAxisConfigChanged();
   updateAxisTimeLabels();
+  applyPlotTimeWindow();
 
   forceReplot();
 }
@@ -912,6 +919,28 @@ void PlotWidget::configCurveConfigChanged(size_t /*index*/) {
   configXAxisConfigChanged();
   configYAxisConfigChanged();
   updateAxisTimeLabels();
+  applyPlotTimeWindow();
+}
+
+void PlotWidget::applyPlotTimeWindow() {
+  if (config_ == nullptr) {
+    return;
+  }
+
+  const bool apply = config_->isTimeWindowEnabled() && config_->canApplyTimeWindow();
+  const std::optional<int> length = apply ? std::optional<int>(config_->getTimeWindowLength()) : std::nullopt;
+
+  for (PlotCurve* curve : curves_) {
+    curve->setPlotTimeWindowLength(length);
+  }
+}
+
+void PlotWidget::configTimeWindowEnabledChanged(bool /*enabled*/) {
+  applyPlotTimeWindow();
+}
+
+void PlotWidget::configTimeWindowLengthChanged(int /*length*/) {
+  applyPlotTimeWindow();
 }
 
 void PlotWidget::configXAxisConfigChanged() {
