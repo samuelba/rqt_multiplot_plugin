@@ -21,6 +21,7 @@
 #include <QDockWidget>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
@@ -29,6 +30,7 @@
 
 #include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
+#include <rqt_multiplot/PreferencesDialog.h>
 
 #include <ui_MultiplotWidget.h>
 
@@ -88,6 +90,10 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   fileMenu->addSeparator();
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportImageFile());
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportTextFile());
+  fileMenu->addSeparator();
+  QAction* preferencesAction = fileMenu->addAction(tr("Preferences..."));
+  preferencesAction->setShortcut(QKeySequence::Preferences);
+  connect(preferencesAction, &QAction::triggered, this, &MultiplotWidget::openPreferences);
 
   ui_->configWidget->setConfig(config_);
   ui_->plotTabWidget->setConfig(config_);
@@ -320,6 +326,16 @@ void MultiplotWidget::configWidgetCurrentConfigUrlChanged(const QString& url) {
 void MultiplotWidget::plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable) {
   ui_->plotTableConfigWidget->setConfig(plotTable != nullptr ? plotTable->getConfig() : nullptr);
   ui_->plotTableConfigWidget->setPlotTable(plotTable);
+}
+
+void MultiplotWidget::openPreferences() {
+  PreferencesDialog dialog(this);
+  dialog.setTimeZoneId(config_->getTimeZoneId());
+  if (dialog.exec() != QDialog::Accepted) {
+    return;
+  }
+
+  config_->setTimeZoneId(dialog.timeZoneId());
 }
 
 }  // namespace rqt_multiplot

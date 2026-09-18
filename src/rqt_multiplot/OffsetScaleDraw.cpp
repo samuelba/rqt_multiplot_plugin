@@ -9,7 +9,7 @@
 
 namespace rqt_multiplot {
 
-OffsetScaleDraw::OffsetScaleDraw() : offset_(0.0), timeLabelMode_(AxisTimeFormat::LabelMode::Off) {}
+OffsetScaleDraw::OffsetScaleDraw() : offset_(0.0), timeLabelMode_(AxisTimeFormat::LabelMode::Off), timeZone_(QTimeZone::utc()) {}
 
 OffsetScaleDraw::~OffsetScaleDraw() = default;
 
@@ -35,6 +35,17 @@ AxisTimeFormat::LabelMode OffsetScaleDraw::timeLabelMode() const {
   return timeLabelMode_;
 }
 
+void OffsetScaleDraw::setTimeZone(const QTimeZone& zone) {
+  if (zone != timeZone_) {
+    timeZone_ = zone;
+    invalidateCache();
+  }
+}
+
+const QTimeZone& OffsetScaleDraw::timeZone() const {
+  return timeZone_;
+}
+
 void OffsetScaleDraw::setUseTimeScale(bool useTimeScale) {
   setTimeLabelMode(useTimeScale ? AxisTimeFormat::LabelMode::Relative : AxisTimeFormat::LabelMode::Off);
 }
@@ -51,7 +62,7 @@ QwtText OffsetScaleDraw::label(double value) const {
     case AxisTimeFormat::LabelMode::Relative:
       return QwtText(AxisTimeFormat::relative(value, offset_, span));
     case AxisTimeFormat::LabelMode::DateTime:
-      return QwtText(AxisTimeFormat::dateTime(value));
+      return QwtText(AxisTimeFormat::dateTime(value, timeZone_));
     case AxisTimeFormat::LabelMode::Off:
     default:
       return QwtScaleDraw::label(value);

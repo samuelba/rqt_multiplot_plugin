@@ -6,6 +6,8 @@
 #ifndef RQT_MULTIPLOT_OFFSET_SCALE_DRAW_H
 #define RQT_MULTIPLOT_OFFSET_SCALE_DRAW_H
 
+#include <QTimeZone>
+
 #include <qwt/qwt_scale_draw.h>
 #include <qwt/qwt_text.h>
 
@@ -22,6 +24,8 @@ class OffsetScaleDraw : public QwtScaleDraw {
   double offset() const;
   void setTimeLabelMode(AxisTimeFormat::LabelMode mode);
   AxisTimeFormat::LabelMode timeLabelMode() const;
+  void setTimeZone(const QTimeZone& zone);
+  const QTimeZone& timeZone() const;
   void setUseTimeScale(bool useTimeScale);
   bool useTimeScale() const;
 
@@ -30,6 +34,7 @@ class OffsetScaleDraw : public QwtScaleDraw {
  private:
   double offset_;
   AxisTimeFormat::LabelMode timeLabelMode_;
+  QTimeZone timeZone_;
 };
 
 }  // namespace rqt_multiplot

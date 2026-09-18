@@ -31,6 +31,7 @@
 #include <QPixmap>
 #include <QSize>
 #include <QTextStream>
+#include <QTimeZone>
 #include <QToolButton>
 #include <QWidgetAction>
 
@@ -59,6 +60,7 @@
 #include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotPanner.h>
 #include <rqt_multiplot/PlotZoomer.h>
+#include <rqt_multiplot/TimeZoneUtil.h>
 
 #include <ui_PlotWidget.h>
 
@@ -108,6 +110,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       xOrigin_(0.0),
       yOrigin_(0.0),
       timeAxisFormat_(PlotTableConfig::StartFromZero),
+      timeZone_(TimeZoneUtil::localTimeZone()),
       gridForegroundColor_(Qt::black) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
@@ -323,6 +326,15 @@ void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
 
 PlotTableConfig::TimeAxisFormat PlotWidget::getTimeAxisFormat() const {
   return timeAxisFormat_;
+}
+
+void PlotWidget::setTimeZone(const QTimeZone& zone) {
+  timeZone_ = zone;
+  updateAxisTimeLabels();
+}
+
+const QTimeZone& PlotWidget::getTimeZone() const {
+  return timeZone_;
 }
 
 void PlotWidget::setGridVisible(bool visible) {
@@ -807,6 +819,7 @@ void PlotWidget::applyAxisTimeOffsets() {
   if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::xBottom))) {
     draw->setTimeLabelMode(xMode);
     draw->setOffset(xOffset);
+    draw->setTimeZone(timeZone_);
   }
   if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::xBottom))) {
     engine->setOffset(xOffset);
@@ -814,6 +827,7 @@ void PlotWidget::applyAxisTimeOffsets() {
   if (auto* draw = dynamic_cast<OffsetScaleDraw*>(ui_->plot->axisScaleDraw(QwtPlot::yLeft))) {
     draw->setTimeLabelMode(yMode);
     draw->setOffset(yOffset);
+    draw->setTimeZone(timeZone_);
   }
   if (auto* engine = dynamic_cast<OffsetScaleEngine*>(ui_->plot->axisScaleEngine(QwtPlot::yLeft))) {
     engine->setOffset(yOffset);
@@ -823,6 +837,7 @@ void PlotWidget::applyAxisTimeOffsets() {
     cursor_->setYTimeLabelMode(yMode);
     cursor_->setXOffset(xOffset);
     cursor_->setYOffset(yOffset);
+    cursor_->setTimeZone(timeZone_);
   }
 
   if (currentBounds_.isValid()) {

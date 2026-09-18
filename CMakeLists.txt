@@ -136,6 +136,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PackageScheme.cpp
   src/rqt_multiplot/PenStyleComboBox.cpp
   src/rqt_multiplot/PenStyleItemDelegate.cpp
+  src/rqt_multiplot/PreferencesDialog.cpp
   src/rqt_multiplot/PlotAxesConfig.cpp
   src/rqt_multiplot/PlotAxesConfigWidget.cpp
   src/rqt_multiplot/PlotAxisConfig.cpp
@@ -166,6 +167,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/RosContext.cpp
   src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
+  src/rqt_multiplot/TimeZoneUtil.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
   src/rqt_multiplot/UrlComboBox.cpp
   src/rqt_multiplot/UrlCompleter.cpp
@@ -238,6 +240,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PackageScheme.h
   include/rqt_multiplot/PenStyleComboBox.h
   include/rqt_multiplot/PenStyleItemDelegate.h
+  include/rqt_multiplot/PreferencesDialog.h
   include/rqt_multiplot/PlotAxesConfig.h
   include/rqt_multiplot/PlotAxesConfigWidget.h
   include/rqt_multiplot/PlotAxisConfig.h
@@ -271,6 +274,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/SnapshotHistory.h
   include/rqt_multiplot/RosContext.h
   include/rqt_multiplot/StatusWidget.h
+  include/rqt_multiplot/TimeZoneUtil.h
   include/rqt_multiplot/ThreadedTimer.h
   include/rqt_multiplot/UrlComboBox.h
   include/rqt_multiplot/UrlCompleter.h
@@ -292,6 +296,7 @@ set(rqt_multiplot_UIS
   src/rqt_multiplot/MessageFieldWidget.ui
   src/rqt_multiplot/MultiplotConfigWidget.ui
   src/rqt_multiplot/MultiplotWidget.ui
+  src/rqt_multiplot/PreferencesDialog.ui
   src/rqt_multiplot/PlotAxesConfigWidget.ui
   src/rqt_multiplot/PlotAxisConfigWidget.ui
   src/rqt_multiplot/PlotConfigDialog.ui
@@ -406,10 +411,12 @@ if(BUILD_TESTING)
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp
+    test/TimeZoneUtilTest.cpp
     test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     test/PlotTabWidgetTest.cpp
+    test/PreferencesDialogTest.cpp
     test/AmentIndexTest.cpp
     test/PackageResourceTest.cpp
     test/MatchFilterCompleterModelTest.cpp

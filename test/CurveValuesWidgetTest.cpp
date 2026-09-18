@@ -290,14 +290,15 @@ TEST(CurveValuesWidget, formatsDateTimeAndStartFromZeroX) {
 
   QTreeWidgetItem* curve = findItem(curveValuesTree(values), QStringLiteral("Pan"));
   ASSERT_NE(curve, nullptr);
-  EXPECT_EQ(curve->text(1), AxisTimeFormat::coordinate(1789028001.0, 0.0, 1.0, AxisTimeFormat::LabelMode::DateTime));
+  EXPECT_EQ(curve->text(1), AxisTimeFormat::coordinate(1789028001.0, 0.0, 1.0, AxisTimeFormat::LabelMode::DateTime, plot->getTimeZone()));
 
   config.setTimeAxisFormat(PlotTableConfig::StartFromZero);
   plot->forceReplot();
   values->refresh();
   curve = findItem(curveValuesTree(values), QStringLiteral("Pan"));
   ASSERT_NE(curve, nullptr);
-  EXPECT_EQ(curve->text(1), AxisTimeFormat::coordinate(1789028001.0, 1789028000.0, 1.0, AxisTimeFormat::LabelMode::Relative));
+  EXPECT_EQ(curve->text(1),
+            AxisTimeFormat::coordinate(1789028001.0, 1789028000.0, 1.0, AxisTimeFormat::LabelMode::Relative, plot->getTimeZone()));
 }
 
 TEST(CurveValuesWidget, keepsFractionalRelativeTimeOnWideWindow) {

@@ -55,7 +55,8 @@ PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
       xOffset_(0.0),
       yOffset_(0.0),
       xTimeLabelMode_(AxisTimeFormat::LabelMode::Off),
-      yTimeLabelMode_(AxisTimeFormat::LabelMode::Off) {
+      yTimeLabelMode_(AxisTimeFormat::LabelMode::Off),
+      timeZone_(QTimeZone::utc()) {
   setTrackerMode(QwtPicker::AlwaysOn);
   setTrackerPen(QPen(Qt::black));
   setStateMachine(new PlotCursorMachine());
@@ -163,13 +164,21 @@ AxisTimeFormat::LabelMode PlotCursor::yTimeLabelMode() const {
   return yTimeLabelMode_;
 }
 
+void PlotCursor::setTimeZone(const QTimeZone& zone) {
+  timeZone_ = zone;
+}
+
+const QTimeZone& PlotCursor::timeZone() const {
+  return timeZone_;
+}
+
 QString PlotCursor::formatCoordinate(double value, bool isX) const {
   const int axis = isX ? xAxis() : yAxis();
   const QwtScaleMap map = plot()->canvasMap(axis);
   const double span = fabs(map.invTransform(1.0) - map.invTransform(0.0));
   const double offset = isX ? xOffset_ : yOffset_;
   const AxisTimeFormat::LabelMode mode = isX ? xTimeLabelMode_ : yTimeLabelMode_;
-  return AxisTimeFormat::coordinate(value, offset, span, mode);
+  return AxisTimeFormat::coordinate(value, offset, span, mode, timeZone_);
 }
 
 QStringList PlotCursor::trackedReadoutLines() const {

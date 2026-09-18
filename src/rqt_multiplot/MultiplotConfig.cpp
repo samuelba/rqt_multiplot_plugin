@@ -20,23 +20,45 @@
 
 #include <algorithm>
 
+#include "rqt_multiplot/TimeZoneUtil.h"
+
 #include <QBuffer>
 #include <QByteArray>
 #include <QIODevice>
 #include <QRegularExpression>
+#include <QTimeZone>
 
 namespace rqt_multiplot {
 
 namespace {
 constexpr quint32 kTabsStreamMagic = 0x52544D31;
 constexpr quint64 kMaxStreamTabs = 256;
+constexpr auto kTimeZoneLocal = "local";
+constexpr auto kTimeZoneUtc = "utc";
+
+QString normalizeTimeZoneId(const QString& timeZoneId) {
+  const QString trimmed = timeZoneId.trimmed();
+  if (trimmed.isEmpty() || (trimmed == QLatin1String(kTimeZoneLocal))) {
+    return QString::fromLatin1(kTimeZoneLocal);
+  }
+  if (trimmed == QLatin1String(kTimeZoneUtc)) {
+    return QString::fromLatin1(kTimeZoneUtc);
+  }
+
+  const QTimeZone zone(trimmed.toUtf8());
+  if (zone.isValid()) {
+    return trimmed;
+  }
+
+  return QString::fromLatin1(kTimeZoneLocal);
+}
 }  // namespace
 
 /*****************************************************************************/
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-MultiplotConfig::MultiplotConfig(QObject* parent) : Config(parent), currentTabIndex_(0) {
+MultiplotConfig::MultiplotConfig(QObject* parent) : Config(parent), currentTabIndex_(0), timeZoneId_(QString::fromLatin1(kTimeZoneLocal)) {
   createTab("Tab 1");
 }
 
@@ -118,11 +140,43 @@ void MultiplotConfig::setCurrentTabIndex(size_t index) {
   }
 }
 
+void MultiplotConfig::setTimeZoneId(const QString& timeZoneId) {
+  const QString normalized = normalizeTimeZoneId(timeZoneId);
+  if (normalized == timeZoneId_) {
+    return;
+  }
+
+  timeZoneId_ = normalized;
+  emit timezoneChanged(timeZoneId_);
+  emit changed();
+}
+
+QString MultiplotConfig::getTimeZoneId() const {
+  return timeZoneId_;
+}
+
+QTimeZone MultiplotConfig::timeZone() const {
+  if (timeZoneId_ == QLatin1String(kTimeZoneLocal)) {
+    return TimeZoneUtil::localTimeZone();
+  }
+  if (timeZoneId_ == QLatin1String(kTimeZoneUtc)) {
+    return QTimeZone::utc();
+  }
+
+  const QTimeZone zone(timeZoneId_.toUtf8());
+  if (zone.isValid()) {
+    return zone;
+  }
+
+  return TimeZoneUtil::localTimeZone();
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
 
 void MultiplotConfig::save(QSettings& settings) const {
+  settings.setValue("time_zone", timeZoneId_);
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
   settings.beginGroup("tabs");
 
@@ -136,20 +190,28 @@ void MultiplotConfig::save(QSettings& settings) const {
 }
 
 void MultiplotConfig::load(QSettings& settings) {
+  const QString loadedTimeZone =
+      normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
   const QStringList groups = settings.childGroups();
   if (groups.contains("tabs")) {
+    timeZoneId_ = loadedTimeZone;
     loadTabs(settings);
   } else if (groups.contains("table")) {
+    timeZoneId_ = loadedTimeZone;
     loadLegacyTable(settings);
   } else {
     reset();
+    return;
   }
+
+  emit timezoneChanged(timeZoneId_);
 }
 
 void MultiplotConfig::reset() {
   const QVector<PlotTableConfig*> previous = takeTabs();
   createTab("Tab 1");
   currentTabIndex_ = 0;
+  timeZoneId_ = QString::fromLatin1(kTimeZoneLocal);
 
   emit tabsChanged();
   emit currentTabIndexChanged(0);
@@ -165,6 +227,8 @@ void MultiplotConfig::write(QDataStream& stream) const {
   for (PlotTableConfig* table : tableConfigs_) {
     table->write(stream);
   }
+
+  stream << timeZoneId_;
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
@@ -191,6 +255,11 @@ void MultiplotConfig::read(QDataStream& stream) {
     quint64 currentTabIndex = 0;
     in >> numTabs >> currentTabIndex;
     replaceTabsFromStream(in, numTabs, currentTabIndex);
+    QString loadedTimeZoneId = QString::fromLatin1(kTimeZoneLocal);
+    if (!in.atEnd()) {
+      in >> loadedTimeZoneId;
+    }
+    setTimeZoneId(loadedTimeZoneId);
     return;
   }
 
@@ -226,6 +295,7 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   if (currentTabIndex_ >= getNumTabs()) {
     currentTabIndex_ = getNumTabs() - 1;
   }
+  timeZoneId_ = src.timeZoneId_;
 
   emit tabsChanged();
   emit currentTabIndexChanged(currentTabIndex_);

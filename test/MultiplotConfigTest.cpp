@@ -349,6 +349,129 @@ TEST(MultiplotConfig, snapshotMatchesAfterSwitchingTabAndBack) {
   EXPECT_EQ(snapshotOf(config), original);
 }
 
+TEST(MultiplotConfig, defaultsToLocalTimeZone) {
+  MultiplotConfig config(nullptr);
+
+  EXPECT_EQ(config.getTimeZoneId(), QStringLiteral("local"));
+}
+
+TEST(MultiplotConfig, localTimeZoneUsesTzEnvironment) {
+  const QTimeZone berlin(QStringLiteral("Europe/Berlin").toUtf8());
+  if (!berlin.isValid()) {
+    GTEST_SKIP() << "Europe/Berlin unavailable in Qt tzdata";
+  }
+
+  const QByteArray previous = qgetenv("TZ");
+  qputenv("TZ", QByteArray("Europe/Berlin"));
+
+  MultiplotConfig config(nullptr);
+  EXPECT_EQ(config.getTimeZoneId(), QStringLiteral("local"));
+  EXPECT_EQ(config.timeZone(), berlin);
+
+  if (previous.isEmpty()) {
+    qunsetenv("TZ");
+  } else {
+    qputenv("TZ", previous);
+  }
+}
+
+TEST(MultiplotConfig, savesAndLoadsTimeZone) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "timezone.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setTimeZoneId(QStringLiteral("Europe/Zurich"));
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+    ASSERT_EQ(settings.status(), QSettings::NoError);
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("Europe/Zurich"));
+}
+
+TEST(MultiplotConfig, missingTimeZoneKeyKeepsLocalDefault) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "timezone-default.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.remove("time_zone");
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  loaded.setTimeZoneId(QStringLiteral("utc"));
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("local"));
+}
+
+TEST(MultiplotConfig, invalidTimeZoneIdFallsBackToLocal) {
+  MultiplotConfig config(nullptr);
+  config.setTimeZoneId(QStringLiteral("Not/A/Zone"));
+
+  EXPECT_EQ(config.getTimeZoneId(), QStringLiteral("local"));
+}
+
+TEST(MultiplotConfig, roundTripsTimeZoneThroughDataStream) {
+  MultiplotConfig source(nullptr);
+  source.setTimeZoneId(QStringLiteral("utc"));
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("utc"));
+}
+
+TEST(MultiplotConfig, legacyDataStreamWithoutTimeZoneKeepsLocal) {
+  MultiplotConfig source(nullptr);
+  source.getTableConfig(0)->setTitle("Legacy");
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << static_cast<quint32>(0x52544D31);
+  out << static_cast<quint64>(1);
+  out << static_cast<quint64>(0);
+  source.getTableConfig(0)->write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.setTimeZoneId(QStringLiteral("utc"));
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("local"));
+  EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Legacy"));
+}
+
 TEST(MultiplotConfig, prefersTabsWhenBothGroupsExist) {
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());

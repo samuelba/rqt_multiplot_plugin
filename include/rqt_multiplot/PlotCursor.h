@@ -26,6 +26,7 @@
 #include <QRegion>
 #include <QString>
 #include <QStringList>
+#include <QTimeZone>
 #include <QVector>
 
 #include <qwt/qwt_plot_picker.h>
@@ -59,6 +60,8 @@ class PlotCursor : public QwtPlotPicker {
   AxisTimeFormat::LabelMode xTimeLabelMode() const;
   void setYTimeLabelMode(AxisTimeFormat::LabelMode mode);
   AxisTimeFormat::LabelMode yTimeLabelMode() const;
+  void setTimeZone(const QTimeZone& zone);
+  const QTimeZone& timeZone() const;
 
   void update();
 
@@ -103,6 +106,7 @@ class PlotCursor : public QwtPlotPicker {
   double yOffset_;
   AxisTimeFormat::LabelMode xTimeLabelMode_;
   AxisTimeFormat::LabelMode yTimeLabelMode_;
+  QTimeZone timeZone_;
 
  private slots:
   void plotXAxisScaleDivChanged();

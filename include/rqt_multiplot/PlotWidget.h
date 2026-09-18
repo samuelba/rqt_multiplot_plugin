@@ -27,6 +27,7 @@
 #include <QRect>
 #include <QRectF>
 #include <QStringList>
+#include <QTimeZone>
 #include <QTimer>
 #include <QVector>
 #include <QWidget>
@@ -66,6 +67,8 @@ class PlotWidget : public QWidget {
   PlotCursor* getCursor() const;
   void setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format);
   PlotTableConfig::TimeAxisFormat getTimeAxisFormat() const;
+  void setTimeZone(const QTimeZone& zone);
+  const QTimeZone& getTimeZone() const;
   void setGridVisible(bool visible);
   bool isGridVisible() const;
   void setGridForegroundColor(const QColor& color);
@@ -156,6 +159,7 @@ class PlotWidget : public QWidget {
   double xOrigin_;
   double yOrigin_;
   PlotTableConfig::TimeAxisFormat timeAxisFormat_;
+  QTimeZone timeZone_;
   QColor gridForegroundColor_;
 
   void updateAxisTitle(PlotAxesConfig::Axis axis);
