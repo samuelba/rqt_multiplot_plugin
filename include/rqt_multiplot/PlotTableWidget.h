@@ -122,6 +122,7 @@ class PlotTableWidget : public QWidget {
   void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
   void configSidebarVisibleChanged(bool visible);
   void configSidebarWidthChanged(int width);
+  void configGridVisibleChanged(bool visible);
 
   void plotPreferredScaleChanged(const BoundingRectangle& bounds);
   void plotCurrentScaleChanged(const BoundingRectangle& bounds);

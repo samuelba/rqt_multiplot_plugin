@@ -72,6 +72,8 @@ class PlotTableConfig : public Config {
   bool isSidebarVisible() const;
   void setSidebarWidth(int width);
   int getSidebarWidth() const;
+  void setGridVisible(bool visible);
+  bool isGridVisible() const;
 
   static constexpr int kDefaultSidebarWidth = 280;
 
@@ -96,6 +98,7 @@ class PlotTableConfig : public Config {
   void timeAxisFormatChanged(TimeAxisFormat format);
   void sidebarVisibleChanged(bool visible);
   void sidebarWidthChanged(int width);
+  void gridVisibleChanged(bool visible);
 
  private:
   QString title_;
@@ -108,6 +111,7 @@ class PlotTableConfig : public Config {
   TimeAxisFormat timeAxisFormat_;
   bool sidebarVisible_;
   int sidebarWidth_;
+  bool gridVisible_;
 
   void connectLayout();
   void loadLegacyPlots(QSettings& settings);

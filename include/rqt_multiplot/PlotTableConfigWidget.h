@@ -80,6 +80,7 @@ class PlotTableConfigWidget : public QWidget {
   void configTrackPointsChanged(bool track);
   void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
   void configSidebarVisibleChanged(bool visible);
+  void configGridVisibleChanged(bool visible);
 
   void checkBoxLinkScaleStateChanged(int state);
   void checkBoxLinkCursorStateChanged(int state);
@@ -87,6 +88,7 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonStartAtZeroToggled(bool checked);
   void pushButtonDateTimeToggled(bool checked);
   void pushButtonSidebarToggled(bool checked);
+  void pushButtonGridToggled(bool checked);
   void updateSidebarButton();
 
   void pushButtonRunClicked();

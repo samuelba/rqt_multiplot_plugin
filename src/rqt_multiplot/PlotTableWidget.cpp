@@ -100,6 +100,7 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
       disconnect(config_, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableWidget::configSidebarVisibleChanged);
       disconnect(config_, &PlotTableConfig::sidebarWidthChanged, this, &PlotTableWidget::configSidebarWidthChanged);
+      disconnect(config_, &PlotTableConfig::gridVisibleChanged, this, &PlotTableWidget::configGridVisibleChanged);
     }
 
     config_ = config;
@@ -113,6 +114,7 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       connect(config, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
       connect(config, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableWidget::configSidebarVisibleChanged);
       connect(config, &PlotTableConfig::sidebarWidthChanged, this, &PlotTableWidget::configSidebarWidthChanged);
+      connect(config, &PlotTableConfig::gridVisibleChanged, this, &PlotTableWidget::configGridVisibleChanged);
 
       configBackgroundColorChanged(config->getBackgroundColor());
       configForegroundColorChanged(config->getForegroundColor());
@@ -120,6 +122,7 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       configLinkScaleChanged(config->isScaleLinked());
       configTrackPointsChanged(config->arePointsTracked());
       configTimeAxisFormatChanged(config->getTimeAxisFormat());
+      configGridVisibleChanged(config->isGridVisible());
       applySidebarState();
       if (sidebar_ != nullptr) {
         sidebar_->setPlotTable(this);
@@ -432,6 +435,8 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     plot->setBroker(registry_);
     plot->getCursor()->setTrackPoints(config_->arePointsTracked());
     plot->setTimeAxisFormat(config_->getTimeAxisFormat());
+    plot->setGridForegroundColor(config_->getForegroundColor());
+    plot->setGridVisible(config_->isGridVisible());
     if (config_->isScaleLinked() && !plotWidgets_.isEmpty()) {
       plot->setCurrentScale(plotWidgets_.front()->getCurrentScale());
     }
@@ -567,6 +572,10 @@ void PlotTableWidget::configForegroundColorChanged(const QColor& color) {
   currentPalette.setColor(QPalette::Text, color);
 
   setPalette(currentPalette);
+
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setGridForegroundColor(color);
+  }
 }
 
 void PlotTableWidget::configLayoutChanged() {
@@ -597,6 +606,12 @@ void PlotTableWidget::configTimeAxisFormatChanged(PlotTableConfig::TimeAxisForma
   }
   if (sidebar_ != nullptr) {
     sidebar_->refresh();
+  }
+}
+
+void PlotTableWidget::configGridVisibleChanged(bool visible) {
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setGridVisible(visible);
   }
 }
 

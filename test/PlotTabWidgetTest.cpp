@@ -802,8 +802,33 @@ TEST(PlotTabWidget, sidebarToggleSitsBetweenTrackPointsAndTimeButtons) {
 
   EXPECT_LT(toolbarColumn(toolbar, points), toolbarColumn(toolbar, lineBefore));
   EXPECT_LT(toolbarColumn(toolbar, lineBefore), toolbarColumn(toolbar, sidebar));
-  EXPECT_LT(toolbarColumn(toolbar, sidebar), toolbarColumn(toolbar, lineAfter));
+  auto* gridButton = toolbar.findChild<QPushButton*>("pushButtonGrid");
+  ASSERT_NE(gridButton, nullptr);
+
+  EXPECT_LT(toolbarColumn(toolbar, sidebar), toolbarColumn(toolbar, gridButton));
+  EXPECT_LT(toolbarColumn(toolbar, gridButton), toolbarColumn(toolbar, lineAfter));
   EXPECT_LT(toolbarColumn(toolbar, lineAfter), toolbarColumn(toolbar, startAtZero));
+}
+
+TEST(PlotTabWidget, gridToggleSyncsWithConfig) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableConfigWidget toolbar;
+  toolbar.setConfig(&config);
+
+  auto* gridButton = toolbar.findChild<QPushButton*>("pushButtonGrid");
+  ASSERT_NE(gridButton, nullptr);
+  EXPECT_FALSE(gridButton->isChecked());
+  const QIcon gridIcon = rqt_multiplot::packageIcon("resource/grid.svg", QSize(16, 16));
+  EXPECT_EQ(gridButton->icon().pixmap(16, 16).toImage(), gridIcon.pixmap(16, 16).toImage());
+
+  gridButton->click();
+  EXPECT_TRUE(config.isGridVisible());
+  EXPECT_TRUE(gridButton->isChecked());
+
+  config.setGridVisible(false);
+  EXPECT_FALSE(gridButton->isChecked());
 }
 
 TEST(PlotTabWidget, sidebarToggleSwapsOpenCloseIconWithConfig) {
