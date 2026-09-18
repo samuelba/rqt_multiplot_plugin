@@ -24,6 +24,7 @@
 #include <QSize>
 #include <QTabBar>
 #include <QTabWidget>
+#include <QTimeZone>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -74,6 +75,7 @@ void PlotTabWidget::setConfig(MultiplotConfig* config) {
     disconnect(config_, SIGNAL(tabsChanged()), this, SLOT(configTabsChanged()));
     disconnect(config_, SIGNAL(tabTitleChanged(size_t, const QString&)), this, SLOT(configTabTitleChanged(size_t, const QString&)));
     disconnect(config_, SIGNAL(currentTabIndexChanged(size_t)), this, SLOT(configCurrentTabIndexChanged(size_t)));
+    disconnect(config_, &MultiplotConfig::timezoneChanged, this, &PlotTabWidget::configTimezoneChanged);
   }
 
   config_ = config;
@@ -84,6 +86,7 @@ void PlotTabWidget::setConfig(MultiplotConfig* config) {
     connect(config_, SIGNAL(tabsChanged()), this, SLOT(configTabsChanged()));
     connect(config_, SIGNAL(tabTitleChanged(size_t, const QString&)), this, SLOT(configTabTitleChanged(size_t, const QString&)));
     connect(config_, SIGNAL(currentTabIndexChanged(size_t)), this, SLOT(configCurrentTabIndexChanged(size_t)));
+    connect(config_, &MultiplotConfig::timezoneChanged, this, &PlotTabWidget::configTimezoneChanged);
   }
 
   rebuildTabs();
@@ -156,6 +159,9 @@ void PlotTabWidget::rebuildTabs() {
 
   tabWidget_->blockSignals(false);
   updateCloseButtons();
+  if (config_ != nullptr) {
+    configTimezoneChanged(config_->getTimeZoneId());
+  }
   emit currentPlotTableChanged(getCurrentPlotTable());
 }
 
@@ -173,6 +179,9 @@ void PlotTabWidget::clearPlotTables() {
 
 void PlotTabWidget::appendPlotTable(PlotTableConfig* tableConfig) {
   auto* plotTable = new PlotTableWidget(tabWidget_);
+  if (config_ != nullptr) {
+    plotTable->setTimeZone(config_->timeZone());
+  }
   plotTable->setConfig(tableConfig);
   connect(plotTable, SIGNAL(plotPausedChanged()), this, SIGNAL(plotPausedChanged()));
   connectPlotTableJobs(plotTable);
@@ -317,6 +326,19 @@ void PlotTabWidget::configCurrentTabIndexChanged(size_t index) {
   const int tabIndex = static_cast<int>(index);
   if (tabWidget_->currentIndex() != tabIndex) {
     tabWidget_->setCurrentIndex(tabIndex);
+  }
+}
+
+void PlotTabWidget::configTimezoneChanged(const QString& /*timeZoneId*/) {
+  if (config_ == nullptr) {
+    return;
+  }
+
+  const QTimeZone zone = config_->timeZone();
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
+      plotTable->setTimeZone(zone);
+    }
   }
 }
 

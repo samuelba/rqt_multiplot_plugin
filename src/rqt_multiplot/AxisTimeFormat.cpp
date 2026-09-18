@@ -46,13 +46,13 @@ QString AxisTimeFormat::relative(double value, double t0, double span) {
   return fixed(value - t0, span);
 }
 
-QString AxisTimeFormat::dateTime(double epochSeconds) {
+QString AxisTimeFormat::dateTime(double epochSeconds, const QTimeZone& zone) {
   if (!std::isfinite(epochSeconds)) {
     return QStringLiteral("nan");
   }
 
   const qint64 msec = qRound64(epochSeconds * 1000.0);
-  const QDateTime dt = QDateTime::fromMSecsSinceEpoch(msec, QTimeZone::utc());
+  const QDateTime dt = QDateTime::fromMSecsSinceEpoch(msec, zone);
   const QLocale locale(QLocale::English, QLocale::UnitedStates);
   const int tenths = dt.time().msec() / 100;
   const QString time = dt.toString(QStringLiteral("HH:mm:ss")) + QLatin1Char('.') + QString::number(tenths);
@@ -60,18 +60,18 @@ QString AxisTimeFormat::dateTime(double epochSeconds) {
   return time + QLatin1Char('\n') + date;
 }
 
-QString AxisTimeFormat::coordinate(double value, double offset, double span, bool timeScale) {
-  return coordinate(value, offset, span, timeScale ? LabelMode::Relative : LabelMode::Off);
+QString AxisTimeFormat::coordinate(double value, double offset, double span, bool timeScale, const QTimeZone& zone) {
+  return coordinate(value, offset, span, timeScale ? LabelMode::Relative : LabelMode::Off, zone);
 }
 
-QString AxisTimeFormat::coordinate(double value, double offset, double span, LabelMode mode) {
+QString AxisTimeFormat::coordinate(double value, double offset, double span, LabelMode mode, const QTimeZone& zone) {
   switch (mode) {
     case LabelMode::Relative:
       return relative(value, offset, span);
     case LabelMode::Timestamp:
       return fixed(value, span);
     case LabelMode::DateTime:
-      return dateTime(value).replace(QLatin1Char('\n'), QLatin1Char(' '));
+      return dateTime(value, zone).replace(QLatin1Char('\n'), QLatin1Char(' '));
     case LabelMode::Off:
     default:
       break;

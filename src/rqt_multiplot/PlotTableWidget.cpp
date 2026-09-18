@@ -38,6 +38,7 @@
 #include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotSplitter.h>
 #include <rqt_multiplot/PlotWidget.h>
+#include <rqt_multiplot/TimeZoneUtil.h>
 
 namespace rqt_multiplot {
 
@@ -53,6 +54,7 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
       plotHost_(new QWidget(this)),
       rootWidget_(nullptr),
       config_(nullptr),
+      timeZone_(TimeZoneUtil::localTimeZone()),
       registry_(new MessageSubscriberRegistry(this)),
       bagReader_(new BagReader(this)) {
   setLayout(layout_);
@@ -133,6 +135,15 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
 
 PlotTableConfig* PlotTableWidget::getConfig() const {
   return config_;
+}
+
+void PlotTableWidget::setTimeZone(const QTimeZone& zone) {
+  timeZone_ = zone;
+  applyTimeZoneToPlots();
+}
+
+const QTimeZone& PlotTableWidget::getTimeZone() const {
+  return timeZone_;
 }
 
 CurveValuesWidget* PlotTableWidget::getCurveValuesWidget() const {
@@ -434,6 +445,7 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     plot->setConfig(node->getPlotConfig());
     plot->setBroker(registry_);
     plot->getCursor()->setTrackPoints(config_->arePointsTracked());
+    plot->setTimeZone(timeZone_);
     plot->setTimeAxisFormat(config_->getTimeAxisFormat());
     plot->setGridForegroundColor(config_->getForegroundColor());
     plot->setGridVisible(config_->isGridVisible());
@@ -603,6 +615,15 @@ void PlotTableWidget::configTrackPointsChanged(bool track) {
 void PlotTableWidget::configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format) {
   for (PlotWidget* plot : plotWidgets_) {
     plot->setTimeAxisFormat(format);
+  }
+  if (sidebar_ != nullptr) {
+    sidebar_->refresh();
+  }
+}
+
+void PlotTableWidget::applyTimeZoneToPlots() {
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setTimeZone(timeZone_);
   }
   if (sidebar_ != nullptr) {
     sidebar_->refresh();

@@ -8,6 +8,8 @@
 
 #include <QString>
 
+class QTimeZone;
+
 namespace rqt_multiplot {
 
 class AxisTimeFormat {
@@ -17,9 +19,9 @@ class AxisTimeFormat {
   static int decimalPlaces(double span);
   static QString fixed(double value, double span);
   static QString relative(double value, double t0, double span);
-  static QString dateTime(double epochSeconds);
-  static QString coordinate(double value, double offset, double span, bool timeScale);
-  static QString coordinate(double value, double offset, double span, LabelMode mode);
+  static QString dateTime(double epochSeconds, const QTimeZone& zone);
+  static QString coordinate(double value, double offset, double span, bool timeScale, const QTimeZone& zone);
+  static QString coordinate(double value, double offset, double span, LabelMode mode, const QTimeZone& zone);
 };
 
 }  // namespace rqt_multiplot

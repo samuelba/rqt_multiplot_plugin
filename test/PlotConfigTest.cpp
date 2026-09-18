@@ -1,3 +1,6 @@
+#include <QBuffer>
+#include <QDataStream>
+#include <QIODevice>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -5,12 +8,16 @@
 
 #include <rqt_multiplot/CurveAxisConfig.h>
 #include <rqt_multiplot/CurveConfig.h>
+#include <rqt_multiplot/PlotAxesConfig.h>
+#include <rqt_multiplot/PlotAxisConfig.h>
 #include <rqt_multiplot/PlotConfig.h>
 
 namespace {
 
 using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
+using rqt_multiplot::PlotAxesConfig;
+using rqt_multiplot::PlotAxisConfig;
 using rqt_multiplot::PlotConfig;
 
 QString settingsPath(const QTemporaryDir& dir, const char* name) {
@@ -101,6 +108,41 @@ TEST(PlotConfig, savesAndLoadsTimeWindow) {
   QSettings settings(settingsPath(dir, "plot.ini"), QSettings::IniFormat);
   loaded.load(settings);
 
+  EXPECT_TRUE(loaded.isTimeWindowEnabled());
+  EXPECT_EQ(loaded.getTimeWindowLength(), 30);
+}
+
+TEST(PlotConfig, writesAndReadsAxesAndLegend) {
+  PlotConfig source;
+  source.setTitle("Range");
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->setTitleType(PlotAxisConfig::CustomTitle);
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->setCustomTitle("Time");
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setTitleType(PlotAxisConfig::CustomTitle);
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setCustomTitle("Altitude");
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setTitleVisible(false);
+  source.getLegendConfig()->setVisible(false);
+  source.setPlotRate(12.5);
+  source.setTimeWindowEnabled(true);
+  source.setTimeWindowLength(30);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotConfig loaded;
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("Range"));
+  EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->getTitleType(), PlotAxisConfig::CustomTitle);
+  EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->getCustomTitle(), QString("Time"));
+  EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->getTitleType(), PlotAxisConfig::CustomTitle);
+  EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->getCustomTitle(), QString("Altitude"));
+  EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->isTitleVisible());
+  EXPECT_FALSE(loaded.getLegendConfig()->isVisible());
+  EXPECT_DOUBLE_EQ(loaded.getPlotRate(), 12.5);
   EXPECT_TRUE(loaded.isTimeWindowEnabled());
   EXPECT_EQ(loaded.getTimeWindowLength(), 30);
 }

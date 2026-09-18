@@ -144,7 +144,8 @@ TEST(MultiplotFileMenu, hasFileMenuWithExpectedActions) {
       QStringList({QStringLiteral("New configuration"), QStringLiteral("Open configuration..."), QStringLiteral("Save configuration"),
                    QStringLiteral("Save configuration as..."), QStringLiteral("<separator>"), QStringLiteral("Clear configuration history"),
                    QStringLiteral("<separator>"), QStringLiteral("Import from bag file..."), QStringLiteral("Import from bag directory..."),
-                   QStringLiteral("<separator>"), QStringLiteral("Export to image file..."), QStringLiteral("Export to text file...")}));
+                   QStringLiteral("<separator>"), QStringLiteral("Export to image file..."), QStringLiteral("Export to text file..."),
+                   QStringLiteral("<separator>"), QStringLiteral("Preferences...")}));
 }
 
 TEST(MultiplotFileMenu, configButtonsRemovedFromToolbar) {

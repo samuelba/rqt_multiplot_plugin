@@ -20,6 +20,7 @@
 #define RQT_MULTIPLOT_MULTIPLOT_CONFIG_H
 
 #include <QString>
+#include <QTimeZone>
 #include <QVector>
 
 #include <rqt_multiplot/Config.h>
@@ -39,6 +40,9 @@ class MultiplotConfig : public Config {
   void setTabTitle(size_t index, const QString& title) const;
   size_t getCurrentTabIndex() const;
   void setCurrentTabIndex(size_t index);
+  void setTimeZoneId(const QString& timeZoneId);
+  QString getTimeZoneId() const;
+  QTimeZone timeZone() const;
 
   MultiplotConfig& operator=(const MultiplotConfig& src);
 
@@ -55,10 +59,12 @@ class MultiplotConfig : public Config {
   void tabsChanged();
   void tabTitleChanged(size_t index, const QString& title);
   void currentTabIndexChanged(size_t index);
+  void timezoneChanged(const QString& timeZoneId);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
   size_t currentTabIndex_;
+  QString timeZoneId_;
 
   PlotTableConfig* createTab(const QString& title);
   QVector<PlotTableConfig*> takeTabs();

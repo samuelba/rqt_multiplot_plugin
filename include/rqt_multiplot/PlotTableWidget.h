@@ -23,6 +23,7 @@
 #include <QList>
 #include <QPainter>
 #include <QRectF>
+#include <QTimeZone>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -48,6 +49,8 @@ class PlotTableWidget : public QWidget {
 
   void setConfig(PlotTableConfig* config);
   PlotTableConfig* getConfig() const;
+  void setTimeZone(const QTimeZone& zone);
+  const QTimeZone& getTimeZone() const;
   size_t getNumRows() const;
   size_t getNumColumns() const;
   size_t getNumPlots() const;
@@ -96,6 +99,7 @@ class PlotTableWidget : public QWidget {
   QHash<QSplitter*, PlotLayoutConfig*> splitterNodes_;
 
   PlotTableConfig* config_;
+  QTimeZone timeZone_;
 
   MessageSubscriberRegistry* registry_;
   BagReader* bagReader_;
@@ -120,6 +124,7 @@ class PlotTableWidget : public QWidget {
   void configLinkScaleChanged(bool link);
   void configTrackPointsChanged(bool track);
   void configTimeAxisFormatChanged(PlotTableConfig::TimeAxisFormat format);
+  void applyTimeZoneToPlots();
   void configSidebarVisibleChanged(bool visible);
   void configSidebarWidthChanged(int width);
   void configGridVisibleChanged(bool visible);

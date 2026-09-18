@@ -14,10 +14,12 @@
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
+#include <QTimeZone>
 
 #include <gtest/gtest.h>
 
 #include <qwt/qwt_plot.h>
+#include <qwt/qwt_scale_div.h>
 #include <qwt/qwt_scale_widget.h>
 
 #include <rqt_multiplot/AxisTimeFormat.h>
@@ -732,6 +734,35 @@ TEST(PlotTabWidget, dateTimeFormatRelabelsTimeXAxis) {
   OffsetScaleDraw* draw = plotXScaleDraw(table.getPlotWidgets().front());
   ASSERT_NE(draw, nullptr);
   EXPECT_EQ(draw->timeLabelMode(), AxisTimeFormat::LabelMode::DateTime);
+}
+
+TEST(PlotTabWidget, timezoneChangeUpdatesDateTimeAxisLabels) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  config.setTimeZoneId(QStringLiteral("utc"));
+  CurveConfig* curve = config.getTableConfig(0)->getPlotConfig(0, 0)->addCurve();
+  curve->getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getTableConfig(0)->setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+
+  PlotTableWidget* table = tabs.getPlotTable(0);
+  ASSERT_NE(table, nullptr);
+  ASSERT_FALSE(table->getPlotWidgets().isEmpty());
+  OffsetScaleDraw* draw = plotXScaleDraw(table->getPlotWidgets().front());
+  ASSERT_NE(draw, nullptr);
+  draw->setScaleDiv(QwtScaleDiv(1789028000.0, 1789028010.0));
+  EXPECT_EQ(draw->label(1789028000.0).text(), QStringLiteral("08:13:20.0\n2026 Sep 10"));
+
+  const QTimeZone zone(QStringLiteral("America/New_York").toUtf8());
+  if (!zone.isValid()) {
+    GTEST_SKIP() << "America/New_York unavailable in Qt tzdata";
+  }
+
+  config.setTimeZoneId(QStringLiteral("America/New_York"));
+  EXPECT_EQ(draw->label(1789028000.0).text(), QStringLiteral("04:13:20.0\n2026 Sep 10"));
 }
 
 TEST(PlotTabWidget, dateTimeButtonFromTimestampRelayoutsTimeXAxis) {

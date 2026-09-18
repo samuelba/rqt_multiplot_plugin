@@ -337,8 +337,8 @@ void PlotConfig::read(QDataStream& stream) {
     curveConfig_[index]->read(stream);
   }
 
-  axesConfig_->write(stream);
-  legendConfig_->write(stream);
+  axesConfig_->read(stream);
+  legendConfig_->read(stream);
 
   stream >> plotRate;
   setPlotRate(plotRate);

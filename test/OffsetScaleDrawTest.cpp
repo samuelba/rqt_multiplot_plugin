@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <QTimeZone>
+
 #include <qwt/qwt_scale_div.h>
 #include <qwt/qwt_scale_draw.h>
 
@@ -45,9 +47,24 @@ TEST(OffsetScaleDraw, formatsEpochWhenTimestampMode) {
 TEST(OffsetScaleDraw, formatsTwoLineDateTime) {
   OffsetScaleDraw draw;
   draw.setTimeLabelMode(rqt_multiplot::AxisTimeFormat::LabelMode::DateTime);
+  draw.setTimeZone(QTimeZone::utc());
   draw.setScaleDiv(QwtScaleDiv(1789028000.0, 1789028010.0));
 
   EXPECT_EQ(draw.label(1789028000.0).text(), QStringLiteral("08:13:20.0\n2026 Sep 10"));
+}
+
+TEST(OffsetScaleDraw, formatsDateTimeInConfiguredZone) {
+  const QTimeZone zone(QStringLiteral("America/New_York").toUtf8());
+  if (!zone.isValid()) {
+    GTEST_SKIP() << "America/New_York unavailable in Qt tzdata";
+  }
+
+  OffsetScaleDraw draw;
+  draw.setTimeLabelMode(rqt_multiplot::AxisTimeFormat::LabelMode::DateTime);
+  draw.setTimeZone(zone);
+  draw.setScaleDiv(QwtScaleDiv(1789028000.0, 1789028010.0));
+
+  EXPECT_EQ(draw.label(1789028000.0).text(), QStringLiteral("04:13:20.0\n2026 Sep 10"));
 }
 
 TEST(OffsetScaleDraw, relativeModeStillOffsetsWhenSetDirectly) {

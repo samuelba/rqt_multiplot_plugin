@@ -85,6 +85,7 @@ class PlotTabWidget : public QWidget {
   void configTabsChanged();
   void configTabTitleChanged(size_t index, const QString& title);
   void configCurrentTabIndexChanged(size_t index);
+  void configTimezoneChanged(const QString& timeZoneId);
 
   void currentChanged(int index);
   void tabCloseRequested(int index);

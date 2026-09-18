@@ -28,6 +28,7 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QSize>
+#include <QTimeZone>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -322,7 +323,8 @@ QString CurveValuesWidget::formatAxisValue(PlotWidget* plot, const QPointF& poin
   if ((mode == AxisTimeFormat::LabelMode::Relative) || (mode == AxisTimeFormat::LabelMode::Timestamp)) {
     span = std::min(span, kLiveReadoutMaxSpan);
   }
-  return AxisTimeFormat::coordinate(value, offset, span, mode);
+  const QTimeZone zone = (cursor != nullptr) ? cursor->timeZone() : plot->getTimeZone();
+  return AxisTimeFormat::coordinate(value, offset, span, mode, zone);
 }
 
 /*****************************************************************************/
