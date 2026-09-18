@@ -20,7 +20,7 @@
    <property name="margin">
     <number>0</number>
    </property>
-   <item row="0" column="16">
+   <item row="0" column="18">
     <widget class="QPushButton" name="pushButtonStartAtZero">
      <property name="minimumSize">
       <size>
@@ -70,7 +70,7 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="17">
+   <item row="0" column="19">
     <widget class="QPushButton" name="pushButtonDateTime">
      <property name="minimumSize">
       <size>
@@ -107,14 +107,14 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="18">
+   <item row="0" column="20">
     <widget class="Line" name="line_6">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
     </widget>
    </item>
-   <item row="0" column="19">
+   <item row="0" column="21">
     <widget class="QPushButton" name="pushButtonResetLayout">
      <property name="minimumSize">
       <size>
@@ -148,7 +148,7 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="23">
+   <item row="1" column="0" colspan="25">
     <widget class="rqt_multiplot::ProgressWidget" name="widgetProgress" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
@@ -168,14 +168,14 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="21">
+   <item row="0" column="23">
     <widget class="Line" name="line_4">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
     </widget>
    </item>
-   <item row="0" column="20">
+   <item row="0" column="22">
     <spacer name="horizontalSpacerToolbar">
      <property name="orientation">
       <enum>Qt::Orientation::Horizontal</enum>
@@ -262,7 +262,7 @@
      </property>
     </widget>
    </item>
-   <item row="0" column="22">
+   <item row="0" column="24">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <property name="spacing">
       <number>0</number>
@@ -433,6 +433,50 @@
    </item>
    <item row="0" column="15">
     <widget class="Line" name="line_5">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="16">
+    <widget class="QPushButton" name="pushButtonSidebar">
+     <property name="minimumSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>22</width>
+       <height>22</height>
+      </size>
+     </property>
+     <property name="cursor">
+      <cursorShape>PointingHandCursor</cursorShape>
+     </property>
+     <property name="toolTip">
+      <string>Show curve values</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="iconSize">
+      <size>
+       <width>16</width>
+       <height>16</height>
+      </size>
+     </property>
+     <property name="checkable">
+      <bool>true</bool>
+     </property>
+     <property name="flat">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="17">
+    <widget class="Line" name="line_7">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>

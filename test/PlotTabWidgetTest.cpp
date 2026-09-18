@@ -2,8 +2,12 @@
 
 #include <QAbstractButton>
 #include <QApplication>
+#include <QCheckBox>
 #include <QColor>
+#include <QFrame>
+#include <QGridLayout>
 #include <QIcon>
+#include <QImage>
 #include <QMetaObject>
 #include <QPushButton>
 #include <QSettings>
@@ -766,6 +770,62 @@ TEST(PlotTabWidget, dateTimeButtonFromTimestampRelayoutsTimeXAxis) {
   EXPECT_EQ(config.getTimeAxisFormat(), PlotTableConfig::DateTime);
   EXPECT_EQ(draw->timeLabelMode(), AxisTimeFormat::LabelMode::DateTime);
   EXPECT_GE(scaleChanges, 1);
+}
+
+int toolbarColumn(QWidget& toolbar, QWidget* child) {
+  auto* grid = qobject_cast<QGridLayout*>(toolbar.layout());
+  if ((grid == nullptr) || (child == nullptr)) {
+    return -1;
+  }
+  int row = 0;
+  int column = 0;
+  int rowSpan = 0;
+  int columnSpan = 0;
+  grid->getItemPosition(grid->indexOf(child), &row, &column, &rowSpan, &columnSpan);
+  return column;
+}
+
+TEST(PlotTabWidget, sidebarToggleSitsBetweenTrackPointsAndTimeButtons) {
+  ensureApplication();
+
+  PlotTableConfigWidget toolbar;
+  auto* points = toolbar.findChild<QCheckBox*>("checkBoxTrackPoints");
+  auto* lineBefore = toolbar.findChild<QFrame*>("line_5");
+  auto* sidebar = toolbar.findChild<QPushButton*>("pushButtonSidebar");
+  auto* lineAfter = toolbar.findChild<QFrame*>("line_7");
+  auto* startAtZero = toolbar.findChild<QPushButton*>("pushButtonStartAtZero");
+  ASSERT_NE(points, nullptr);
+  ASSERT_NE(lineBefore, nullptr);
+  ASSERT_NE(sidebar, nullptr);
+  ASSERT_NE(lineAfter, nullptr);
+  ASSERT_NE(startAtZero, nullptr);
+
+  EXPECT_LT(toolbarColumn(toolbar, points), toolbarColumn(toolbar, lineBefore));
+  EXPECT_LT(toolbarColumn(toolbar, lineBefore), toolbarColumn(toolbar, sidebar));
+  EXPECT_LT(toolbarColumn(toolbar, sidebar), toolbarColumn(toolbar, lineAfter));
+  EXPECT_LT(toolbarColumn(toolbar, lineAfter), toolbarColumn(toolbar, startAtZero));
+}
+
+TEST(PlotTabWidget, sidebarToggleSwapsOpenCloseIconWithConfig) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableConfigWidget toolbar;
+  toolbar.setConfig(&config);
+
+  auto* sidebar = toolbar.findChild<QPushButton*>("pushButtonSidebar");
+  ASSERT_NE(sidebar, nullptr);
+  EXPECT_FALSE(sidebar->isChecked());
+  EXPECT_EQ(sidebar->toolTip(), QString("Show curve values"));
+  const QIcon openIcon = rqt_multiplot::packageIcon("resource/side-panel-open.svg", QSize(16, 16));
+  EXPECT_EQ(sidebar->icon().pixmap(16, 16).toImage(), openIcon.pixmap(16, 16).toImage());
+
+  sidebar->click();
+  EXPECT_TRUE(config.isSidebarVisible());
+  EXPECT_TRUE(sidebar->isChecked());
+  EXPECT_EQ(sidebar->toolTip(), QString("Hide curve values"));
+  const QIcon closeIcon = rqt_multiplot::packageIcon("resource/side-panel-close.svg", QSize(16, 16));
+  EXPECT_EQ(sidebar->icon().pixmap(16, 16).toImage(), closeIcon.pixmap(16, 16).toImage());
 }
 
 }  // namespace

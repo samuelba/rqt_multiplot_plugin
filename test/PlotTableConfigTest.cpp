@@ -391,4 +391,173 @@ TEST(PlotTableConfig, assignmentCopiesTimeAxisFormat) {
   EXPECT_EQ(dest.getTimeAxisFormat(), PlotTableConfig::StartFromZero);
 }
 
+TEST(PlotTableConfig, defaultsToHiddenSidebar) {
+  PlotTableConfig config(nullptr);
+
+  EXPECT_FALSE(config.isSidebarVisible());
+  EXPECT_EQ(config.getSidebarWidth(), 280);
+}
+
+TEST(PlotTableConfig, setSidebarVisibleEmitsChanged) {
+  PlotTableConfig config(nullptr);
+  bool visible = false;
+  int changedCount = 0;
+  QObject::connect(&config, &PlotTableConfig::sidebarVisibleChanged, [&visible](bool value) { visible = value; });
+  QObject::connect(&config, &PlotTableConfig::changed, [&changedCount]() { ++changedCount; });
+
+  config.setSidebarVisible(true);
+
+  EXPECT_TRUE(config.isSidebarVisible());
+  EXPECT_TRUE(visible);
+  EXPECT_EQ(changedCount, 1);
+
+  config.setSidebarVisible(true);
+  EXPECT_EQ(changedCount, 1);
+}
+
+TEST(PlotTableConfig, setSidebarWidthEmitsChanged) {
+  PlotTableConfig config(nullptr);
+  int width = 0;
+  int changedCount = 0;
+  QObject::connect(&config, &PlotTableConfig::sidebarWidthChanged, [&width](int value) { width = value; });
+  QObject::connect(&config, &PlotTableConfig::changed, [&changedCount]() { ++changedCount; });
+
+  config.setSidebarWidth(320);
+
+  EXPECT_EQ(config.getSidebarWidth(), 320);
+  EXPECT_EQ(width, 320);
+  EXPECT_EQ(changedCount, 1);
+
+  config.setSidebarWidth(320);
+  EXPECT_EQ(changedCount, 1);
+}
+
+TEST(PlotTableConfig, savesAndLoadsSidebarState) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setSidebarVisible(true);
+    config.setSidebarWidth(360);
+
+    QSettings settings(settingsPath(dir, "sidebar.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  QSettings settings(settingsPath(dir, "sidebar.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_TRUE(loaded.isSidebarVisible());
+  EXPECT_EQ(loaded.getSidebarWidth(), 360);
+}
+
+TEST(PlotTableConfig, missingSidebarKeysKeepDefaults) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "legacy_sidebar.ini");
+
+  {
+    PlotTableConfig config(nullptr);
+    config.setSidebarVisible(true);
+    config.setSidebarWidth(400);
+
+    QSettings settings(path, QSettings::IniFormat);
+    config.save(settings);
+    settings.remove("sidebar_visible");
+    settings.remove("sidebar_width");
+    settings.sync();
+  }
+
+  PlotTableConfig loaded(nullptr);
+  loaded.setSidebarVisible(true);
+  loaded.setSidebarWidth(400);
+  QSettings settings(path, QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_FALSE(loaded.isSidebarVisible());
+  EXPECT_EQ(loaded.getSidebarWidth(), 280);
+}
+
+TEST(PlotTableConfig, resetRestoresHiddenSidebar) {
+  PlotTableConfig config(nullptr);
+  config.setSidebarVisible(true);
+  config.setSidebarWidth(400);
+
+  config.reset();
+
+  EXPECT_FALSE(config.isSidebarVisible());
+  EXPECT_EQ(config.getSidebarWidth(), 280);
+}
+
+TEST(PlotTableConfig, assignmentCopiesSidebarState) {
+  PlotTableConfig source(nullptr);
+  source.setSidebarVisible(true);
+  source.setSidebarWidth(333);
+
+  PlotTableConfig dest(nullptr);
+  dest = source;
+
+  EXPECT_TRUE(dest.isSidebarVisible());
+  EXPECT_EQ(dest.getSidebarWidth(), 333);
+}
+
+TEST(PlotTableConfig, roundTripsSidebarStateThroughDataStream) {
+  PlotTableConfig source(nullptr);
+  source.setTitle("IMU");
+  source.setTimeAxisFormat(PlotTableConfig::DateTime);
+  source.setSidebarVisible(true);
+  source.setSidebarWidth(310);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  PlotTableConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("IMU"));
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
+  EXPECT_TRUE(loaded.isSidebarVisible());
+  EXPECT_EQ(loaded.getSidebarWidth(), 310);
+}
+
+TEST(PlotTableConfig, legacyStreamWithoutSidebarKeepsDefaults) {
+  constexpr quint32 kLayoutStreamMagic = 0x52544C31;
+  PlotTableConfig source(nullptr);
+  source.setTitle("IMU");
+  source.setTimeAxisFormat(PlotTableConfig::DateTime);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << kLayoutStreamMagic;
+  out << source.getBackgroundColor();
+  out << source.getForegroundColor();
+  source.getLayout()->write(out);
+  out << source.isScaleLinked();
+  out << source.isCursorLinked();
+  out << source.arePointsTracked();
+  out << source.getTitle();
+  out << static_cast<quint32>(source.getTimeAxisFormat());
+
+  PlotTableConfig loaded(nullptr);
+  loaded.setSidebarVisible(true);
+  loaded.setSidebarWidth(400);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getTitle(), QString("IMU"));
+  EXPECT_EQ(loaded.getTimeAxisFormat(), PlotTableConfig::DateTime);
+  EXPECT_FALSE(loaded.isSidebarVisible());
+  EXPECT_EQ(loaded.getSidebarWidth(), 280);
+}
+
 }  // namespace

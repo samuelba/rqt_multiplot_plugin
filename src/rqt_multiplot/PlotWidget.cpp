@@ -286,6 +286,10 @@ PlotCursor* PlotWidget::getCursor() const {
   return cursor_;
 }
 
+const QVector<PlotCurve*>& PlotWidget::getCurves() const {
+  return curves_;
+}
+
 void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
   if (format == timeAxisFormat_) {
     return;

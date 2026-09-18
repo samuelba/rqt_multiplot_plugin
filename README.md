@@ -18,6 +18,7 @@ rqt plugin for ROS 2 that plots numeric message fields in tiled 2D plots ([Qwt](
 - **Tabs** — multiple named plot layouts in one window; each tab has its own layout, colors, and link/track settings
 - **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer
+- **Curve values** — collapsible per-tab list of each curve's latest X and Y, grouped by plot
 - **Export** — PNG, SVG, PDF images; TXT or CSV curve data
 - **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`); older row×column files still load
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
@@ -100,7 +101,7 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 
 Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. Older row×column files still load.
 
-**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y.
+**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y. The side-panel button (between Track Points and the time toggles) shows or hides **Curve values** for the active tab.
 
 The timer and calendar toggles set the X-axis time labels for the active tab: start from zero (default), date and time (`HH:mm:ss.z` / `yyyy MMM dd` UTC), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged.
 

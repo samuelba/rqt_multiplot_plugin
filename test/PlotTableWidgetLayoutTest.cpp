@@ -10,6 +10,7 @@
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/CurveValuesWidget.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
@@ -18,6 +19,7 @@
 
 namespace {
 
+using rqt_multiplot::CurveValuesWidget;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotLayoutConfig;
 using rqt_multiplot::PlotTableConfig;
@@ -46,6 +48,9 @@ void waitForLayout() {
 QSplitter* rootSplitter(QWidget& widget) {
   const QList<QSplitter*> splitters = widget.findChildren<QSplitter*>();
   for (QSplitter* splitter : splitters) {
+    if (splitter->objectName() == QLatin1String("curveValuesSplitter")) {
+      continue;
+    }
     if (qobject_cast<QSplitter*>(splitter->parentWidget()) == nullptr) {
       return splitter;
     }
@@ -76,7 +81,7 @@ TEST(PlotTableWidget, splitAndCloseUpdateWidgets) {
   ASSERT_NE(added, nullptr);
   ASSERT_EQ(widget.getNumPlots(), 2u);
   EXPECT_EQ(widget.getPlotWidgets().front(), first);
-  ASSERT_NE(widget.findChild<QSplitter*>(), nullptr);
+  ASSERT_GT(widget.findChildren<QSplitter*>().count(), 1);
   EXPECT_TRUE(widget.getPlotWidgets().front()->canClose());
   EXPECT_TRUE(widget.getPlotWidgets().front()->canChangeState());
 
@@ -102,7 +107,7 @@ TEST(PlotTableWidget, splitterDragStoresReducedRatios) {
   root->setStretch({400, 200});
   EXPECT_EQ(root->getStretch(), (QList<int>{2, 1}));
 
-  auto* splitter = widget.findChild<QSplitter*>();
+  auto* splitter = rootSplitter(widget);
   ASSERT_NE(splitter, nullptr);
   splitter->resize(600, 400);
   QApplication::processEvents();
@@ -426,6 +431,48 @@ TEST(PlotTableWidget, resetEvenDistributionEqualizesNestedSplitters) {
   ASSERT_EQ(nestedSizes.count(), 2);
   ASSERT_GT(nestedSizes.at(1), 0);
   EXPECT_NEAR(sizeRatio(nestedSizes), 1.0, 0.15);
+}
+
+TEST(PlotTableWidget, hostsHiddenCurveValuesSidebar) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  auto* splitter = widget.findChild<QSplitter*>("curveValuesSplitter");
+  ASSERT_NE(splitter, nullptr);
+  ASSERT_NE(widget.getCurveValuesWidget(), nullptr);
+  EXPECT_FALSE(widget.getCurveValuesWidget()->isVisibleTo(&widget));
+  EXPECT_FALSE(widget.getCurveValuesWidget()->hasLiveUpdates());
+
+  config.setSidebarVisible(true);
+  waitForLayout();
+  EXPECT_TRUE(widget.getCurveValuesWidget()->isVisibleTo(&widget));
+  EXPECT_TRUE(widget.getCurveValuesWidget()->hasLiveUpdates());
+}
+
+TEST(PlotTableWidget, restoresSidebarWidthFromConfig) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  config.setSidebarVisible(true);
+  config.setSidebarWidth(320);
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  auto* splitter = widget.findChild<QSplitter*>("curveValuesSplitter");
+  ASSERT_NE(splitter, nullptr);
+  const QList<int> sizes = splitter->sizes();
+  ASSERT_GE(sizes.count(), 1);
+  EXPECT_NEAR(sizes.at(0), 320, 20);
 }
 
 }  // namespace

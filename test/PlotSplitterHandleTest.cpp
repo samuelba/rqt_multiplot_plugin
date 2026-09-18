@@ -200,8 +200,38 @@ TEST(PlotTableWidget, splitLayoutUsesPlotSplitterHandles) {
   config.splitPlot(config.getPlotConfig(0, 0), Qt::Horizontal);
   QApplication::processEvents();
 
-  auto* splitter = widget.findChild<QSplitter*>();
+  PlotSplitter* splitter = nullptr;
+  const QList<QSplitter*> splitters = widget.findChildren<QSplitter*>();
+  for (QSplitter* candidate : splitters) {
+    if (candidate->objectName() == QLatin1String("curveValuesSplitter")) {
+      continue;
+    }
+    auto* plotSplitter = dynamic_cast<PlotSplitter*>(candidate);
+    if ((plotSplitter != nullptr) && (plotSplitter->count() >= 2)) {
+      splitter = plotSplitter;
+      break;
+    }
+  }
   ASSERT_NE(splitter, nullptr);
+  auto* handle = dynamic_cast<PlotSplitterHandle*>(splitter->handle(1));
+  ASSERT_NE(handle, nullptr);
+}
+
+TEST(PlotTableWidget, curveValuesSplitterUsesPlotSplitterHandles) {
+  ensureApplication();
+
+  PlotTableConfig config(nullptr);
+  config.setSidebarVisible(true);
+
+  PlotTableWidget widget;
+  widget.resize(800, 600);
+  widget.setConfig(&config);
+  widget.show();
+  QApplication::processEvents();
+
+  auto* splitter = widget.findChild<QSplitter*>(QStringLiteral("curveValuesSplitter"));
+  ASSERT_NE(splitter, nullptr);
+  ASSERT_NE(dynamic_cast<PlotSplitter*>(splitter), nullptr);
   auto* handle = dynamic_cast<PlotSplitterHandle*>(splitter->handle(1));
   ASSERT_NE(handle, nullptr);
 }

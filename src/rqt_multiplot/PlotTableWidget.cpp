@@ -31,6 +31,7 @@
 #include <QTextStream>
 #include <QTimer>
 
+#include <rqt_multiplot/CurveValuesWidget.h>
 #include <rqt_multiplot/PlotCursor.h>
 #include <rqt_multiplot/PlotExport.h>
 #include <rqt_multiplot/PlotLayoutConfig.h>
@@ -47,6 +48,9 @@ namespace rqt_multiplot {
 PlotTableWidget::PlotTableWidget(QWidget* parent)
     : QWidget(parent),
       layout_(new QVBoxLayout(this)),
+      chromeSplitter_(new PlotSplitter(Qt::Horizontal, this)),
+      sidebar_(new CurveValuesWidget(this)),
+      plotHost_(new QWidget(this)),
       rootWidget_(nullptr),
       config_(nullptr),
       registry_(new MessageSubscriberRegistry(this)),
@@ -57,6 +61,22 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
   layout_->setContentsMargins(0, 0, 0, 0);
   layout_->setSpacing(0);
 
+  chromeSplitter_->setObjectName(QStringLiteral("curveValuesSplitter"));
+  chromeSplitter_->addWidget(sidebar_);
+  chromeSplitter_->addWidget(plotHost_);
+  chromeSplitter_->setStretchFactor(0, 0);
+  chromeSplitter_->setStretchFactor(1, 1);
+  chromeSplitter_->setCollapsible(0, true);
+  chromeSplitter_->setCollapsible(1, false);
+
+  auto* hostLayout = new QVBoxLayout(plotHost_);
+  hostLayout->setContentsMargins(0, 0, 0, 0);
+  hostLayout->setSpacing(0);
+
+  layout_->addWidget(chromeSplitter_);
+  sidebar_->hide();
+
+  connect(chromeSplitter_, SIGNAL(splitterMoved(int, int)), this, SLOT(splitterMoved(int, int)));
   connect(bagReader_, SIGNAL(readingStarted()), this, SLOT(bagReaderReadingStarted()));
   connect(bagReader_, SIGNAL(readingProgressChanged(double)), this, SLOT(bagReaderReadingProgressChanged(double)));
   connect(bagReader_, SIGNAL(readingFinished()), this, SLOT(bagReaderReadingFinished()));
@@ -78,6 +98,8 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
       disconnect(config_, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
+      disconnect(config_, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableWidget::configSidebarVisibleChanged);
+      disconnect(config_, &PlotTableConfig::sidebarWidthChanged, this, &PlotTableWidget::configSidebarWidthChanged);
     }
 
     config_ = config;
@@ -89,6 +111,8 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
       connect(config, &PlotTableConfig::timeAxisFormatChanged, this, &PlotTableWidget::configTimeAxisFormatChanged);
+      connect(config, &PlotTableConfig::sidebarVisibleChanged, this, &PlotTableWidget::configSidebarVisibleChanged);
+      connect(config, &PlotTableConfig::sidebarWidthChanged, this, &PlotTableWidget::configSidebarWidthChanged);
 
       configBackgroundColorChanged(config->getBackgroundColor());
       configForegroundColorChanged(config->getForegroundColor());
@@ -96,12 +120,20 @@ void PlotTableWidget::setConfig(PlotTableConfig* config) {
       configLinkScaleChanged(config->isScaleLinked());
       configTrackPointsChanged(config->arePointsTracked());
       configTimeAxisFormatChanged(config->getTimeAxisFormat());
+      applySidebarState();
+      if (sidebar_ != nullptr) {
+        sidebar_->setPlotTable(this);
+      }
     }
   }
 }
 
 PlotTableConfig* PlotTableWidget::getConfig() const {
   return config_;
+}
+
+CurveValuesWidget* PlotTableWidget::getCurveValuesWidget() const {
+  return sidebar_;
 }
 
 size_t PlotTableWidget::getNumRows() const {
@@ -354,7 +386,11 @@ void PlotTableWidget::rebuildLayout() {
   QWidget* oldRoot = rootWidget_;
   rootWidget_ = nullptr;
   if (oldRoot != nullptr) {
-    layout_->removeWidget(oldRoot);
+    if (plotHost_ != nullptr) {
+      plotHost_->layout()->removeWidget(oldRoot);
+    } else {
+      layout_->removeWidget(oldRoot);
+    }
     if (qobject_cast<PlotWidget*>(oldRoot) == nullptr) {
       delete oldRoot;
     }
@@ -362,7 +398,11 @@ void PlotTableWidget::rebuildLayout() {
 
   if ((config_ != nullptr) && (config_->getLayout() != nullptr) && (config_->plotCount() > 0)) {
     rootWidget_ = createNodeWidget(config_->getLayout(), existing);
-    layout_->addWidget(rootWidget_);
+    if (plotHost_ != nullptr) {
+      plotHost_->layout()->addWidget(rootWidget_);
+    } else {
+      layout_->addWidget(rootWidget_);
+    }
   }
 
   leftovers.append(existing.values());
@@ -374,6 +414,9 @@ void PlotTableWidget::rebuildLayout() {
 
   updatePlotControls();
   applyAllStretch();
+  if (sidebar_ != nullptr) {
+    sidebar_->refresh();
+  }
   QTimer::singleShot(0, this, [this]() { applyAllStretch(); });
   emit plotPausedChanged();
 }
@@ -552,6 +595,9 @@ void PlotTableWidget::configTimeAxisFormatChanged(PlotTableConfig::TimeAxisForma
   for (PlotWidget* plot : plotWidgets_) {
     plot->setTimeAxisFormat(format);
   }
+  if (sidebar_ != nullptr) {
+    sidebar_->refresh();
+  }
 }
 
 void PlotTableWidget::bagReaderReadingStarted() {
@@ -680,7 +726,57 @@ void PlotTableWidget::plotCloseRequested() {
   config_->closePlot(plot->getConfig());
 }
 
+void PlotTableWidget::applySidebarState() {
+  if ((sidebar_ == nullptr) || (chromeSplitter_ == nullptr) || (config_ == nullptr)) {
+    return;
+  }
+
+  const bool visible = config_->isSidebarVisible();
+  sidebar_->setVisible(visible);
+  sidebar_->setLiveUpdates(visible);
+  if (!visible) {
+    return;
+  }
+
+  const int width = std::max(1, config_->getSidebarWidth());
+  const int total = std::max(chromeSplitter_->width(), width + 1);
+  chromeSplitter_->setSizes({width, std::max(1, total - width)});
+}
+
+void PlotTableWidget::storeSidebarWidth() {
+  if ((config_ == nullptr) || (chromeSplitter_ == nullptr) || !config_->isSidebarVisible()) {
+    return;
+  }
+
+  const QList<int> sizes = chromeSplitter_->sizes();
+  if ((sizes.count() < 1) || (sizes.at(0) < 1)) {
+    return;
+  }
+
+  config_->setSidebarWidth(sizes.at(0));
+}
+
+void PlotTableWidget::configSidebarVisibleChanged(bool /*visible*/) {
+  applySidebarState();
+}
+
+void PlotTableWidget::configSidebarWidthChanged(int width) {
+  if ((chromeSplitter_ == nullptr) || (config_ == nullptr) || !config_->isSidebarVisible()) {
+    return;
+  }
+  const QList<int> sizes = chromeSplitter_->sizes();
+  if ((sizes.count() >= 1) && (sizes.at(0) == width)) {
+    return;
+  }
+  applySidebarState();
+}
+
 void PlotTableWidget::splitterMoved(int /*pos*/, int /*index*/) {
+  auto* splitter = qobject_cast<QSplitter*>(sender());
+  if (splitter == chromeSplitter_) {
+    storeSidebarWidth();
+    return;
+  }
   storeSplitterRatios();
 }
 
