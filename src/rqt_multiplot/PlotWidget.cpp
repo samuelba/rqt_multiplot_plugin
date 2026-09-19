@@ -64,6 +64,7 @@
 #include <rqt_multiplot/PlotMagnifier.h>
 #include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotPanner.h>
+#include <rqt_multiplot/PlotReplotPolicy.h>
 #include <rqt_multiplot/PlotZoomer.h>
 #include <rqt_multiplot/TimeZoneUtil.h>
 
@@ -90,6 +91,15 @@ QwtText axisTitleWithColor(const QString& text, const QColor& color) {
   return title;
 }
 
+class BoolGuard {
+ public:
+  explicit BoolGuard(bool& flag) : flag_(flag) { flag_ = true; }
+  ~BoolGuard() { flag_ = false; }
+
+ private:
+  bool& flag_;
+};
+
 }  // namespace
 
 /*****************************************************************************/
@@ -113,6 +123,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       paused_(true),
       rescale_(false),
       replot_(false),
+      replotting_(false),
       gridVisible_(false),
       userScaleLocked_(false),
       state_(Normal),
@@ -397,7 +408,9 @@ void PlotWidget::setCurrentScale(const BoundingRectangle& bounds) {
 
     rescale_ = false;
 
-    forceReplot();
+    if (shouldReplotAfterApplyingScale(replotting_)) {
+      forceReplot();
+    }
   }
 }
 
@@ -560,6 +573,11 @@ void PlotWidget::requestReplot() {
 }
 
 void PlotWidget::forceReplot() {
+  if (replotting_) {
+    return;
+  }
+  const BoolGuard replotGuard(replotting_);
+
   BoundingRectangle preferredBounds = getPreferredScale();
 
   if (shouldApplyPreferredScale(rescale_, userScaleLocked_)) {
@@ -911,7 +929,7 @@ void PlotWidget::applyAxisTimeOffsets() {
 
   relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::xBottom));
   relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::yLeft));
-  ui_->plot->updateLayout();
+  ui_->plot->invalidateLayoutCache();
   forceReplot();
 }
 

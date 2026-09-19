@@ -261,6 +261,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLayoutConfig.h
   include/rqt_multiplot/PlotMagnifier.h
   include/rqt_multiplot/PlotMouseBindings.h
+  include/rqt_multiplot/PlotReplotPolicy.h
   include/rqt_multiplot/PlotPanner.h
   include/rqt_multiplot/PlotSplitter.h
   include/rqt_multiplot/PlotTableConfig.h
@@ -418,6 +419,8 @@ if(BUILD_TESTING)
     test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
+    test/PlotReplotPolicyTest.cpp
+    test/QwtPlotCustomTest.cpp
     test/PlotTabWidgetTest.cpp
     test/PreferencesDialogTest.cpp
     test/AmentIndexTest.cpp

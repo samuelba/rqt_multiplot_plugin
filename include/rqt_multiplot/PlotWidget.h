@@ -151,6 +151,7 @@ class PlotWidget : public QWidget {
   bool paused_;
   bool rescale_;
   bool replot_;
+  bool replotting_;
   bool gridVisible_;
   bool userScaleLocked_;
   State state_;

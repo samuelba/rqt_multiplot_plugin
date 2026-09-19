@@ -20,6 +20,8 @@
 
 #include <qwt/qwt_plot.h>
 
+#include <rqt_multiplot/PlotReplotPolicy.h>
+
 namespace rqt_multiplot {
 
 class QwtPlotCustom : public QwtPlot {
@@ -30,8 +32,18 @@ class QwtPlotCustom : public QwtPlot {
   explicit QwtPlotCustom(const QwtText& title, QWidget* p = nullptr);
 
   QSize sizeHint() const override;
-
   QSize minimumSizeHint() const override;
+  void replot() override;
+  void updateLayout() override;
+  void invalidateLayoutCache();
+  int layoutUpdateCount() const;
+
+ private:
+  PlotLayoutSignature currentLayoutSignature() const;
+
+  PlotLayoutSignature lastLayoutSignature_;
+  bool layoutSignatureValid_;
+  int layoutUpdateCount_;
 };
 
 }  // namespace rqt_multiplot
