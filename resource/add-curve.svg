@@ -3,9 +3,9 @@
    id="icon"
    width="32"
    height="32"
-   viewBox="0 0 32 32"
+   viewBox="2 2 28 28"
    version="1.1"
-   sodipodi:docname="new-curve.svg"
+   sodipodi:docname="add-curve.svg"
    inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -47,9 +47,11 @@
      data-name="&lt;Transparent Rectangle&gt;"
      class="cls-1"
      width="32"
-     height="32" />
+     height="32"
+     x="0"
+     y="0" />
   <polygon
-     points="25,26 25,30 27,30 27,26 31,26 31,24 27,24 27,20 25,20 25,24 21,24 21,26 "
+     points="27,26 31,26 31,24 27,24 27,20 25,20 25,24 21,24 21,26 25,26 25,30 27,30 "
      id="polygon1"
      transform="translate(0.04123711)" />
 </svg>
