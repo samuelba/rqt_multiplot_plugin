@@ -483,8 +483,8 @@ void PlotWidget::buildSplitMenu() {
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    button->setIcon(packageIcon(iconPath, QSize(18, 18)));
-    button->setIconSize(QSize(18, 18));
+    button->setIcon(packageIcon(iconPath, QSize(16, 16)));
+    button->setIconSize(QSize(16, 16));
     button->setFixedSize(22, 22);
     button->setToolTip(toolTip);
     button->setAutoRaise(true);
