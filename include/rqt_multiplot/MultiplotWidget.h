@@ -86,6 +86,7 @@ class MultiplotWidget : public QWidget {
   void configWidgetCurrentConfigUrlChanged(const QString& url);
   void plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable);
   void openPreferences();
+  void configThemeChanged(const QString& themeId);
 };
 }  // namespace rqt_multiplot
 

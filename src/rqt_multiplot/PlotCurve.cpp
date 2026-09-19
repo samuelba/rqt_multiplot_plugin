@@ -204,7 +204,8 @@ QList<QwtLegendData> PlotCurve::legendData() const {
 
   for (QwtLegendData& data : list) {
     QwtText title = data.title();
-    applyLegendVisibilityStyle(title, false);
+    const QPalette pal = (plot() != nullptr) ? plot()->palette() : QApplication::palette();
+    applyLegendVisibilityStyle(title, false, pal);
     data.setValue(QwtLegendData::TitleRole, QVariant::fromValue(title));
   }
   return list;

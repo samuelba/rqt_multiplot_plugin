@@ -30,6 +30,7 @@
 
 #include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotTableWidget.h>
+#include <rqt_multiplot/Theme.h>
 
 namespace rqt_multiplot {
 
@@ -48,8 +49,7 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
 
   addButton_->setAutoRaise(true);
   addButton_->setToolTip("Add tab");
-  addButton_->setIcon(packageIcon("resource/new-tab.svg", QSize(16, 16)));
-  addButton_->setIconSize(QSize(16, 16));
+  setThemeIcon(addButton_, QStringLiteral("resource/new-tab.svg"), QSize(16, 16));
   tabWidget_->setCornerWidget(addButton_, Qt::TopRightCorner);
 
   connect(tabWidget_, SIGNAL(currentChanged(int)), this, SLOT(currentChanged(int)));
@@ -258,8 +258,7 @@ QToolButton* PlotTabWidget::createTabCloseButton(QTabBar* bar) {
   auto* button = new QToolButton(bar);
   button->setObjectName("tabCloseButton");
   button->setAutoRaise(true);
-  button->setIcon(packageIcon("resource/close-tab.svg", QSize(16, 16)));
-  button->setIconSize(QSize(16, 16));
+  setThemeIcon(button, QStringLiteral("resource/close-tab.svg"), QSize(16, 16));
   button->setFixedSize(QSize(16, 16));
   button->setToolTip("Close tab");
   button->setCursor(Qt::PointingHandCursor);
@@ -373,13 +372,17 @@ void PlotTabWidget::tabBarDoubleClicked(int index) {
   }
 
   const QString currentTitle = tabWidget_->tabText(index);
-  bool accepted = false;
-  const QString title = QInputDialog::getText(this, "Rename Tab", "Tab name:", QLineEdit::Normal, currentTitle, &accepted);
-  if (!accepted) {
+  QInputDialog dialog(this);
+  Theme::apply(&dialog);
+  dialog.setWindowTitle(QStringLiteral("Rename Tab"));
+  dialog.setLabelText(QStringLiteral("Tab name:"));
+  dialog.setTextValue(currentTitle);
+  dialog.setTextEchoMode(QLineEdit::Normal);
+  if (dialog.exec() != QDialog::Accepted) {
     return;
   }
 
-  config_->setTabTitle(static_cast<size_t>(index), title);
+  config_->setTabTitle(static_cast<size_t>(index), dialog.textValue());
 }
 
 void PlotTabWidget::addButtonClicked() {

@@ -23,14 +23,20 @@ class PreferencesDialog : public QDialog {
 
   void setTimeZoneId(const QString& timeZoneId);
   QString timeZoneId() const;
+  void setThemeId(const QString& themeId);
+  QString themeId() const;
 
  private:
   Ui::PreferencesDialog* ui_;
   QString timeZoneId_;
+  QString themeId_;
 
   void populateTimeZoneCombo();
+  void populateThemeCombo();
   void selectTimeZoneId(const QString& timeZoneId);
+  void selectThemeId(const QString& themeId);
   QString selectedTimeZoneId() const;
+  QString selectedThemeId() const;
 
  private slots:
   void acceptDialog();

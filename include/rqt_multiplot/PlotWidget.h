@@ -20,6 +20,7 @@
 #define RQT_MULTIPLOT_PLOT_WIDGET_H
 
 #include <QColor>
+#include <QEvent>
 #include <QIcon>
 #include <QList>
 #include <QMenu>
@@ -104,6 +105,7 @@ class PlotWidget : public QWidget {
   void saveToTextFile(const QString& fileName);
 
   void bindAxisOrigin(CurveConfig::Axis axis, double value);
+  void applyPlotChrome();
 
  signals:
   void preferredScaleChanged(const BoundingRectangle& bounds);
@@ -118,6 +120,7 @@ class PlotWidget : public QWidget {
  protected:
   void dragEnterEvent(QDragEnterEvent* event) override;
   void dropEvent(QDropEvent* event) override;
+  void changeEvent(QEvent* event) override;
 
   bool eventFilter(QObject* object, QEvent* event) override;
 
@@ -172,6 +175,7 @@ class PlotWidget : public QWidget {
   void updateGridPen();
   void buildSplitMenu();
   void applyPlotTimeWindow();
+  void refreshStatefulIcons();
 
  private slots:
   void timerTimeout();

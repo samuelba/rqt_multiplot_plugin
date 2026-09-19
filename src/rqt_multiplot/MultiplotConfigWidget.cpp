@@ -31,6 +31,7 @@
 #include <QTimer>
 
 #include <rqt_multiplot/PackageResource.h>
+#include <rqt_multiplot/Theme.h>
 
 #include <rqt_multiplot/XmlSettings.h>
 
@@ -65,11 +66,11 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
   actionSaveAs_->setObjectName(QStringLiteral("actionSaveAs"));
   actionClearHistory_->setObjectName(QStringLiteral("actionClearHistory"));
 
-  actionNew_->setIcon(packageIcon("resource/new-configuration.svg", QSize(16, 16)));
-  actionOpen_->setIcon(packageIcon("resource/open-configuration.svg", QSize(16, 16)));
-  actionSave_->setIcon(packageIcon("resource/save.svg", QSize(16, 16)));
-  actionSaveAs_->setIcon(packageIcon("resource/save-as.svg", QSize(16, 16)));
-  actionClearHistory_->setIcon(packageIcon("resource/delete-history.svg", QSize(16, 16)));
+  setThemeIcon(actionNew_, QStringLiteral("resource/new-configuration.svg"), QSize(16, 16));
+  setThemeIcon(actionOpen_, QStringLiteral("resource/open-configuration.svg"), QSize(16, 16));
+  setThemeIcon(actionSave_, QStringLiteral("resource/save.svg"), QSize(16, 16));
+  setThemeIcon(actionSaveAs_, QStringLiteral("resource/save-as.svg"), QSize(16, 16));
+  setThemeIcon(actionClearHistory_, QStringLiteral("resource/delete-history.svg"), QSize(16, 16));
 
   actionNew_->setShortcut(QKeySequence::New);
   actionOpen_->setShortcut(QKeySequence::Open);
@@ -316,6 +317,7 @@ void MultiplotConfigWidget::resetConfig() {
 bool MultiplotConfigWidget::confirmSave(bool canCancel) {
   if (currentConfigModified_) {
     QMessageBox messageBox(this);
+    Theme::apply(&messageBox);
     QMessageBox::StandardButtons buttons = QMessageBox::Save | QMessageBox::Discard;
 
     if (canCancel) {
@@ -357,10 +359,10 @@ bool MultiplotConfigWidget::confirmSave(bool canCancel) {
 
 void MultiplotConfigWidget::applySavePromptIcons(QMessageBox& messageBox) {
   if (QAbstractButton* saveButton = messageBox.button(QMessageBox::Save)) {
-    saveButton->setIcon(packageIcon("resource/save.svg", QSize(16, 16)));
+    setThemeIcon(saveButton, QStringLiteral("resource/save.svg"), QSize(16, 16));
   }
   if (QAbstractButton* discardButton = messageBox.button(QMessageBox::Discard)) {
-    discardButton->setIcon(packageIcon("resource/trash-can.svg", QSize(16, 16)));
+    setThemeIcon(discardButton, QStringLiteral("resource/trash-can.svg"), QSize(16, 16));
   }
 }
 
@@ -492,6 +494,7 @@ void MultiplotConfigWidget::configComboBoxCurrentUrlChanged(const QString& url) 
 
 void MultiplotConfigWidget::pushButtonClearHistoryClicked() {
   QMessageBox messageBox;
+  Theme::apply(&messageBox);
 
   messageBox.setText("The configuration file history will be cleared.");
   messageBox.setInformativeText("Do you want to proceed?");

@@ -36,6 +36,23 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tabAppearance">
+      <attribute name="title">
+       <string>Appearance</string>
+      </attribute>
+      <layout class="QFormLayout" name="formLayoutAppearance">
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelTheme">
+         <property name="text">
+          <string>Theme</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QComboBox" name="comboTheme"/>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item>

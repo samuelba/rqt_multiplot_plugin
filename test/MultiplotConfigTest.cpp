@@ -167,7 +167,7 @@ TEST(MultiplotConfig, roundTripsTwoTabsThroughXml) {
   EXPECT_EQ(loaded.getTableConfig(0)->getNumRows(), 2u);
   EXPECT_EQ(loaded.getTableConfig(0)->getNumColumns(), 1u);
   EXPECT_TRUE(loaded.getTableConfig(0)->isScaleLinked());
-  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(255, 0, 0));
+  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(Qt::white));
   ASSERT_EQ(loaded.getTableConfig(0)->getPlotConfig(1, 0)->getNumCurves(), 1u);
   EXPECT_EQ(loaded.getTableConfig(0)->getPlotConfig(1, 0)->getCurveConfig(0)->getTitle(), QString("pannant"));
 
@@ -221,8 +221,8 @@ TEST(MultiplotConfig, loadsLegacyTableXmlOntoSingleTab) {
   EXPECT_EQ(tab->getTitle(), QString("Tab 1"));
   EXPECT_EQ(tab->getNumRows(), 2u);
   EXPECT_EQ(tab->getNumColumns(), 1u);
-  EXPECT_EQ(tab->getBackgroundColor(), QColor(0, 128, 255));
-  EXPECT_EQ(tab->getForegroundColor(), QColor(32, 32, 32));
+  EXPECT_EQ(tab->getBackgroundColor(), QColor(Qt::white));
+  EXPECT_EQ(tab->getForegroundColor(), QColor(Qt::black));
   EXPECT_TRUE(tab->isScaleLinked());
   EXPECT_TRUE(tab->isCursorLinked());
   EXPECT_TRUE(tab->arePointsTracked());
@@ -272,7 +272,7 @@ TEST(MultiplotConfig, roundTripsTwoTabsThroughDataStream) {
   ASSERT_EQ(loaded.getNumTabs(), 2u);
   EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Left"));
   EXPECT_TRUE(loaded.getTableConfig(0)->isScaleLinked());
-  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(255, 0, 0));
+  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(Qt::white));
   EXPECT_EQ(loaded.getTableConfig(1)->getTitle(), QString("Right"));
   EXPECT_TRUE(loaded.getTableConfig(1)->arePointsTracked());
   EXPECT_EQ(loaded.getTableConfig(1)->getNumColumns(), 2u);
@@ -307,7 +307,7 @@ TEST(MultiplotConfig, loadsLegacyTableStreamOntoSingleTab) {
   EXPECT_EQ(tab->getTitle(), QString("Tab 1"));
   EXPECT_EQ(tab->getNumRows(), 2u);
   EXPECT_EQ(tab->getNumColumns(), 1u);
-  EXPECT_EQ(tab->getBackgroundColor(), QColor(0, 128, 255));
+  EXPECT_EQ(tab->getBackgroundColor(), QColor(Qt::white));
   EXPECT_TRUE(tab->isScaleLinked());
   EXPECT_TRUE(tab->isCursorLinked());
   EXPECT_TRUE(tab->arePointsTracked());
@@ -469,6 +469,146 @@ TEST(MultiplotConfig, legacyDataStreamWithoutTimeZoneKeepsLocal) {
   loaded.read(in);
 
   EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("local"));
+  EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Legacy"));
+}
+
+TEST(MultiplotConfig, defaultsToLightThemeAndLightPlotColors) {
+  MultiplotConfig config(nullptr);
+
+  EXPECT_EQ(config.getThemeId(), QStringLiteral("light"));
+  EXPECT_EQ(config.getTableConfig(0)->getBackgroundColor(), QColor(Qt::white));
+  EXPECT_EQ(config.getTableConfig(0)->getForegroundColor(), QColor(Qt::black));
+}
+
+TEST(MultiplotConfig, setThemeIdWritesPlotColorsOnAllTabs) {
+  MultiplotConfig config(nullptr);
+  config.addTab();
+  config.getTableConfig(0)->setBackgroundColor(Qt::red);
+  config.getTableConfig(1)->setForegroundColor(Qt::blue);
+
+  config.setThemeId(QStringLiteral("dark"));
+
+  EXPECT_EQ(config.getThemeId(), QStringLiteral("dark"));
+  EXPECT_EQ(config.getTableConfig(0)->getBackgroundColor(), QColor(0x1e, 0x1e, 0x1e));
+  EXPECT_EQ(config.getTableConfig(0)->getForegroundColor(), QColor(0xe6, 0xe6, 0xe6));
+  EXPECT_EQ(config.getTableConfig(1)->getBackgroundColor(), QColor(0x1e, 0x1e, 0x1e));
+  EXPECT_EQ(config.getTableConfig(1)->getForegroundColor(), QColor(0xe6, 0xe6, 0xe6));
+}
+
+TEST(MultiplotConfig, addTabInheritsCurrentThemeColors) {
+  MultiplotConfig config(nullptr);
+  config.setThemeId(QStringLiteral("dark"));
+
+  auto* second = config.addTab();
+
+  ASSERT_NE(second, nullptr);
+  EXPECT_EQ(second->getBackgroundColor(), QColor(0x1e, 0x1e, 0x1e));
+  EXPECT_EQ(second->getForegroundColor(), QColor(0xe6, 0xe6, 0xe6));
+}
+
+TEST(MultiplotConfig, invalidThemeIdFallsBackToLight) {
+  MultiplotConfig config(nullptr);
+  config.setThemeId(QStringLiteral("custom"));
+
+  EXPECT_EQ(config.getThemeId(), QStringLiteral("light"));
+}
+
+TEST(MultiplotConfig, savesAndLoadsTheme) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "theme.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setThemeId(QStringLiteral("dark"));
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+    ASSERT_EQ(settings.status(), QSettings::NoError);
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
+  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(0x1e, 0x1e, 0x1e));
+  EXPECT_EQ(loaded.getTableConfig(0)->getForegroundColor(), QColor(0xe6, 0xe6, 0xe6));
+}
+
+TEST(MultiplotConfig, missingThemeKeyLoadsLightAndOverwritesTabColors) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "theme-default.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.getTableConfig(0)->setBackgroundColor(Qt::red);
+    config.getTableConfig(0)->setForegroundColor(Qt::blue);
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.remove("theme");
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  loaded.setThemeId(QStringLiteral("dark"));
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("light"));
+  EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(Qt::white));
+  EXPECT_EQ(loaded.getTableConfig(0)->getForegroundColor(), QColor(Qt::black));
+}
+
+TEST(MultiplotConfig, roundTripsThemeThroughDataStream) {
+  MultiplotConfig source(nullptr);
+  source.setThemeId(QStringLiteral("dark"));
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
+}
+
+TEST(MultiplotConfig, legacyDataStreamWithoutThemeKeepsLight) {
+  MultiplotConfig source(nullptr);
+  source.getTableConfig(0)->setTitle("Legacy");
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << static_cast<quint32>(0x52544D31);
+  out << static_cast<quint64>(1);
+  out << static_cast<quint64>(0);
+  source.getTableConfig(0)->write(out);
+  out << QStringLiteral("utc");
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.setThemeId(QStringLiteral("dark"));
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("light"));
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("utc"));
   EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Legacy"));
 }
 

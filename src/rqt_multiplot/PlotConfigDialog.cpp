@@ -19,6 +19,7 @@
 #include <ui_PlotConfigDialog.h>
 
 #include "rqt_multiplot/PlotConfigDialog.h"
+#include "rqt_multiplot/Theme.h"
 
 namespace rqt_multiplot {
 
@@ -28,6 +29,7 @@ namespace rqt_multiplot {
 
 PlotConfigDialog::PlotConfigDialog(QWidget* parent, Qt::WindowFlags flags) : QDialog(parent, flags), ui_(new Ui::PlotConfigDialog()) {
   ui_->setupUi(this);
+  Theme::apply(this);
 }
 
 PlotConfigDialog::~PlotConfigDialog() {

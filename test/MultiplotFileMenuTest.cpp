@@ -229,8 +229,8 @@ TEST(MultiplotFileMenu, plotsToolbarSeparatorsAreVerticalLines) {
   ensureApplication();
 
   PlotTableConfigWidget toolbar;
-  const QStringList names({QStringLiteral("line"), QStringLiteral("line_2"), QStringLiteral("line_3"), QStringLiteral("line_4"),
-                           QStringLiteral("line_5"), QStringLiteral("line_6")});
+  const QStringList names(
+      {QStringLiteral("line_3"), QStringLiteral("line_4"), QStringLiteral("line_5"), QStringLiteral("line_6"), QStringLiteral("line_7")});
   for (const QString& name : names) {
     auto* line = toolbar.findChild<QFrame*>(name);
     ASSERT_NE(line, nullptr) << qPrintable(name);

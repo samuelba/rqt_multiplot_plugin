@@ -38,9 +38,9 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
       messageTopicRegistry_(new MessageTopicRegistry(this)) {
   ui_->setupUi(this);
 
-  ui_->pushButtonCopyRight->setIcon(packageIcon("resource/axis-copy-right.svg", QSize(22, 22)));
-  ui_->pushButtonCopyLeft->setIcon(packageIcon("resource/axis-copy-left.svg", QSize(22, 22)));
-  ui_->pushButtonSwap->setIcon(packageIcon("resource/axis-swap.svg", QSize(22, 22)));
+  setThemeIcon(ui_->pushButtonCopyRight, QStringLiteral("resource/axis-copy-right.svg"), QSize(22, 22));
+  setThemeIcon(ui_->pushButtonCopyLeft, QStringLiteral("resource/axis-copy-left.svg"), QSize(22, 22));
+  setThemeIcon(ui_->pushButtonSwap, QStringLiteral("resource/axis-swap.svg"), QSize(22, 22));
 
   ui_->curveAxisConfigWidgetX->setConfig(config_->getAxisConfig(CurveConfig::X));
   ui_->curveAxisConfigWidgetY->setConfig(config_->getAxisConfig(CurveConfig::Y));

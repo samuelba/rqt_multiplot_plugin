@@ -31,6 +31,7 @@
 #include <rqt_multiplot/PlotTabWidget.h>
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PreferencesDialog.h>
+#include <rqt_multiplot/Theme.h>
 
 #include <ui_MultiplotWidget.h>
 
@@ -76,7 +77,6 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->setupUi(this);
 
   ui_->menuBar->setNativeMenuBar(false);
-  ui_->menuBar->setStyleSheet(QStringLiteral("QMenuBar { spacing: 0px; }"));
   QMenu* fileMenu = ui_->menuBar->addMenu(tr("&File"));
   fileMenu->addAction(ui_->configWidget->getActionNew());
   fileMenu->addAction(ui_->configWidget->getActionOpen());
@@ -108,6 +108,9 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
 
   configWidgetCurrentConfigUrlChanged(QString());
   ui_->configWidget->setCurrentConfigModified(false);
+
+  connect(config_, &MultiplotConfig::themeChanged, this, &MultiplotWidget::configThemeChanged);
+  configThemeChanged(config_->getThemeId());
 
   rqt_multiplot::MessageTypeRegistry::update();
   rqt_multiplot::PackageRegistry::update();
@@ -331,11 +334,17 @@ void MultiplotWidget::plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable)
 void MultiplotWidget::openPreferences() {
   PreferencesDialog dialog(this);
   dialog.setTimeZoneId(config_->getTimeZoneId());
+  dialog.setThemeId(config_->getThemeId());
   if (dialog.exec() != QDialog::Accepted) {
     return;
   }
 
   config_->setTimeZoneId(dialog.timeZoneId());
+  config_->setThemeId(dialog.themeId());
+}
+
+void MultiplotWidget::configThemeChanged(const QString& themeId) {
+  Theme::apply(this, Theme::fromId(themeId));
 }
 
 }  // namespace rqt_multiplot

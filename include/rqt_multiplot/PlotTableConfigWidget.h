@@ -51,9 +51,6 @@ class PlotTableConfigWidget : public QWidget {
   QAction* getActionExportImageFile() const;
   QAction* getActionExportTextFile() const;
 
- protected:
-  bool eventFilter(QObject* object, QEvent* event) override;
-
  private:
   Ui::PlotTableConfigWidget* ui_;
 
@@ -73,8 +70,6 @@ class PlotTableConfigWidget : public QWidget {
   void completePlaybackJob(const QString& toolTip, bool failed);
 
  private slots:
-  void configBackgroundColorChanged(const QColor& color);
-  void configForegroundColorChanged(const QColor& color);
   void configLinkScaleChanged(bool link);
   void configLinkCursorChanged(bool link);
   void configTrackPointsChanged(bool track);

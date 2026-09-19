@@ -36,6 +36,33 @@ TEST(PreferencesDialog, hasTitleAndWestGeneralTab) {
   ASSERT_NE(tabs, nullptr);
   EXPECT_EQ(tabs->tabPosition(), QTabWidget::West);
   EXPECT_EQ(tabs->tabText(0), QStringLiteral("General"));
+  EXPECT_EQ(tabs->tabText(1), QStringLiteral("Appearance"));
+}
+
+TEST(PreferencesDialog, themeComboHasLightAndDarkOnly) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  auto* combo = dialog.findChild<QComboBox*>(QStringLiteral("comboTheme"));
+  ASSERT_NE(combo, nullptr);
+  ASSERT_EQ(combo->count(), 2);
+  EXPECT_EQ(combo->itemText(0), QStringLiteral("Light"));
+  EXPECT_EQ(combo->itemData(0).toString(), QStringLiteral("light"));
+  EXPECT_EQ(combo->itemText(1), QStringLiteral("Dark"));
+  EXPECT_EQ(combo->itemData(1).toString(), QStringLiteral("dark"));
+}
+
+TEST(PreferencesDialog, okWritesSelectedThemeId) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  dialog.setThemeId(QStringLiteral("dark"));
+
+  auto* buttons = dialog.findChild<QDialogButtonBox*>();
+  ASSERT_NE(buttons, nullptr);
+  buttons->button(QDialogButtonBox::Ok)->click();
+
+  EXPECT_EQ(dialog.themeId(), QStringLiteral("dark"));
 }
 
 TEST(PreferencesDialog, includesLocalAndUtcInTimeZoneCombo) {

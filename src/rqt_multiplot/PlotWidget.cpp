@@ -16,11 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <array>
 #include <optional>
 
+#include <QColor>
 #include <QCursor>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QEvent>
 #include <QFile>
 #include <QFileDialog>
 #include <QFontMetrics>
@@ -28,6 +31,7 @@
 #include <QMetaObject>
 #include <QMimeData>
 #include <QPainter>
+#include <QPalette>
 #include <QPixmap>
 #include <QSize>
 #include <QTextStream>
@@ -42,6 +46,7 @@
 #include <qwt/qwt_plot_picker.h>
 #include <qwt/qwt_plot_renderer.h>
 #include <qwt/qwt_scale_widget.h>
+#include <qwt/qwt_text.h>
 
 #include <rqt_multiplot/PackageResource.h>
 #include <rqt_multiplot/PlotExport.h>
@@ -77,6 +82,12 @@ void relayoutScaleWidget(QwtScaleWidget* widget) {
   widget->setLabelAlignment(widget->scaleDraw()->labelAlignment());
   [[maybe_unused]] const bool emitted = QMetaObject::invokeMethod(widget, "scaleDivChanged");
   Q_ASSERT(emitted);
+}
+
+QwtText axisTitleWithColor(const QString& text, const QColor& color) {
+  QwtText title(text);
+  title.setColor(color);
+  return title;
 }
 
 }  // namespace
@@ -124,13 +135,13 @@ PlotWidget::PlotWidget(QWidget* parent)
   maximizedIcon_ = packageIcon("resource/minimize.svg", QSize(16, 16));
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
-  ui_->pushButtonClear->setIcon(packageIcon("resource/delete-data.svg", QSize(16, 16)));
-  ui_->pushButtonImportExport->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
-  ui_->pushButtonSetup->setIcon(packageIcon("resource/settings-edit.svg", QSize(16, 16)));
-  ui_->pushButtonSplit->setIcon(packageIcon("resource/split/layout.svg", QSize(16, 16)));
+  setThemeIcon(ui_->pushButtonClear, QStringLiteral("resource/delete-data.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonImportExport, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonSetup, QStringLiteral("resource/settings-edit.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonSplit, QStringLiteral("resource/split/layout.svg"), QSize(16, 16));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
   ui_->pushButtonState->setIcon(normalIcon_);
-  ui_->pushButtonClose->setIcon(packageIcon("resource/close.svg", QSize(16, 16)));
+  setThemeIcon(ui_->pushButtonClose, QStringLiteral("resource/close.svg"), QSize(16, 16));
   ui_->pushButtonClose->setIconSize(QSize(16, 16));
   ui_->pushButtonClose->setEnabled(false);
 
@@ -213,6 +224,7 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->plot->axisWidget(QwtPlot::yLeft)->installEventFilter(this);
   ui_->plot->axisWidget(QwtPlot::yRight)->installEventFilter(this);
+  applyPlotChrome();
 }
 
 PlotWidget::~PlotWidget() {
@@ -483,8 +495,7 @@ void PlotWidget::buildSplitMenu() {
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    button->setIcon(packageIcon(iconPath, QSize(16, 16)));
-    button->setIconSize(QSize(16, 16));
+    setThemeIcon(button, iconPath, QSize(16, 16));
     button->setFixedSize(22, 22);
     button->setToolTip(toolTip);
     button->setAutoRaise(true);
@@ -574,9 +585,6 @@ void PlotWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   }
 
   QwtPlotRenderer renderer;
-
-  renderer.setDiscardFlag(QwtPlotRenderer::DiscardBackground, true);
-  renderer.setDiscardFlag(QwtPlotRenderer::DiscardCanvasBackground, true);
 
   qreal textHeight = 0;
 
@@ -685,6 +693,62 @@ bool PlotWidget::eventFilter(QObject* object, QEvent* event) {
   return false;
 }
 
+void PlotWidget::changeEvent(QEvent* event) {
+  QWidget::changeEvent(event);
+  if ((event->type() == QEvent::PaletteChange) || (event->type() == QEvent::StyleChange)) {
+    applyPlotChrome();
+  }
+}
+
+void PlotWidget::applyPlotChrome() {
+  if (ui_->plot == nullptr) {
+    return;
+  }
+
+  const QPalette pal = palette();
+  const QColor background = pal.color(QPalette::Window);
+  const QColor foreground = pal.color(QPalette::WindowText);
+  ui_->plot->setCanvasBackground(background);
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    QPalette canvasPalette = canvas->palette();
+    canvasPalette.setColor(QPalette::Window, background);
+    canvasPalette.setColor(QPalette::Base, background);
+    canvasPalette.setColor(QPalette::WindowText, foreground);
+    canvasPalette.setColor(QPalette::Text, foreground);
+    canvas->setPalette(canvasPalette);
+  }
+
+  if (cursor_ != nullptr) {
+    cursor_->updateOverlayPens();
+  }
+  if (zoomer_ != nullptr) {
+    zoomer_->updateOverlayPens();
+  }
+
+  const std::array<QwtPlot::Axis, 4> axes = {QwtPlot::xBottom, QwtPlot::xTop, QwtPlot::yLeft, QwtPlot::yRight};
+  for (QwtPlot::Axis axis : axes) {
+    if (QWidget* axisWidget = ui_->plot->axisWidget(axis)) {
+      axisWidget->setPalette(pal);
+    }
+  }
+
+  setGridForegroundColor(foreground);
+  refreshStatefulIcons();
+  if (config_ != nullptr) {
+    updateAxisTitle(PlotAxesConfig::X);
+    updateAxisTitle(PlotAxesConfig::Y);
+  }
+}
+
+void PlotWidget::refreshStatefulIcons() {
+  runIcon_ = packageIcon(QStringLiteral("resource/play.svg"), QSize(16, 16));
+  pauseIcon_ = packageIcon(QStringLiteral("resource/pause.svg"), QSize(16, 16));
+  normalIcon_ = packageIcon(QStringLiteral("resource/maximize.svg"), QSize(16, 16));
+  maximizedIcon_ = packageIcon(QStringLiteral("resource/minimize.svg"), QSize(16, 16));
+  ui_->pushButtonRunPause->setIcon(paused_ ? pauseIcon_ : runIcon_);
+  ui_->pushButtonState->setIcon((state_ == Maximized) ? maximizedIcon_ : normalIcon_);
+}
+
 void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
   QwtPlot::Axis plotAxis = (axis == PlotAxesConfig::Y) ? QwtPlot::yLeft : QwtPlot::xBottom;
   CurveConfig::Axis curveAxis = (axis == PlotAxesConfig::Y) ? CurveConfig::Y : CurveConfig::X;
@@ -705,9 +769,9 @@ void PlotWidget::updateAxisTitle(PlotAxesConfig::Axis axis) {
         }
       }
 
-      ui_->plot->setAxisTitle(plotAxis, QwtText(titleParts.join(", ")));
+      ui_->plot->setAxisTitle(plotAxis, axisTitleWithColor(titleParts.join(", "), palette().color(QPalette::WindowText)));
     } else {
-      ui_->plot->setAxisTitle(plotAxis, QwtText(plotAxisConfig->getCustomTitle()));
+      ui_->plot->setAxisTitle(plotAxis, axisTitleWithColor(plotAxisConfig->getCustomTitle(), palette().color(QPalette::WindowText)));
     }
   } else {
     ui_->plot->setAxisTitle(plotAxis, QwtText());

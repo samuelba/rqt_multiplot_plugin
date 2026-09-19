@@ -34,6 +34,7 @@ class PlotZoomer : public QwtPlotZoomer {
   explicit PlotZoomer(QwtPlotCanvas* canvas, bool doReplot = true);
   ~PlotZoomer() override;
 
+  void updateOverlayPens();
   void drawRubberBand(QPainter* painter) const override;
   QRegion rubberBandMask() const override;
 
