@@ -179,6 +179,10 @@ QColor Theme::iconColor() {
   return palette(currentId_).color(QPalette::WindowText);
 }
 
+QColor Theme::disabledIconColor() {
+  return (currentId_ == Id::Dark) ? QColor(0x75, 0x75, 0x75) : QColor(0x9e, 0x9e, 0x9e);
+}
+
 void Theme::apply(QWidget* root) {
   apply(root, currentId_);
 }

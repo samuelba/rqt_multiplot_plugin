@@ -745,7 +745,7 @@ void PlotWidget::refreshStatefulIcons() {
   pauseIcon_ = packageIcon(QStringLiteral("resource/pause.svg"), QSize(16, 16));
   normalIcon_ = packageIcon(QStringLiteral("resource/maximize.svg"), QSize(16, 16));
   maximizedIcon_ = packageIcon(QStringLiteral("resource/minimize.svg"), QSize(16, 16));
-  ui_->pushButtonRunPause->setIcon(paused_ ? pauseIcon_ : runIcon_);
+  ui_->pushButtonRunPause->setIcon(paused_ ? runIcon_ : pauseIcon_);
   ui_->pushButtonState->setIcon((state_ == Maximized) ? maximizedIcon_ : normalIcon_);
 }
 

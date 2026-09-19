@@ -1,9 +1,12 @@
 #include <cstdlib>
 
+#include <QAbstractButton>
 #include <QApplication>
 #include <QColor>
 #include <QComboBox>
 #include <QFrame>
+#include <QIcon>
+#include <QImage>
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
@@ -25,6 +28,7 @@
 namespace {
 
 using rqt_multiplot::MultiplotWidget;
+using rqt_multiplot::packageIcon;
 using rqt_multiplot::packagePixmap;
 using rqt_multiplot::PlotCursor;
 using rqt_multiplot::PlotTableConfigWidget;
@@ -133,6 +137,43 @@ TEST(PlotWidget, canvasBackgroundFollowsPalette) {
   EXPECT_EQ(plot->canvasBackground().color().rgb(), QColor(0x1e, 0x1e, 0x1e).rgb());
 }
 
+TEST(PlotWidget, runPauseShowsPlayIconWhenPausedAfterChromeRefresh) {
+  ensureApplication();
+
+  PlotWidget widget;
+  ASSERT_TRUE(widget.isPaused());
+  widget.applyPlotChrome();
+
+  auto* button = widget.findChild<QAbstractButton*>(QStringLiteral("pushButtonRunPause"));
+  ASSERT_NE(button, nullptr);
+  const QImage actual = button->icon().pixmap(QSize(16, 16)).toImage().convertToFormat(QImage::Format_ARGB32);
+  const QImage play = packageIcon(QStringLiteral("resource/play.svg"), QSize(16, 16))
+                          .pixmap(QSize(16, 16))
+                          .toImage()
+                          .convertToFormat(QImage::Format_ARGB32);
+  const QImage pause = packageIcon(QStringLiteral("resource/pause.svg"), QSize(16, 16))
+                           .pixmap(QSize(16, 16))
+                           .toImage()
+                           .convertToFormat(QImage::Format_ARGB32);
+  EXPECT_EQ(actual, play);
+  EXPECT_NE(actual, pause);
+
+  widget.run();
+  widget.applyPlotChrome();
+  const QImage running = button->icon().pixmap(QSize(16, 16)).toImage().convertToFormat(QImage::Format_ARGB32);
+  EXPECT_EQ(running, pause);
+}
+
+TEST(Theme, disabledIconColorIsMutedAndVisible) {
+  Theme::apply(nullptr, Theme::Id::Dark);
+  EXPECT_LT(Theme::disabledIconColor().lightnessF(), Theme::iconColor().lightnessF());
+  EXPECT_EQ(Theme::disabledIconColor(), QColor(0x75, 0x75, 0x75));
+
+  Theme::apply(nullptr, Theme::Id::Light);
+  EXPECT_GT(Theme::disabledIconColor().lightnessF(), Theme::iconColor().lightnessF());
+  EXPECT_EQ(Theme::disabledIconColor(), QColor(0x9e, 0x9e, 0x9e));
+}
+
 TEST(PlotCursor, trackerColorsFollowCanvasPalette) {
   ensureApplication();
 
@@ -189,6 +230,40 @@ TEST(PackageResource, tintsMonochromeIconsForDarkTheme) {
   EXPECT_TRUE(foundLightPixel);
 
   Theme::apply(nullptr, Theme::Id::Light);
+}
+
+int averageOpaqueGray(const QImage& image) {
+  long long graySum = 0;
+  int count = 0;
+  for (int y = 0; y < image.height(); ++y) {
+    for (int x = 0; x < image.width(); ++x) {
+      const QRgb pixel = image.pixel(x, y);
+      if (qAlpha(pixel) < 200) {
+        continue;
+      }
+      graySum += qGray(pixel);
+      ++count;
+    }
+  }
+  return (count == 0) ? 0 : static_cast<int>(graySum / count);
+}
+
+TEST(PackageResource, disabledPixmapIsMutedFromNormal) {
+  ensureApplication();
+
+  Theme::apply(nullptr, Theme::Id::Dark);
+  const QIcon darkIcon = packageIcon(QStringLiteral("resource/grid.svg"), QSize(16, 16));
+  const QImage darkNormal = darkIcon.pixmap(QSize(16, 16), QIcon::Normal).toImage().convertToFormat(QImage::Format_ARGB32);
+  const QImage darkDisabled = darkIcon.pixmap(QSize(16, 16), QIcon::Disabled).toImage().convertToFormat(QImage::Format_ARGB32);
+  EXPECT_LT(averageOpaqueGray(darkDisabled), averageOpaqueGray(darkNormal));
+  EXPECT_GT(averageOpaqueGray(darkDisabled), 100);
+
+  Theme::apply(nullptr, Theme::Id::Light);
+  const QIcon lightIcon = packageIcon(QStringLiteral("resource/grid.svg"), QSize(16, 16));
+  const QImage lightNormal = lightIcon.pixmap(QSize(16, 16), QIcon::Normal).toImage().convertToFormat(QImage::Format_ARGB32);
+  const QImage lightDisabled = lightIcon.pixmap(QSize(16, 16), QIcon::Disabled).toImage().convertToFormat(QImage::Format_ARGB32);
+  EXPECT_GT(averageOpaqueGray(lightDisabled), averageOpaqueGray(lightNormal));
+  EXPECT_LT(averageOpaqueGray(lightDisabled), 160);
 }
 
 TEST(PackageResource, leavesStatusOkayGreenUnderDarkTheme) {

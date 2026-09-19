@@ -8,6 +8,7 @@
 
 #include <QAbstractButton>
 #include <QAction>
+#include <QColor>
 #include <QFileInfo>
 #include <QIcon>
 #include <QImage>
@@ -34,7 +35,11 @@ inline QString packageResourcePath(const QString& relativePath) {
   return packageShareDirectory() + "/" + relativePath;
 }
 
-inline QPixmap packagePixmap(const QString& relativePath, const QSize& size = QSize(32, 32)) {
+inline bool shouldTintPackageIcon(const QString& relativePath) {
+  return !relativePath.contains(QLatin1String("status-okay")) && !relativePath.contains(QLatin1String("status-error"));
+}
+
+inline QPixmap packagePixmap(const QString& relativePath, const QSize& size = QSize(32, 32), const QColor& tint = QColor()) {
   const QString path = packageResourcePath(relativePath);
   if (!QFileInfo::exists(path)) {
     return {};
@@ -56,11 +61,10 @@ inline QPixmap packagePixmap(const QString& relativePath, const QSize& size = QS
     renderer.render(&painter);
   }
 
-  const bool skipTint = relativePath.contains(QLatin1String("status-okay")) || relativePath.contains(QLatin1String("status-error"));
-  if (!skipTint) {
+  if (shouldTintPackageIcon(relativePath)) {
     QPainter tintPainter(&image);
     tintPainter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-    tintPainter.fillRect(image.rect(), Theme::iconColor());
+    tintPainter.fillRect(image.rect(), tint.isValid() ? tint : Theme::iconColor());
   }
   return QPixmap::fromImage(image);
 }
@@ -70,7 +74,12 @@ inline QIcon packageIcon(const QString& relativePath, const QSize& size = QSize(
   if (pixmap.isNull()) {
     return {};
   }
-  return QIcon(pixmap);
+  QIcon icon;
+  icon.addPixmap(pixmap, QIcon::Normal);
+  if (shouldTintPackageIcon(relativePath)) {
+    icon.addPixmap(packagePixmap(relativePath, size, Theme::disabledIconColor()), QIcon::Disabled);
+  }
+  return icon;
 }
 
 inline void setThemeIcon(QAbstractButton* button, const QString& relativePath, const QSize& size = QSize(16, 16)) {

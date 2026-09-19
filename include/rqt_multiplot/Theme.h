@@ -28,6 +28,7 @@ class Theme {
   static QColor plotBackground(Id id);
   static QColor plotForeground(Id id);
   static QColor iconColor();
+  static QColor disabledIconColor();
 
   static void apply(QWidget* root);
   static void apply(QWidget* root, Id id);
