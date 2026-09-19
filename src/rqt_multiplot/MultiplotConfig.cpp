@@ -20,6 +20,7 @@
 
 #include <algorithm>
 
+#include "rqt_multiplot/Theme.h"
 #include "rqt_multiplot/TimeZoneUtil.h"
 
 #include <QBuffer>
@@ -58,7 +59,11 @@ QString normalizeTimeZoneId(const QString& timeZoneId) {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-MultiplotConfig::MultiplotConfig(QObject* parent) : Config(parent), currentTabIndex_(0), timeZoneId_(QString::fromLatin1(kTimeZoneLocal)) {
+MultiplotConfig::MultiplotConfig(QObject* parent)
+    : Config(parent),
+      currentTabIndex_(0),
+      timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
+      themeId_(QString::fromLatin1(Theme::kLightId)) {
   createTab("Tab 1");
 }
 
@@ -82,6 +87,7 @@ PlotTableConfig* MultiplotConfig::getTableConfig(size_t index) const {
 
 PlotTableConfig* MultiplotConfig::addTab() {
   PlotTableConfig* table = createTab(nextTabTitle());
+  applyThemeColorsTo(table);
   const size_t index = getNumTabs() - 1;
 
   emit tabAdded(index);
@@ -171,12 +177,30 @@ QTimeZone MultiplotConfig::timeZone() const {
   return TimeZoneUtil::localTimeZone();
 }
 
+void MultiplotConfig::setThemeId(const QString& themeId) {
+  const QString normalized = Theme::toId(Theme::fromId(themeId));
+  if (normalized == themeId_) {
+    applyThemeColors();
+    return;
+  }
+
+  themeId_ = normalized;
+  applyThemeColors();
+  emit themeChanged(themeId_);
+  emit changed();
+}
+
+QString MultiplotConfig::getThemeId() const {
+  return themeId_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
 
 void MultiplotConfig::save(QSettings& settings) const {
   settings.setValue("time_zone", timeZoneId_);
+  settings.setValue("theme", themeId_);
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
   settings.beginGroup("tabs");
 
@@ -192,19 +216,25 @@ void MultiplotConfig::save(QSettings& settings) const {
 void MultiplotConfig::load(QSettings& settings) {
   const QString loadedTimeZone =
       normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
+  const QString loadedTheme =
+      Theme::toId(Theme::fromId(settings.value(QStringLiteral("theme"), QString::fromLatin1(Theme::kLightId)).toString()));
   const QStringList groups = settings.childGroups();
   if (groups.contains("tabs")) {
     timeZoneId_ = loadedTimeZone;
+    themeId_ = loadedTheme;
     loadTabs(settings);
   } else if (groups.contains("table")) {
     timeZoneId_ = loadedTimeZone;
+    themeId_ = loadedTheme;
     loadLegacyTable(settings);
   } else {
     reset();
     return;
   }
 
+  applyThemeColors();
   emit timezoneChanged(timeZoneId_);
+  emit themeChanged(themeId_);
 }
 
 void MultiplotConfig::reset() {
@@ -212,6 +242,8 @@ void MultiplotConfig::reset() {
   createTab("Tab 1");
   currentTabIndex_ = 0;
   timeZoneId_ = QString::fromLatin1(kTimeZoneLocal);
+  themeId_ = QString::fromLatin1(Theme::kLightId);
+  applyThemeColors();
 
   emit tabsChanged();
   emit currentTabIndexChanged(0);
@@ -229,6 +261,7 @@ void MultiplotConfig::write(QDataStream& stream) const {
   }
 
   stream << timeZoneId_;
+  stream << themeId_;
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
@@ -256,10 +289,15 @@ void MultiplotConfig::read(QDataStream& stream) {
     in >> numTabs >> currentTabIndex;
     replaceTabsFromStream(in, numTabs, currentTabIndex);
     QString loadedTimeZoneId = QString::fromLatin1(kTimeZoneLocal);
+    QString loadedThemeId = QString::fromLatin1(Theme::kLightId);
     if (!in.atEnd()) {
       in >> loadedTimeZoneId;
     }
+    if (!in.atEnd()) {
+      in >> loadedThemeId;
+    }
     setTimeZoneId(loadedTimeZoneId);
+    setThemeId(loadedThemeId);
     return;
   }
 
@@ -296,9 +334,13 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
     currentTabIndex_ = getNumTabs() - 1;
   }
   timeZoneId_ = src.timeZoneId_;
+  themeId_ = src.themeId_;
+  applyThemeColors();
 
   emit tabsChanged();
   emit currentTabIndexChanged(currentTabIndex_);
+  emit timezoneChanged(timeZoneId_);
+  emit themeChanged(themeId_);
   deleteTabs(previous);
   emit changed();
 
@@ -315,6 +357,22 @@ PlotTableConfig* MultiplotConfig::createTab(const QString& title) {
   connectTable(table);
   tableConfigs_.append(table);
   return table;
+}
+
+void MultiplotConfig::applyThemeColorsTo(PlotTableConfig* table) const {
+  if (table == nullptr) {
+    return;
+  }
+
+  const Theme::Id id = Theme::fromId(themeId_);
+  table->setBackgroundColor(Theme::plotBackground(id));
+  table->setForegroundColor(Theme::plotForeground(id));
+}
+
+void MultiplotConfig::applyThemeColors() {
+  for (PlotTableConfig* table : tableConfigs_) {
+    applyThemeColorsTo(table);
+  }
 }
 
 QVector<PlotTableConfig*> MultiplotConfig::takeTabs() {
@@ -448,6 +506,8 @@ void MultiplotConfig::replaceWithLegacyTableStream(QDataStream& stream) {
   table->read(stream);
   table->setTitle("Tab 1");
   currentTabIndex_ = 0;
+  themeId_ = QString::fromLatin1(Theme::kLightId);
+  applyThemeColors();
 
   emit tabsChanged();
   emit currentTabIndexChanged(0);

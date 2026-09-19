@@ -63,7 +63,9 @@ class PlotCursor : public QwtPlotPicker {
   void setTimeZone(const QTimeZone& zone);
   const QTimeZone& timeZone() const;
 
-  void update();
+  QColor trackerTextColor() const;
+  QColor trackerBackgroundColor() const;
+  void updateOverlayPens();
 
   void drawRubberBand(QPainter* painter) const override;
   QRegion rubberBandMask() const override;

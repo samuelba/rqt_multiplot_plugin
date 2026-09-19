@@ -19,6 +19,7 @@
 #include <ui_CurveConfigDialog.h>
 
 #include "rqt_multiplot/CurveConfigDialog.h"
+#include "rqt_multiplot/Theme.h"
 
 namespace rqt_multiplot {
 
@@ -28,6 +29,7 @@ namespace rqt_multiplot {
 
 CurveConfigDialog::CurveConfigDialog(QWidget* parent, Qt::WindowFlags flags) : QDialog(parent, flags), ui_(new Ui::CurveConfigDialog()) {
   ui_->setupUi(this);
+  Theme::apply(this);
 }
 
 CurveConfigDialog::~CurveConfigDialog() {

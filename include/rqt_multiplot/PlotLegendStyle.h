@@ -19,12 +19,12 @@
 
 namespace rqt_multiplot {
 
-inline void applyLegendVisibilityStyle(QwtText& title, bool visible) {
+inline void applyLegendVisibilityStyle(QwtText& title, bool visible, const QPalette& palette = QApplication::palette()) {
   QFont font = title.font();
   font.setStrikeOut(!visible);
   title.setFont(font);
   const auto group = visible ? QPalette::Active : QPalette::Disabled;
-  title.setColor(QApplication::palette().color(group, QPalette::WindowText));
+  title.setColor(palette.color(group, QPalette::WindowText));
 }
 
 inline void styleLegendLabel(QWidget* widget, bool visible) {
@@ -34,7 +34,7 @@ inline void styleLegendLabel(QWidget* widget, bool visible) {
     return;
   }
   QwtText title = label->text();
-  applyLegendVisibilityStyle(title, visible);
+  applyLegendVisibilityStyle(title, visible, widget->palette());
   label->setText(title);
 #else
   Q_UNUSED(widget);

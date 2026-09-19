@@ -43,6 +43,8 @@ class MultiplotConfig : public Config {
   void setTimeZoneId(const QString& timeZoneId);
   QString getTimeZoneId() const;
   QTimeZone timeZone() const;
+  void setThemeId(const QString& themeId);
+  QString getThemeId() const;
 
   MultiplotConfig& operator=(const MultiplotConfig& src);
 
@@ -60,13 +62,17 @@ class MultiplotConfig : public Config {
   void tabTitleChanged(size_t index, const QString& title);
   void currentTabIndexChanged(size_t index);
   void timezoneChanged(const QString& timeZoneId);
+  void themeChanged(const QString& themeId);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
   size_t currentTabIndex_;
   QString timeZoneId_;
+  QString themeId_;
 
   PlotTableConfig* createTab(const QString& title);
+  void applyThemeColorsTo(PlotTableConfig* table) const;
+  void applyThemeColors();
   QVector<PlotTableConfig*> takeTabs();
   void deleteTabs(const QVector<PlotTableConfig*>& tabs);
   void connectTable(PlotTableConfig* table);

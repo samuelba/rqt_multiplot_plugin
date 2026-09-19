@@ -20,6 +20,8 @@
 
 #include <ui_CurveColorConfigWidget.h>
 
+#include <rqt_multiplot/Theme.h>
+
 #include "rqt_multiplot/CurveColorConfigWidget.h"
 
 namespace rqt_multiplot {
@@ -73,7 +75,8 @@ bool CurveColorConfigWidget::eventFilter(QObject* object, QEvent* event) {
   if ((object == ui_->labelColor) && (ui_->labelColor->isEnabled()) && (config_ != nullptr) &&
       (event->type() == QEvent::MouseButtonPress)) {
     QColorDialog dialog(this);
-
+    Theme::apply(&dialog);
+    dialog.setOptions(QColorDialog::DontUseNativeDialog);
     dialog.setCurrentColor(config_->getCustomColor());
 
     if (dialog.exec() == QDialog::Accepted) {

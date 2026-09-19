@@ -19,6 +19,7 @@
 #include <QCursor>
 #include <QEvent>
 #include <QMouseEvent>
+#include <QPalette>
 
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
@@ -36,7 +37,7 @@ namespace rqt_multiplot {
 /*****************************************************************************/
 
 PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
-  cursor_ = QCursor(packagePixmap("resource/move.svg", QSize(23, 23)), 11, 11);
+  refreshCursor();
 
   if (canvas != nullptr) {
     canvas->installEventFilter(this);
@@ -45,12 +46,19 @@ PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas)
 
 PlotPanner::~PlotPanner() = default;
 
+void PlotPanner::refreshCursor() {
+  cursor_ = QCursor(packagePixmap(QStringLiteral("resource/move.svg"), QSize(23, 23)), 11, 11);
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
 
 bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
   if (object == canvas_) {
+    if (event->type() == QEvent::PaletteChange) {
+      refreshCursor();
+    }
     if (!panning_ && (event->type() == QEvent::MouseButtonPress)) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 

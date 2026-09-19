@@ -1,1 +1,67 @@
-<svg id="icon" xmlns="http://www.w3.org/2000/svg" viewBox="2 2 28 28"><defs><style>.cls-1{fill:none;}</style></defs><title>template</title><path d="M26,6v4H6V6H26m0-2H6A2,2,0,0,0,4,6v4a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V6a2,2,0,0,0-2-2Z"/><path d="M10,16V26H6V16h4m0-2H6a2,2,0,0,0-2,2V26a2,2,0,0,0,2,2h4a2,2,0,0,0,2-2V16a2,2,0,0,0-2-2Z"/><path d="M26,16V26H16V16H26m0-2H16a2,2,0,0,0-2,2V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V16a2,2,0,0,0-2-2Z"/><rect class="cls-1" width="32" height="32"/></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="icon"
+   viewBox="4 4 24 24"
+   version="1.1"
+   sodipodi:docname="layout.svg"
+   width="28"
+   height="28"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <sodipodi:namedview
+     id="namedview3"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="41.571429"
+     inkscape:cx="13.987973"
+     inkscape:cy="14"
+     inkscape:window-width="2560"
+     inkscape:window-height="1375"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="icon" />
+  <defs
+     id="defs1">
+    <style
+       id="style1">.cls-1{fill:none;}</style>
+  </defs>
+  <title
+     id="title1">template</title>
+  <path
+     d="m 26,6 v 4 H 6 V 6 H 26 M 26,4 H 6 A 2,2 0 0 0 4,6 v 4 a 2,2 0 0 0 2,2 h 20 a 2,2 0 0 0 2,-2 V 6 A 2,2 0 0 0 26,4 Z"
+     id="path1" />
+  <path
+     d="M 10,16 V 26 H 6 V 16 h 4 m 0,-2 H 6 a 2,2 0 0 0 -2,2 v 10 a 2,2 0 0 0 2,2 h 4 a 2,2 0 0 0 2,-2 V 16 a 2,2 0 0 0 -2,-2 z"
+     id="path2" />
+  <path
+     d="M 26,16 V 26 H 16 V 16 h 10 m 0,-2 H 16 a 2,2 0 0 0 -2,2 v 10 a 2,2 0 0 0 2,2 h 10 a 2,2 0 0 0 2,-2 V 16 a 2,2 0 0 0 -2,-2 z"
+     id="path3" />
+  <rect
+     class="cls-1"
+     width="32"
+     height="32"
+     id="rect3"
+     x="0"
+     y="0" />
+  <metadata
+     id="metadata3">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:title>template</dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+</svg>

@@ -17,7 +17,6 @@
  ******************************************************************************/
 
 #include <QAction>
-#include <QColorDialog>
 #include <QFileDialog>
 #include <QSignalBlocker>
 
@@ -57,24 +56,21 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
   actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
 
-  actionImportBagFile_->setIcon(packageIcon("resource/data-import.svg", QSize(16, 16)));
-  actionImportBagDirectory_->setIcon(packageIcon("resource/data-import.svg", QSize(16, 16)));
-  actionExportImageFile_->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
-  actionExportTextFile_->setIcon(packageIcon("resource/data-export.svg", QSize(16, 16)));
-
-  ui_->labelBackgroundColor->setAutoFillBackground(true);
-  ui_->labelForegroundColor->setAutoFillBackground(true);
+  setThemeIcon(actionImportBagFile_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
+  setThemeIcon(actionImportBagDirectory_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
+  setThemeIcon(actionExportImageFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
+  setThemeIcon(actionExportTextFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
 
   ui_->widgetProgress->setEnabled(false);
   ui_->widgetProgress->hide();
 
-  ui_->pushButtonRun->setIcon(packageIcon("resource/play.svg", QSize(16, 16)));
-  ui_->pushButtonPause->setIcon(packageIcon("resource/pause.svg", QSize(16, 16)));
-  ui_->pushButtonClear->setIcon(packageIcon("resource/delete-data.svg", QSize(16, 16)));
-  ui_->pushButtonResetLayout->setIcon(packageIcon("resource/reset-grid.svg", QSize(16, 16)));
-  ui_->pushButtonStartAtZero->setIcon(packageIcon("resource/start-at-zero.svg", QSize(16, 16)));
-  ui_->pushButtonDateTime->setIcon(packageIcon("resource/calendar.svg", QSize(16, 16)));
-  ui_->pushButtonGrid->setIcon(packageIcon("resource/grid.svg", QSize(16, 16)));
+  setThemeIcon(ui_->pushButtonRun, QStringLiteral("resource/play.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonPause, QStringLiteral("resource/pause.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonClear, QStringLiteral("resource/delete-data.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonResetLayout, QStringLiteral("resource/reset-grid.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonStartAtZero, QStringLiteral("resource/start-at-zero.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonDateTime, QStringLiteral("resource/calendar.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonGrid, QStringLiteral("resource/grid.svg"), QSize(16, 16));
   updateSidebarButton();
 
   ui_->pushButtonPause->setEnabled(false);
@@ -97,9 +93,6 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(ui_->pushButtonPause, SIGNAL(clicked()), this, SLOT(pushButtonPauseClicked()));
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
   connect(ui_->pushButtonResetLayout, SIGNAL(clicked()), this, SLOT(pushButtonResetLayoutClicked()));
-
-  ui_->labelBackgroundColor->installEventFilter(this);
-  ui_->labelForegroundColor->installEventFilter(this);
 }
 
 PlotTableConfigWidget::~PlotTableConfigWidget() {
@@ -113,8 +106,6 @@ PlotTableConfigWidget::~PlotTableConfigWidget() {
 void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
   if (config != config_) {
     if (config_ != nullptr) {
-      disconnect(config_, SIGNAL(backgroundColorChanged(const QColor&)), this, SLOT(configBackgroundColorChanged(const QColor&)));
-      disconnect(config_, SIGNAL(foregroundColorChanged(const QColor&)), this, SLOT(configForegroundColorChanged(const QColor&)));
       disconnect(config_, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       disconnect(config_, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       disconnect(config_, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
@@ -128,8 +119,6 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
     config_ = config;
 
     if (config != nullptr) {
-      connect(config, SIGNAL(backgroundColorChanged(const QColor&)), this, SLOT(configBackgroundColorChanged(const QColor&)));
-      connect(config, SIGNAL(foregroundColorChanged(const QColor&)), this, SLOT(configForegroundColorChanged(const QColor&)));
       connect(config, SIGNAL(linkScaleChanged(bool)), this, SLOT(configLinkScaleChanged(bool)));
       connect(config, SIGNAL(linkCursorChanged(bool)), this, SLOT(configLinkCursorChanged(bool)));
       connect(config, SIGNAL(trackPointsChanged(bool)), this, SLOT(configTrackPointsChanged(bool)));
@@ -139,8 +128,6 @@ void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
       connect(config, SIGNAL(layoutChanged()), this, SLOT(updateResetLayoutButtonState()));
       connect(config, SIGNAL(numPlotsChanged(size_t, size_t)), this, SLOT(updateResetLayoutButtonState()));
 
-      configBackgroundColorChanged(config->getBackgroundColor());
-      configForegroundColorChanged(config->getForegroundColor());
       configLinkScaleChanged(config_->isScaleLinked());
       configLinkCursorChanged(config_->isCursorLinked());
       configTrackPointsChanged(config_->arePointsTracked());
@@ -256,43 +243,9 @@ void PlotTableConfigWidget::bindPlaybackSignals() {
 /* Methods                                                                   */
 /*****************************************************************************/
 
-bool PlotTableConfigWidget::eventFilter(QObject* object, QEvent* event) {
-  if (config_ != nullptr) {
-    if (((object == ui_->labelBackgroundColor) || (object == ui_->labelForegroundColor)) && (event->type() == QEvent::MouseButtonPress)) {
-      QColorDialog dialog(this);
-
-      dialog.setCurrentColor((object == ui_->labelBackgroundColor) ? config_->getBackgroundColor() : config_->getForegroundColor());
-
-      if (dialog.exec() == QDialog::Accepted) {
-        if (object == ui_->labelBackgroundColor) {
-          config_->setBackgroundColor(dialog.currentColor());
-        } else {
-          config_->setForegroundColor(dialog.currentColor());
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
 /*****************************************************************************/
 /* Slots                                                                     */
 /*****************************************************************************/
-
-void PlotTableConfigWidget::configBackgroundColorChanged(const QColor& color) {
-  QPalette palette = ui_->labelBackgroundColor->palette();
-  palette.setColor(QPalette::Window, color);
-
-  ui_->labelBackgroundColor->setPalette(palette);
-}
-
-void PlotTableConfigWidget::configForegroundColorChanged(const QColor& color) {
-  QPalette palette = ui_->labelForegroundColor->palette();
-  palette.setColor(QPalette::Window, color);
-
-  ui_->labelForegroundColor->setPalette(palette);
-}
 
 void PlotTableConfigWidget::configLinkScaleChanged(bool link) {
   ui_->checkBoxLinkScale->setCheckState(link ? Qt::Checked : Qt::Unchecked);
@@ -368,7 +321,8 @@ void PlotTableConfigWidget::updateSidebarButton() {
   const bool visible = (config_ != nullptr) && config_->isSidebarVisible();
   const QSignalBlocker blocker(ui_->pushButtonSidebar);
   ui_->pushButtonSidebar->setChecked(visible);
-  ui_->pushButtonSidebar->setIcon(packageIcon(visible ? "resource/side-panel-close.svg" : "resource/side-panel-open.svg", QSize(16, 16)));
+  setThemeIcon(ui_->pushButtonSidebar,
+               visible ? QStringLiteral("resource/side-panel-close.svg") : QStringLiteral("resource/side-panel-open.svg"), QSize(16, 16));
   ui_->pushButtonSidebar->setToolTip(visible ? tr("Hide curve values") : tr("Show curve values"));
 }
 

@@ -22,6 +22,7 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPalette>
 #include <QPen>
 #include <QResizeEvent>
 #include <QSize>
@@ -58,11 +59,10 @@ PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
       yTimeLabelMode_(AxisTimeFormat::LabelMode::Off),
       timeZone_(QTimeZone::utc()) {
   setTrackerMode(QwtPicker::AlwaysOn);
-  setTrackerPen(QPen(Qt::black));
   setStateMachine(new PlotCursorMachine());
 
   setRubberBand(QwtPicker::CrossRubberBand);
-  setRubberBandPen(Qt::DashLine);
+  updateOverlayPens();
 
   connect(plot()->axisWidget(xAxis()), SIGNAL(scaleDivChanged()), this, SLOT(plotXAxisScaleDivChanged()));
   connect(plot()->axisWidget(yAxis()), SIGNAL(scaleDivChanged()), this, SLOT(plotYAxisScaleDivChanged()));
@@ -112,6 +112,28 @@ void PlotCursor::setCurrentPosition(const QPointF& position) {
 
 const QPointF& PlotCursor::getCurrentPosition() const {
   return currentPosition_;
+}
+
+QColor PlotCursor::trackerTextColor() const {
+  if ((plot() != nullptr) && (plot()->canvas() != nullptr)) {
+    return plot()->canvas()->palette().color(QPalette::WindowText);
+  }
+  return Qt::black;
+}
+
+QColor PlotCursor::trackerBackgroundColor() const {
+  QColor background = Qt::white;
+  if ((plot() != nullptr) && (plot()->canvas() != nullptr)) {
+    background = plot()->canvas()->palette().color(QPalette::Window);
+  }
+  background.setAlpha(230);
+  return background;
+}
+
+void PlotCursor::updateOverlayPens() {
+  const QPen pen(trackerTextColor(), 0, Qt::DashLine);
+  setRubberBandPen(pen);
+  setTrackerPen(QPen(trackerTextColor()));
 }
 
 void PlotCursor::setTrackPoints(bool track) {
@@ -211,8 +233,8 @@ QwtText PlotCursor::trackerTextF(const QPointF& point) const {
   }
 
   QwtText text(trackedPointLabel(QString(), formatCoordinate(point.x(), true), formatCoordinate(point.y(), false)));
-  text.setColor(Qt::black);
-  text.setBackgroundBrush(QColor(255, 255, 255, 230));
+  text.setColor(trackerTextColor());
+  text.setBackgroundBrush(trackerBackgroundColor());
   text.setPaintAttribute(QwtText::PaintBackground, true);
   return text;
 }
@@ -222,16 +244,6 @@ QwtText PlotCursor::trackerTextF(const QPointF& point) const {
 /*****************************************************************************/
 
 void PlotCursor::drawRubberBand(QPainter* painter) const {
-  if (dynamic_cast<QWidget*>(painter->device()) != nullptr) {
-    QPen pen = painter->pen();
-    QColor penColor = pen.color();
-
-    penColor.setAlphaF(0.3);
-    pen.setColor(penColor);
-
-    painter->setPen(pen);
-  }
-
   QwtPlotPicker::drawRubberBand(painter);
 
   drawTrackedPoints(painter);
@@ -388,12 +400,14 @@ void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
   }
 
   painter->save();
-  painter->fillRect(background, QColor(255, 255, 255, 230));
-  painter->setPen(QColor(0, 0, 0, 180));
+  painter->fillRect(background, trackerBackgroundColor());
+  QColor border = trackerTextColor();
+  border.setAlpha(180);
+  painter->setPen(border);
   painter->drawRect(background.adjusted(0, 0, -1, -1));
 
   QwtText text(trackedPointLabels(trackedReadoutLines()));
-  text.setColor(Qt::black);
+  text.setColor(trackerTextColor());
   text.setRenderFlags(Qt::AlignLeft | Qt::AlignTop);
   text.draw(painter, background.adjusted(4, 4, -4, -4));
   painter->restore();

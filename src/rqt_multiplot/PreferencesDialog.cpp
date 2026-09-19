@@ -5,6 +5,7 @@
 
 #include "rqt_multiplot/PreferencesDialog.h"
 
+#include "rqt_multiplot/Theme.h"
 #include "rqt_multiplot/TimeZoneUtil.h"
 
 #include <QComboBox>
@@ -22,9 +23,14 @@ constexpr auto kTimeZoneRole = Qt::UserRole;
 }  // namespace
 
 PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags)
-    : QDialog(parent, flags), ui_(new Ui::PreferencesDialog()), timeZoneId_(QString::fromLatin1(kTimeZoneLocal)) {
+    : QDialog(parent, flags),
+      ui_(new Ui::PreferencesDialog()),
+      timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
+      themeId_(QString::fromLatin1(Theme::kLightId)) {
   ui_->setupUi(this);
   populateTimeZoneCombo();
+  populateThemeCombo();
+  Theme::apply(this);
   connect(ui_->buttonBox, &QDialogButtonBox::accepted, this, &PreferencesDialog::acceptDialog);
   connect(ui_->buttonBox, &QDialogButtonBox::rejected, this, &PreferencesDialog::reject);
 }
@@ -40,6 +46,15 @@ void PreferencesDialog::setTimeZoneId(const QString& timeZoneId) {
 
 QString PreferencesDialog::timeZoneId() const {
   return timeZoneId_;
+}
+
+void PreferencesDialog::setThemeId(const QString& themeId) {
+  themeId_ = Theme::toId(Theme::fromId(themeId));
+  selectThemeId(themeId_);
+}
+
+QString PreferencesDialog::themeId() const {
+  return themeId_;
 }
 
 void PreferencesDialog::populateTimeZoneCombo() {
@@ -63,6 +78,14 @@ void PreferencesDialog::populateTimeZoneCombo() {
   combo->setEditable(true);
 }
 
+void PreferencesDialog::populateThemeCombo() {
+  QComboBox* combo = ui_->comboTheme;
+  combo->clear();
+  combo->addItem(QStringLiteral("Light"), QString::fromLatin1(Theme::kLightId));
+  combo->addItem(QStringLiteral("Dark"), QString::fromLatin1(Theme::kDarkId));
+  selectThemeId(themeId_);
+}
+
 void PreferencesDialog::selectTimeZoneId(const QString& timeZoneId) {
   QComboBox* combo = ui_->comboTimeZone;
   const int index = combo->findData(timeZoneId, kTimeZoneRole);
@@ -72,6 +95,17 @@ void PreferencesDialog::selectTimeZoneId(const QString& timeZoneId) {
   }
 
   combo->setCurrentText(timeZoneId);
+}
+
+void PreferencesDialog::selectThemeId(const QString& themeId) {
+  QComboBox* combo = ui_->comboTheme;
+  const int index = combo->findData(themeId, kTimeZoneRole);
+  if (index >= 0) {
+    combo->setCurrentIndex(index);
+    return;
+  }
+
+  combo->setCurrentIndex(0);
 }
 
 QString PreferencesDialog::selectedTimeZoneId() const {
@@ -84,8 +118,18 @@ QString PreferencesDialog::selectedTimeZoneId() const {
   return combo->currentText().trimmed();
 }
 
+QString PreferencesDialog::selectedThemeId() const {
+  const QVariant data = ui_->comboTheme->currentData(kTimeZoneRole);
+  if (data.isValid()) {
+    return Theme::toId(Theme::fromId(data.toString()));
+  }
+
+  return QString::fromLatin1(Theme::kLightId);
+}
+
 void PreferencesDialog::acceptDialog() {
   timeZoneId_ = selectedTimeZoneId();
+  themeId_ = selectedThemeId();
   accept();
 }
 

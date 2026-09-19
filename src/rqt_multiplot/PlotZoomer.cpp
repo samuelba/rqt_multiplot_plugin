@@ -16,10 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
+#include <QPalette>
 #include <QPen>
 
+#include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 
 #include <rqt_multiplot/PlotMouseBindings.h>
@@ -35,7 +38,7 @@ namespace rqt_multiplot {
 PlotZoomer::PlotZoomer(QwtPlotCanvas* canvas, bool doReplot) : QwtPlotZoomer(canvas, doReplot) {
   setMousePattern(MouseSelect1, Qt::LeftButton, Qt::ControlModifier);
   setRubberBand(RectRubberBand);
-  setRubberBandPen(QPen(Qt::DashLine));
+  updateOverlayPens();
 }
 
 PlotZoomer::~PlotZoomer() = default;
@@ -43,6 +46,14 @@ PlotZoomer::~PlotZoomer() = default;
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
+
+void PlotZoomer::updateOverlayPens() {
+  QColor color = Qt::black;
+  if ((plot() != nullptr) && (plot()->canvas() != nullptr)) {
+    color = plot()->canvas()->palette().color(QPalette::WindowText);
+  }
+  setRubberBandPen(QPen(color, 0, Qt::DashLine));
+}
 
 QRect PlotZoomer::selectionRect() const {
   if (pickedPoints().count() < 2) {
@@ -60,6 +71,7 @@ void PlotZoomer::drawRubberBand(QPainter* painter) const {
 
   painter->save();
   painter->setClipping(false);
+  painter->setPen(rubberBandPen());
   painter->drawRect(rect);
   painter->restore();
 }

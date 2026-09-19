@@ -51,6 +51,8 @@ class PlotPanner : public QObject {
   QwtScaleMap xMap_;
   QwtScaleMap yMap_;
   BoundingRectangle bounds_;
+
+  void refreshCursor();
 };
 }  // namespace rqt_multiplot
 

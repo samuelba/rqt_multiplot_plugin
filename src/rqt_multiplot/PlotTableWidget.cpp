@@ -449,6 +449,7 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     plot->setTimeAxisFormat(config_->getTimeAxisFormat());
     plot->setGridForegroundColor(config_->getForegroundColor());
     plot->setGridVisible(config_->isGridVisible());
+    plot->applyPlotChrome();
     if (config_->isScaleLinked() && !plotWidgets_.isEmpty()) {
       plot->setCurrentScale(plotWidgets_.front()->getCurrentScale());
     }
@@ -574,6 +575,10 @@ void PlotTableWidget::configBackgroundColorChanged(const QColor& color) {
 
   setPalette(currentPalette);
 
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->applyPlotChrome();
+  }
+
   forceReplot();
 }
 
@@ -586,7 +591,7 @@ void PlotTableWidget::configForegroundColorChanged(const QColor& color) {
   setPalette(currentPalette);
 
   for (PlotWidget* plot : plotWidgets_) {
-    plot->setGridForegroundColor(color);
+    plot->applyPlotChrome();
   }
 }
 
