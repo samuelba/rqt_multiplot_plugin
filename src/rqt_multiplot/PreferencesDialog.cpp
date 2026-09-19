@@ -8,6 +8,7 @@
 #include "rqt_multiplot/Theme.h"
 #include "rqt_multiplot/TimeZoneUtil.h"
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QTimeZone>
@@ -26,10 +27,12 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags)
     : QDialog(parent, flags),
       ui_(new Ui::PreferencesDialog()),
       timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
-      themeId_(QString::fromLatin1(Theme::kLightId)) {
+      themeId_(QString::fromLatin1(Theme::kLightId)),
+      openGLCanvasEnabled_(false) {
   ui_->setupUi(this);
   populateTimeZoneCombo();
   populateThemeCombo();
+  ui_->checkOpenGLCanvas->setChecked(false);
   Theme::apply(this);
   connect(ui_->buttonBox, &QDialogButtonBox::accepted, this, &PreferencesDialog::acceptDialog);
   connect(ui_->buttonBox, &QDialogButtonBox::rejected, this, &PreferencesDialog::reject);
@@ -55,6 +58,15 @@ void PreferencesDialog::setThemeId(const QString& themeId) {
 
 QString PreferencesDialog::themeId() const {
   return themeId_;
+}
+
+void PreferencesDialog::setOpenGLCanvasEnabled(bool enabled) {
+  openGLCanvasEnabled_ = enabled;
+  ui_->checkOpenGLCanvas->setChecked(enabled);
+}
+
+bool PreferencesDialog::isOpenGLCanvasEnabled() const {
+  return openGLCanvasEnabled_;
 }
 
 void PreferencesDialog::populateTimeZoneCombo() {
@@ -130,6 +142,7 @@ QString PreferencesDialog::selectedThemeId() const {
 void PreferencesDialog::acceptDialog() {
   timeZoneId_ = selectedTimeZoneId();
   themeId_ = selectedThemeId();
+  openGLCanvasEnabled_ = ui_->checkOpenGLCanvas->isChecked();
   accept();
 }
 

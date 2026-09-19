@@ -27,20 +27,22 @@
 
 #include <rqt_multiplot/BoundingRectangle.h>
 
-class QwtPlotCanvas;
+class QWidget;
+class QwtPlot;
 
 namespace rqt_multiplot {
 class PlotPanner : public QObject {
   Q_OBJECT
  public:
-  explicit PlotPanner(QwtPlotCanvas* canvas);
+  explicit PlotPanner(QWidget* canvas);
   ~PlotPanner() override;
 
  protected:
   bool eventFilter(QObject* object, QEvent* event) override;
 
  private:
-  QwtPlotCanvas* canvas_;
+  QWidget* canvas_;
+  QwtPlot* plot() const;
 
   bool panning_;
 

@@ -2,6 +2,7 @@
 #include <cstdlib>
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QPushButton>
@@ -92,6 +93,33 @@ TEST(PreferencesDialog, okWritesSelectedTimeZoneId) {
   buttons->button(QDialogButtonBox::Ok)->click();
 
   EXPECT_EQ(dialog.timeZoneId(), QStringLiteral("utc"));
+}
+
+TEST(PreferencesDialog, openGLCanvasDefaultsOff) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("checkOpenGLCanvas"));
+  ASSERT_NE(check, nullptr);
+  EXPECT_FALSE(check->isChecked());
+  EXPECT_FALSE(dialog.isOpenGLCanvasEnabled());
+}
+
+TEST(PreferencesDialog, okWritesOpenGLCanvasEnabled) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  dialog.setOpenGLCanvasEnabled(true);
+
+  auto* check = dialog.findChild<QCheckBox*>(QStringLiteral("checkOpenGLCanvas"));
+  ASSERT_NE(check, nullptr);
+  EXPECT_TRUE(check->isChecked());
+
+  auto* buttons = dialog.findChild<QDialogButtonBox*>();
+  ASSERT_NE(buttons, nullptr);
+  buttons->button(QDialogButtonBox::Ok)->click();
+
+  EXPECT_TRUE(dialog.isOpenGLCanvasEnabled());
 }
 
 }  // namespace

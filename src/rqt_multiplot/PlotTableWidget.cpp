@@ -55,6 +55,7 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
       rootWidget_(nullptr),
       config_(nullptr),
       timeZone_(TimeZoneUtil::localTimeZone()),
+      openGLCanvasEnabled_(false),
       registry_(new MessageSubscriberRegistry(this)),
       bagReader_(new BagReader(this)) {
   setLayout(layout_);
@@ -144,6 +145,17 @@ void PlotTableWidget::setTimeZone(const QTimeZone& zone) {
 
 const QTimeZone& PlotTableWidget::getTimeZone() const {
   return timeZone_;
+}
+
+void PlotTableWidget::setOpenGLCanvasEnabled(bool enabled) {
+  openGLCanvasEnabled_ = enabled;
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setOpenGLCanvasEnabled(enabled);
+  }
+}
+
+bool PlotTableWidget::isOpenGLCanvasEnabled() const {
+  return openGLCanvasEnabled_;
 }
 
 CurveValuesWidget* PlotTableWidget::getCurveValuesWidget() const {
@@ -474,6 +486,7 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
 PlotWidget* PlotTableWidget::createPlotWidget() {
   auto* plot = new PlotWidget(this);
   connectPlotWidget(plot);
+  plot->setOpenGLCanvasEnabled(openGLCanvasEnabled_);
   return plot;
 }
 
@@ -481,12 +494,20 @@ void PlotTableWidget::connectPlotWidget(PlotWidget* plot) {
   connect(plot, SIGNAL(preferredScaleChanged(const BoundingRectangle&)), this, SLOT(plotPreferredScaleChanged(const BoundingRectangle&)));
   connect(plot, SIGNAL(currentScaleChanged(const BoundingRectangle&)), this, SLOT(plotCurrentScaleChanged(const BoundingRectangle&)));
   connect(plot, SIGNAL(userScaleLockedChanged(bool)), this, SLOT(plotUserScaleLockedChanged(bool)));
-  connect(plot->getCursor(), SIGNAL(activeChanged(bool)), this, SLOT(plotCursorActiveChanged(bool)));
-  connect(plot->getCursor(), SIGNAL(currentPositionChanged(const QPointF&)), this, SLOT(plotCursorCurrentPositionChanged(const QPointF&)));
+  connect(plot, &PlotWidget::canvasChanged, this, [this, plot]() { connectPlotCursor(plot); });
+  connectPlotCursor(plot);
   connect(plot, SIGNAL(pausedChanged(bool)), this, SLOT(plotPausedChanged(bool)));
   connect(plot, SIGNAL(stateChanged(int)), this, SLOT(plotStateChanged(int)));
   connect(plot, SIGNAL(splitRequested(Qt::Orientation, bool)), this, SLOT(plotSplitRequested(Qt::Orientation, bool)));
   connect(plot, SIGNAL(closeRequested()), this, SLOT(plotCloseRequested()));
+}
+
+void PlotTableWidget::connectPlotCursor(PlotWidget* plot) {
+  if ((plot == nullptr) || (plot->getCursor() == nullptr)) {
+    return;
+  }
+  connect(plot->getCursor(), SIGNAL(activeChanged(bool)), this, SLOT(plotCursorActiveChanged(bool)));
+  connect(plot->getCursor(), SIGNAL(currentPositionChanged(const QPointF&)), this, SLOT(plotCursorCurrentPositionChanged(const QPointF&)));
 }
 
 void PlotTableWidget::applyStretch(QSplitter* splitter, PlotLayoutConfig* node) {

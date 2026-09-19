@@ -14,9 +14,10 @@
 #include <QEvent>
 
 #include <qwt/qwt_abstract_legend.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_scale_draw.h>
 #include <qwt/qwt_text.h>
+
+#include <rqt_multiplot/PlotCanvasPolicy.h>
 
 namespace rqt_multiplot {
 namespace {
@@ -70,18 +71,8 @@ void QwtPlotCustom::replot() {
   updateAxes();
   QApplication::sendPostedEvents(this, QEvent::LayoutRequest);
 
-  auto* plotCanvas = qobject_cast<QwtPlotCanvas*>(canvas());
-  if (plotCanvas != nullptr) {
-    plotCanvas->invalidateBackingStore();
-  }
-
   updateLayout();
-
-  if (plotCanvas != nullptr) {
-    plotCanvas->replot();
-  } else {
-    update();
-  }
+  replotPlotCanvas(canvas());
 
   setAutoReplot(doAutoReplot);
 }

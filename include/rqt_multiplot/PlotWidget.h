@@ -86,6 +86,8 @@ class PlotWidget : public QWidget {
   bool canClose() const;
   void setUserScaleLocked(bool locked);
   bool isUserScaleLocked() const;
+  void setOpenGLCanvasEnabled(bool enabled);
+  bool isOpenGLCanvasEnabled() const;
 
   const QVector<PlotCurve*>& getCurves() const;
 
@@ -116,6 +118,7 @@ class PlotWidget : public QWidget {
   void closeRequested();
   void cleared();
   void userScaleLockedChanged(bool locked);
+  void canvasChanged();
 
  protected:
   void dragEnterEvent(QDragEnterEvent* event) override;
@@ -177,6 +180,8 @@ class PlotWidget : public QWidget {
   void buildSplitMenu();
   void applyPlotTimeWindow();
   void refreshStatefulIcons();
+  void createCanvasPickers();
+  void destroyCanvasPickers();
 
  private slots:
   void timerTimeout();

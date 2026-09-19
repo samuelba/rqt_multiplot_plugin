@@ -76,6 +76,7 @@ void PlotTabWidget::setConfig(MultiplotConfig* config) {
     disconnect(config_, SIGNAL(tabTitleChanged(size_t, const QString&)), this, SLOT(configTabTitleChanged(size_t, const QString&)));
     disconnect(config_, SIGNAL(currentTabIndexChanged(size_t)), this, SLOT(configCurrentTabIndexChanged(size_t)));
     disconnect(config_, &MultiplotConfig::timezoneChanged, this, &PlotTabWidget::configTimezoneChanged);
+    disconnect(config_, &MultiplotConfig::openGLCanvasChanged, this, &PlotTabWidget::configOpenGLCanvasChanged);
   }
 
   config_ = config;
@@ -87,6 +88,7 @@ void PlotTabWidget::setConfig(MultiplotConfig* config) {
     connect(config_, SIGNAL(tabTitleChanged(size_t, const QString&)), this, SLOT(configTabTitleChanged(size_t, const QString&)));
     connect(config_, SIGNAL(currentTabIndexChanged(size_t)), this, SLOT(configCurrentTabIndexChanged(size_t)));
     connect(config_, &MultiplotConfig::timezoneChanged, this, &PlotTabWidget::configTimezoneChanged);
+    connect(config_, &MultiplotConfig::openGLCanvasChanged, this, &PlotTabWidget::configOpenGLCanvasChanged);
   }
 
   rebuildTabs();
@@ -181,6 +183,7 @@ void PlotTabWidget::appendPlotTable(PlotTableConfig* tableConfig) {
   auto* plotTable = new PlotTableWidget(tabWidget_);
   if (config_ != nullptr) {
     plotTable->setTimeZone(config_->timeZone());
+    plotTable->setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
   }
   plotTable->setConfig(tableConfig);
   connect(plotTable, SIGNAL(plotPausedChanged()), this, SIGNAL(plotPausedChanged()));
@@ -337,6 +340,14 @@ void PlotTabWidget::configTimezoneChanged(const QString& /*timeZoneId*/) {
   for (int index = 0; index < tabWidget_->count(); ++index) {
     if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
       plotTable->setTimeZone(zone);
+    }
+  }
+}
+
+void PlotTabWidget::configOpenGLCanvasChanged(bool enabled) {
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
+      plotTable->setOpenGLCanvasEnabled(enabled);
     }
   }
 }

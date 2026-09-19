@@ -23,13 +23,13 @@
 
 #include <qwt/qwt_plot_magnifier.h>
 
-class QwtPlotCanvas;
+class QWidget;
 
 namespace rqt_multiplot {
 class PlotMagnifier : public QwtPlotMagnifier {
   Q_OBJECT
  public:
-  explicit PlotMagnifier(QwtPlotCanvas* canvas);
+  explicit PlotMagnifier(QWidget* canvas);
   ~PlotMagnifier() override;
 
  protected:

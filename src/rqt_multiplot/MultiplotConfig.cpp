@@ -63,7 +63,8 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
     : Config(parent),
       currentTabIndex_(0),
       timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
-      themeId_(QString::fromLatin1(Theme::kLightId)) {
+      themeId_(QString::fromLatin1(Theme::kLightId)),
+      openGLCanvasEnabled_(false) {
   createTab("Tab 1");
 }
 
@@ -194,6 +195,20 @@ QString MultiplotConfig::getThemeId() const {
   return themeId_;
 }
 
+void MultiplotConfig::setOpenGLCanvasEnabled(bool enabled) {
+  if (enabled == openGLCanvasEnabled_) {
+    return;
+  }
+
+  openGLCanvasEnabled_ = enabled;
+  emit openGLCanvasChanged(openGLCanvasEnabled_);
+  emit changed();
+}
+
+bool MultiplotConfig::isOpenGLCanvasEnabled() const {
+  return openGLCanvasEnabled_;
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
@@ -201,6 +216,7 @@ QString MultiplotConfig::getThemeId() const {
 void MultiplotConfig::save(QSettings& settings) const {
   settings.setValue("time_zone", timeZoneId_);
   settings.setValue("theme", themeId_);
+  settings.setValue("opengl_canvas", openGLCanvasEnabled_);
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
   settings.beginGroup("tabs");
 
@@ -218,14 +234,17 @@ void MultiplotConfig::load(QSettings& settings) {
       normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
   const QString loadedTheme =
       Theme::toId(Theme::fromId(settings.value(QStringLiteral("theme"), QString::fromLatin1(Theme::kLightId)).toString()));
+  const bool loadedOpenGL = settings.value(QStringLiteral("opengl_canvas"), false).toBool();
   const QStringList groups = settings.childGroups();
   if (groups.contains("tabs")) {
     timeZoneId_ = loadedTimeZone;
     themeId_ = loadedTheme;
+    openGLCanvasEnabled_ = loadedOpenGL;
     loadTabs(settings);
   } else if (groups.contains("table")) {
     timeZoneId_ = loadedTimeZone;
     themeId_ = loadedTheme;
+    openGLCanvasEnabled_ = loadedOpenGL;
     loadLegacyTable(settings);
   } else {
     reset();
@@ -235,6 +254,7 @@ void MultiplotConfig::load(QSettings& settings) {
   applyThemeColors();
   emit timezoneChanged(timeZoneId_);
   emit themeChanged(themeId_);
+  emit openGLCanvasChanged(openGLCanvasEnabled_);
 }
 
 void MultiplotConfig::reset() {
@@ -243,6 +263,7 @@ void MultiplotConfig::reset() {
   currentTabIndex_ = 0;
   timeZoneId_ = QString::fromLatin1(kTimeZoneLocal);
   themeId_ = QString::fromLatin1(Theme::kLightId);
+  openGLCanvasEnabled_ = false;
   applyThemeColors();
 
   emit tabsChanged();
@@ -262,6 +283,7 @@ void MultiplotConfig::write(QDataStream& stream) const {
 
   stream << timeZoneId_;
   stream << themeId_;
+  stream << openGLCanvasEnabled_;
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
@@ -298,6 +320,11 @@ void MultiplotConfig::read(QDataStream& stream) {
     }
     setTimeZoneId(loadedTimeZoneId);
     setThemeId(loadedThemeId);
+    bool loadedOpenGL = false;
+    if (!in.atEnd()) {
+      in >> loadedOpenGL;
+    }
+    setOpenGLCanvasEnabled(loadedOpenGL);
     return;
   }
 
@@ -335,12 +362,14 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   }
   timeZoneId_ = src.timeZoneId_;
   themeId_ = src.themeId_;
+  openGLCanvasEnabled_ = src.openGLCanvasEnabled_;
   applyThemeColors();
 
   emit tabsChanged();
   emit currentTabIndexChanged(currentTabIndex_);
   emit timezoneChanged(timeZoneId_);
   emit themeChanged(themeId_);
+  emit openGLCanvasChanged(openGLCanvasEnabled_);
   deleteTabs(previous);
   emit changed();
 
@@ -507,10 +536,12 @@ void MultiplotConfig::replaceWithLegacyTableStream(QDataStream& stream) {
   table->setTitle("Tab 1");
   currentTabIndex_ = 0;
   themeId_ = QString::fromLatin1(Theme::kLightId);
+  openGLCanvasEnabled_ = false;
   applyThemeColors();
 
   emit tabsChanged();
   emit currentTabIndexChanged(0);
+  emit openGLCanvasChanged(false);
   deleteTabs(previous);
   emit changed();
 }

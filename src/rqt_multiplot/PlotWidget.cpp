@@ -40,7 +40,6 @@
 #include <QWidgetAction>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
 #include <qwt/qwt_plot_grid.h>
 #include <qwt/qwt_plot_picker.h>
@@ -56,6 +55,7 @@
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
 #include <rqt_multiplot/OffsetScaleEngine.h>
+#include <rqt_multiplot/PlotCanvasPolicy.h>
 #include <rqt_multiplot/PlotConfigDialog.h>
 #include <rqt_multiplot/PlotConfigWidget.h>
 #include <rqt_multiplot/PlotCursor.h>
@@ -95,6 +95,11 @@ class BoolGuard {
  public:
   explicit BoolGuard(bool& flag) : flag_(flag) { flag_ = true; }
   ~BoolGuard() { flag_ = false; }
+
+  BoolGuard(const BoolGuard&) = delete;
+  BoolGuard& operator=(const BoolGuard&) = delete;
+  BoolGuard(BoolGuard&&) = delete;
+  BoolGuard& operator=(BoolGuard&&) = delete;
 
  private:
   bool& flag_;
@@ -158,7 +163,6 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->plot->setAutoReplot(false);
   ui_->plot->setAutoDelete(false);
-  dynamic_cast<QFrame*>(ui_->plot->canvas())->setFrameStyle(QFrame::NoFrame);
 
   ui_->plot->enableAxis(QwtPlot::xTop);
   ui_->plot->enableAxis(QwtPlot::yRight);
@@ -185,11 +189,6 @@ PlotWidget::PlotWidget(QWidget* parent)
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
   buildSplitMenu();
 
-  auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
-  if (canvas != nullptr) {
-    canvas->setContextMenuPolicy(Qt::NoContextMenu);
-  }
-  cursor_ = new PlotCursor(canvas);
   grid_ = new QwtPlotGrid();
   grid_->attach(ui_->plot);
   grid_->enableX(true);
@@ -198,10 +197,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   grid_->enableYMin(false);
   grid_->setVisible(false);
   updateGridPen();
-  magnifier_ = new PlotMagnifier(canvas);
-  panner_ = new PlotPanner(canvas);
-  zoomer_ = new PlotZoomer(canvas);
-  zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  createCanvasPickers();
 
 #if QWT_VERSION >= 0x060100
   currentBounds_.getMinimum().setX(ui_->plot->axisScaleDiv(QwtPlot::xBottom).lowerBound());
@@ -228,8 +224,6 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
-  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
-  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
 
   connect(timer_, SIGNAL(timeout()), this, SLOT(timerTimeout()));
 
@@ -477,6 +471,60 @@ void PlotWidget::setUserScaleLocked(bool locked) {
 
 bool PlotWidget::isUserScaleLocked() const {
   return userScaleLocked_;
+}
+
+void PlotWidget::setOpenGLCanvasEnabled(bool enabled) {
+  const bool available = openGLPlotCanvasAvailable();
+  warnIfOpenGLCanvasFallback(enabled, available);
+  const bool wantOpenGL = enabled && available;
+  if (isOpenGLPlotCanvas(ui_->plot->canvas()) == wantOpenGL) {
+    return;
+  }
+
+  QPalette canvasPalette;
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    canvasPalette = canvas->palette();
+  }
+
+  destroyCanvasPickers();
+  ui_->plot->setCanvas(createPlotCanvas(ui_->plot, wantOpenGL));
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    canvas->setPalette(canvasPalette);
+  }
+  ui_->plot->invalidateLayoutCache();
+  createCanvasPickers();
+  applyPlotChrome();
+  emit canvasChanged();
+}
+
+bool PlotWidget::isOpenGLCanvasEnabled() const {
+  return isOpenGLPlotCanvas(ui_->plot->canvas());
+}
+
+void PlotWidget::createCanvasPickers() {
+  QWidget* canvas = ui_->plot->canvas();
+  configurePlotCanvas(canvas);
+  cursor_ = new PlotCursor(canvas);
+  magnifier_ = new PlotMagnifier(canvas);
+  panner_ = new PlotPanner(canvas);
+  zoomer_ = new PlotZoomer(canvas);
+  zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
+  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
+}
+
+void PlotWidget::destroyCanvasPickers() {
+  if (zoomer_ != nullptr) {
+    disconnect(zoomer_, nullptr, this, nullptr);
+  }
+  delete zoomer_;
+  zoomer_ = nullptr;
+  delete magnifier_;
+  magnifier_ = nullptr;
+  delete panner_;
+  panner_ = nullptr;
+  delete cursor_;
+  cursor_ = nullptr;
 }
 
 /*****************************************************************************/

@@ -20,9 +20,9 @@
 #include <QEvent>
 #include <QMouseEvent>
 #include <QPalette>
+#include <QWidget>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_scale_div.h>
 
 #include <rqt_multiplot/PackageResource.h>
@@ -36,7 +36,7 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
+PlotPanner::PlotPanner(QWidget* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
   refreshCursor();
 
   if (canvas != nullptr) {
@@ -45,6 +45,13 @@ PlotPanner::PlotPanner(QwtPlotCanvas* canvas) : QObject(canvas), canvas_(canvas)
 }
 
 PlotPanner::~PlotPanner() = default;
+
+QwtPlot* PlotPanner::plot() const {
+  if (canvas_ == nullptr) {
+    return nullptr;
+  }
+  return qobject_cast<QwtPlot*>(canvas_->parent());
+}
 
 void PlotPanner::refreshCursor() {
   cursor_ = QCursor(packagePixmap(QStringLiteral("resource/move.svg"), QSize(23, 23)), 11, 11);
@@ -56,28 +63,25 @@ void PlotPanner::refreshCursor() {
 
 bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
   if (object == canvas_) {
+    QwtPlot* plotWidget = plot();
     if (event->type() == QEvent::PaletteChange) {
       refreshCursor();
     }
-    if (!panning_ && (event->type() == QEvent::MouseButtonPress)) {
+    if ((plotWidget != nullptr) && !panning_ && (event->type() == QEvent::MouseButtonPress)) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
       if (isPanMouse(mouseEvent->button(), mouseEvent->modifiers())) {
         position_ = mouseEventPosition(*mouseEvent);
 
-        xMap_ = canvas_->plot()->canvasMap(QwtPlot::xBottom);
-        yMap_ = canvas_->plot()->canvasMap(QwtPlot::yLeft);
+        xMap_ = plotWidget->canvasMap(QwtPlot::xBottom);
+        yMap_ = plotWidget->canvasMap(QwtPlot::yLeft);
 
 #if QWT_VERSION >= 0x060100
-        QPointF minimum(canvas_->plot()->axisScaleDiv(QwtPlot::xBottom).lowerBound(),
-                        canvas_->plot()->axisScaleDiv(QwtPlot::yLeft).lowerBound());
-        QPointF maximum(canvas_->plot()->axisScaleDiv(QwtPlot::xBottom).upperBound(),
-                        canvas_->plot()->axisScaleDiv(QwtPlot::yLeft).upperBound());
+        QPointF minimum(plotWidget->axisScaleDiv(QwtPlot::xBottom).lowerBound(), plotWidget->axisScaleDiv(QwtPlot::yLeft).lowerBound());
+        QPointF maximum(plotWidget->axisScaleDiv(QwtPlot::xBottom).upperBound(), plotWidget->axisScaleDiv(QwtPlot::yLeft).upperBound());
 #else
-        QPointF minimum(canvas_->plot()->axisScaleDiv(QwtPlot::xBottom)->lowerBound(),
-                        canvas_->plot()->axisScaleDiv(QwtPlot::yLeft)->lowerBound());
-        QPointF maximum(canvas_->plot()->axisScaleDiv(QwtPlot::xBottom)->upperBound(),
-                        canvas_->plot()->axisScaleDiv(QwtPlot::yLeft)->upperBound());
+        QPointF minimum(plotWidget->axisScaleDiv(QwtPlot::xBottom)->lowerBound(), plotWidget->axisScaleDiv(QwtPlot::yLeft)->lowerBound());
+        QPointF maximum(plotWidget->axisScaleDiv(QwtPlot::xBottom)->upperBound(), plotWidget->axisScaleDiv(QwtPlot::yLeft)->upperBound());
 #endif
 
         bounds_.setMinimum(minimum);
@@ -88,7 +92,7 @@ bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
 
         panning_ = true;
       }
-    } else if (panning_ && (event->type() == QEvent::MouseMove)) {
+    } else if ((plotWidget != nullptr) && panning_ && (event->type() == QEvent::MouseMove)) {
       auto* mouseEvent = dynamic_cast<QMouseEvent*>(event);
 
       const QPoint eventPosition = mouseEventPosition(*mouseEvent);
@@ -100,14 +104,14 @@ bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
       QPointF maximum(xMap_.invTransform(xMap_.transform(bounds_.getMaximum().x()) - dx),
                       yMap_.invTransform(yMap_.transform(bounds_.getMaximum().y()) - dy));
 
-      bool autoReplot = canvas_->plot()->autoReplot();
-      canvas_->plot()->setAutoReplot(false);
+      bool autoReplot = plotWidget->autoReplot();
+      plotWidget->setAutoReplot(false);
 
-      canvas_->plot()->setAxisScale(QwtPlot::xBottom, minimum.x(), maximum.x());
-      canvas_->plot()->setAxisScale(QwtPlot::yLeft, minimum.y(), maximum.y());
+      plotWidget->setAxisScale(QwtPlot::xBottom, minimum.x(), maximum.x());
+      plotWidget->setAxisScale(QwtPlot::yLeft, minimum.y(), maximum.y());
 
-      canvas_->plot()->setAutoReplot(autoReplot);
-      canvas_->plot()->replot();
+      plotWidget->setAutoReplot(autoReplot);
+      plotWidget->replot();
     } else if (panning_ && (event->type() == QEvent::MouseButtonRelease)) {
       canvas_->setCursor(canvasCursor_);
 

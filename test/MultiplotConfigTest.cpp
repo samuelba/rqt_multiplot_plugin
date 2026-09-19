@@ -480,6 +480,12 @@ TEST(MultiplotConfig, defaultsToLightThemeAndLightPlotColors) {
   EXPECT_EQ(config.getTableConfig(0)->getForegroundColor(), QColor(Qt::black));
 }
 
+TEST(MultiplotConfig, defaultsOpenGLCanvasDisabled) {
+  MultiplotConfig config(nullptr);
+
+  EXPECT_FALSE(config.isOpenGLCanvasEnabled());
+}
+
 TEST(MultiplotConfig, setThemeIdWritesPlotColorsOnAllTabs) {
   MultiplotConfig config(nullptr);
   config.addTab();
@@ -610,6 +616,99 @@ TEST(MultiplotConfig, legacyDataStreamWithoutThemeKeepsLight) {
   EXPECT_EQ(loaded.getThemeId(), QStringLiteral("light"));
   EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("utc"));
   EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("Legacy"));
+}
+
+TEST(MultiplotConfig, savesAndLoadsOpenGLCanvas) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "opengl.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setOpenGLCanvasEnabled(true);
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+    ASSERT_EQ(settings.status(), QSettings::NoError);
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_TRUE(loaded.isOpenGLCanvasEnabled());
+}
+
+TEST(MultiplotConfig, missingOpenGLCanvasKeyLoadsDisabled) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "opengl-default.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setOpenGLCanvasEnabled(true);
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.remove("opengl_canvas");
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_FALSE(loaded.isOpenGLCanvasEnabled());
+}
+
+TEST(MultiplotConfig, roundTripsOpenGLCanvasThroughDataStream) {
+  MultiplotConfig source(nullptr);
+  source.setOpenGLCanvasEnabled(true);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_TRUE(loaded.isOpenGLCanvasEnabled());
+}
+
+TEST(MultiplotConfig, legacyDataStreamWithoutOpenGLCanvasKeepsDisabled) {
+  MultiplotConfig source(nullptr);
+  source.getTableConfig(0)->setTitle("Legacy");
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << static_cast<quint32>(0x52544D31);
+  out << static_cast<quint64>(1);
+  out << static_cast<quint64>(0);
+  source.getTableConfig(0)->write(out);
+  out << QStringLiteral("utc");
+  out << QStringLiteral("dark");
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.setOpenGLCanvasEnabled(true);
+  loaded.read(in);
+
+  EXPECT_FALSE(loaded.isOpenGLCanvasEnabled());
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
 }
 
 TEST(MultiplotConfig, prefersTabsWhenBothGroupsExist) {

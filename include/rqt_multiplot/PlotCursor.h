@@ -34,7 +34,7 @@
 #include <rqt_multiplot/AxisTimeFormat.h>
 #include <rqt_multiplot/PlotCursorLabel.h>
 
-class QwtPlotCanvas;
+class QWidget;
 
 namespace rqt_multiplot {
 class PlotCursor : public QwtPlotPicker {
@@ -42,7 +42,7 @@ class PlotCursor : public QwtPlotPicker {
  public:
   static constexpr int kTrackPointSnapPixels = rqt_multiplot::kTrackPointSnapPixels;
 
-  explicit PlotCursor(QwtPlotCanvas* canvas);
+  explicit PlotCursor(QWidget* canvas);
   ~PlotCursor() override;
 
   void setActive(bool active, const QPointF& position = QPointF(0.0, 0.0));

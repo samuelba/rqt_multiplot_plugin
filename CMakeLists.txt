@@ -26,7 +26,7 @@ find_package(rqt_gui_cpp REQUIRED)
 # Follow the Qt major version already selected by qt_gui_cpp / rqt_gui_cpp.
 # Preferring Qt6 here would break jazzy/kilted hosts that also have Qt6 installed.
 if(TARGET Qt6::Core OR QT_VERSION_MAJOR EQUAL 6)
-  find_package(Qt6 REQUIRED COMPONENTS Widgets Svg)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets Svg OpenGL OpenGLWidgets)
   set(QT_VERSION_MAJOR 6)
 else()
   find_package(Qt5 REQUIRED COMPONENTS Widgets Svg)
@@ -155,6 +155,8 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotLayoutConfig.cpp
   src/rqt_multiplot/PlotMagnifier.cpp
   src/rqt_multiplot/PlotPanner.cpp
+  src/rqt_multiplot/PlotCanvasPolicy.cpp
+  src/rqt_multiplot/PlotOpenGLCanvas.cpp
   src/rqt_multiplot/PlotSplitter.cpp
   src/rqt_multiplot/PlotTableConfig.cpp
   src/rqt_multiplot/PlotTableConfigWidget.cpp
@@ -261,6 +263,8 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLayoutConfig.h
   include/rqt_multiplot/PlotMagnifier.h
   include/rqt_multiplot/PlotMouseBindings.h
+  include/rqt_multiplot/PlotCanvasPolicy.h
+  include/rqt_multiplot/PlotOpenGLCanvas.h
   include/rqt_multiplot/PlotReplotPolicy.h
   include/rqt_multiplot/PlotPanner.h
   include/rqt_multiplot/PlotSplitter.h
@@ -337,6 +341,10 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   rosbag2_cpp::rosbag2_cpp
   rosbag2_storage::rosbag2_storage
 )
+
+if(QT_VERSION_MAJOR EQUAL 6)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::OpenGLWidgets)
+endif()
 
 if(TARGET qwt_qt6)
   target_link_libraries(${PROJECT_NAME} PRIVATE qwt_qt6)
@@ -420,6 +428,7 @@ if(BUILD_TESTING)
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
     test/PlotReplotPolicyTest.cpp
+    test/PlotCanvasPolicyTest.cpp
     test/QwtPlotCustomTest.cpp
     test/PlotTabWidgetTest.cpp
     test/PreferencesDialogTest.cpp

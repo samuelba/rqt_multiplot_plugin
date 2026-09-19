@@ -45,6 +45,8 @@ class MultiplotConfig : public Config {
   QTimeZone timeZone() const;
   void setThemeId(const QString& themeId);
   QString getThemeId() const;
+  void setOpenGLCanvasEnabled(bool enabled);
+  bool isOpenGLCanvasEnabled() const;
 
   MultiplotConfig& operator=(const MultiplotConfig& src);
 
@@ -63,12 +65,14 @@ class MultiplotConfig : public Config {
   void currentTabIndexChanged(size_t index);
   void timezoneChanged(const QString& timeZoneId);
   void themeChanged(const QString& themeId);
+  void openGLCanvasChanged(bool enabled);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
   size_t currentTabIndex_;
   QString timeZoneId_;
   QString themeId_;
+  bool openGLCanvasEnabled_;
 
   PlotTableConfig* createTab(const QString& title);
   void applyThemeColorsTo(PlotTableConfig* table) const;

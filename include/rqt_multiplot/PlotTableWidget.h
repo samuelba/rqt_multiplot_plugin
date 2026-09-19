@@ -51,6 +51,8 @@ class PlotTableWidget : public QWidget {
   PlotTableConfig* getConfig() const;
   void setTimeZone(const QTimeZone& zone);
   const QTimeZone& getTimeZone() const;
+  void setOpenGLCanvasEnabled(bool enabled);
+  bool isOpenGLCanvasEnabled() const;
   size_t getNumRows() const;
   size_t getNumColumns() const;
   size_t getNumPlots() const;
@@ -100,6 +102,7 @@ class PlotTableWidget : public QWidget {
 
   PlotTableConfig* config_;
   QTimeZone timeZone_;
+  bool openGLCanvasEnabled_;
 
   MessageSubscriberRegistry* registry_;
   BagReader* bagReader_;
@@ -110,6 +113,7 @@ class PlotTableWidget : public QWidget {
   QWidget* createNodeWidget(PlotLayoutConfig* node, QHash<PlotConfig*, PlotWidget*>& existing);
   PlotWidget* createPlotWidget();
   void connectPlotWidget(PlotWidget* plot);
+  void connectPlotCursor(PlotWidget* plot);
   static void applyStretch(QSplitter* splitter, PlotLayoutConfig* node);
   void applyStretchRecursive(QWidget* widget);
   void applyAllStretch();
