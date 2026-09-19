@@ -3,6 +3,7 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QColor>
+#include <QColorDialog>
 #include <QComboBox>
 #include <QFrame>
 #include <QIcon>
@@ -94,6 +95,17 @@ TEST(Theme, applySetsFusionOnChildChrome) {
   EXPECT_EQ(button->style()->objectName().toLower(), QStringLiteral("fusion"));
   EXPECT_EQ(combo->style()->objectName().toLower(), QStringLiteral("fusion"));
   EXPECT_EQ(combo->palette().color(QPalette::Window), Theme::palette(Theme::Id::Dark).color(QPalette::Window));
+}
+
+TEST(Theme, applySetsFusionPaletteOnColorDialog) {
+  ensureApplication();
+
+  QColorDialog dialog;
+  Theme::apply(&dialog, Theme::Id::Dark);
+
+  EXPECT_EQ(dialog.palette().color(QPalette::Window), Theme::palette(Theme::Id::Dark).color(QPalette::Window));
+  EXPECT_EQ(dialog.style()->objectName().toLower(), QStringLiteral("fusion"));
+  EXPECT_TRUE(dialog.autoFillBackground());
 }
 
 TEST(Theme, applySetsPaletteOnMenus) {
