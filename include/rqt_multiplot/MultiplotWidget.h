@@ -67,6 +67,7 @@ class MultiplotWidget : public QWidget {
 
  private:
   void installCloseGuard();
+  void installStandaloneMenu();
   bool isCloseButtonActivation(QObject* object, QEvent* event) const;
 
   Ui::MultiplotWidget* ui_;
@@ -80,6 +81,7 @@ class MultiplotWidget : public QWidget {
   QAbstractButton* guardedCloseButton_;
   bool closePromptCompleted_;
   bool closePromptOpen_;
+  bool standaloneMenuInstalled_;
 
  private slots:
   void configWidgetCurrentConfigModifiedChanged(bool modified);

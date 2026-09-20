@@ -128,10 +128,12 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/MessageTypeRegistry.cpp
   src/rqt_multiplot/OffsetScaleDraw.cpp
   src/rqt_multiplot/OffsetScaleEngine.cpp
+  src/rqt_multiplot/LaunchOptions.cpp
   src/rqt_multiplot/MultiplotConfig.cpp
   src/rqt_multiplot/MultiplotConfigWidget.cpp
   src/rqt_multiplot/MultiplotPlugin.cpp
   src/rqt_multiplot/MultiplotWidget.cpp
+  src/rqt_multiplot/StandaloneWindowSettings.cpp
   src/rqt_multiplot/PackageRegistry.cpp
   src/rqt_multiplot/PackageScheme.cpp
   src/rqt_multiplot/PenStyleComboBox.cpp
@@ -357,12 +359,26 @@ else()
   target_link_libraries(${PROJECT_NAME} PUBLIC ${QWT_LIBRARIES})
 endif()
 
+add_executable(multiplot
+  src/rqt_multiplot/multiplot_main.cpp
+)
+
+target_link_libraries(multiplot PRIVATE
+  ${PROJECT_NAME}
+  Qt${QT_VERSION_MAJOR}::Widgets
+  rclcpp::rclcpp
+)
+
 install(
   TARGETS ${PROJECT_NAME}
   EXPORT ${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
+)
+
+install(TARGETS multiplot
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS
@@ -410,10 +426,12 @@ if(BUILD_TESTING)
     test/CurveValuesWidgetTest.cpp
     test/MessageFieldAccessTest.cpp
     test/OffsetScaleDrawTest.cpp
+    test/LaunchOptionsTest.cpp
     test/MultiplotConfigTest.cpp
     test/MultiplotConfigWidgetTest.cpp
     test/MultiplotWidgetTest.cpp
     test/MultiplotFileMenuTest.cpp
+    test/StandaloneWindowSettingsTest.cpp
     test/PlotConfigTest.cpp
     test/PlotConfigWidgetTest.cpp
     test/PlotLayoutConfigTest.cpp

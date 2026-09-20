@@ -17,13 +17,10 @@
  ******************************************************************************/
 
 #include <QCloseEvent>
-#include <QCommandLineParser>
-#include <QUrl>
-
-#include <QDebug>
 
 #include <pluginlib/class_list_macros.hpp>
 
+#include <rqt_multiplot/LaunchOptions.h>
 #include <rqt_multiplot/MultiplotWidget.h>
 #include <rqt_multiplot/RosContext.h>
 
@@ -108,21 +105,17 @@ void MultiplotPlugin::restoreSettings(const qt_gui_cpp::Settings&
 }
 
 void MultiplotPlugin::parseArguments(const QStringList& arguments) {
-  QCommandLineParser parser;
-  const QCommandLineOption configOption(QStringList() << "c" << "multiplot-config", "Load an xml plot configuration", "url");
-  const QCommandLineOption bagOption(QStringList() << "b" << "multiplot-bag", "Load a rosbag2 file", "path");
-  const QCommandLineOption runAllOption(QStringList() << "r" << "multiplot-run-all", "Run all plots on startup");
-  parser.addOption(configOption);
-  parser.addOption(bagOption);
-  parser.addOption(runAllOption);
-  parser.parse(QStringList() << "rqt_multiplot" << arguments);
-
-  runAllPlotsOnStart_ = parser.isSet(runAllOption);
-  if (parser.isSet(configOption)) {
-    widget_->loadConfig(QUrl::fromUserInput(parser.value(configOption)).toString());
+  LaunchOptions options;
+  if (parseLaunchOptions(arguments, options) != LaunchParseStatus::Ok) {
+    return;
   }
-  if (parser.isSet(bagOption)) {
-    widget_->readBag(parser.value(bagOption));
+
+  runAllPlotsOnStart_ = options.runAllOnStart;
+  if (!options.configUrl.isEmpty()) {
+    widget_->loadConfig(options.configUrl);
+  }
+  if (!options.bagPath.isEmpty()) {
+    widget_->readBag(options.bagPath);
   }
 }
 
