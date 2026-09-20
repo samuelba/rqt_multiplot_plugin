@@ -8,15 +8,32 @@
 
 #include <gtest/gtest.h>
 
+#include <QTemporaryDir>
+
 #include <rqt_multiplot/MultiplotConfig.h>
 #include <rqt_multiplot/MultiplotConfigWidget.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/UserPreferences.h>
 
 namespace {
 
 using rqt_multiplot::MultiplotConfig;
 using rqt_multiplot::MultiplotConfigWidget;
 using rqt_multiplot::PlotTableConfig;
+using rqt_multiplot::UserPreferences;
+
+class MultiplotConfigWidgetTest : public ::testing::Test {
+ protected:
+  void SetUp() override {
+    ASSERT_TRUE(tempDir_.isValid());
+    UserPreferences::setTestSettingsFile(tempDir_.filePath(QStringLiteral("preferences.ini")));
+    UserPreferences::factory().save();
+  }
+
+  void TearDown() override { UserPreferences::clearTestSettingsFile(); }
+
+  QTemporaryDir tempDir_;
+};
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -29,7 +46,7 @@ QApplication* ensureApplication() {
   return new QApplication(argc, argv);
 }
 
-TEST(MultiplotConfigWidget, startsUnmodified) {
+TEST_F(MultiplotConfigWidgetTest, startsUnmodified) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
@@ -39,7 +56,7 @@ TEST(MultiplotConfigWidget, startsUnmodified) {
   EXPECT_FALSE(widget.isCurrentConfigModified());
 }
 
-TEST(MultiplotConfigWidget, doesNotStayModifiedAfterAddAndRemoveTab) {
+TEST_F(MultiplotConfigWidgetTest, doesNotStayModifiedAfterAddAndRemoveTab) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
@@ -53,7 +70,7 @@ TEST(MultiplotConfigWidget, doesNotStayModifiedAfterAddAndRemoveTab) {
   EXPECT_FALSE(widget.isCurrentConfigModified());
 }
 
-TEST(MultiplotConfigWidget, doesNotStayModifiedAfterSwitchingTabAndBack) {
+TEST_F(MultiplotConfigWidgetTest, doesNotStayModifiedAfterSwitchingTabAndBack) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
@@ -70,7 +87,7 @@ TEST(MultiplotConfigWidget, doesNotStayModifiedAfterSwitchingTabAndBack) {
   EXPECT_FALSE(widget.isCurrentConfigModified());
 }
 
-TEST(MultiplotConfigWidget, marksModifiedWhenTitleChangesAndClearsWhenReverted) {
+TEST_F(MultiplotConfigWidgetTest, marksModifiedWhenTitleChangesAndClearsWhenReverted) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
@@ -87,7 +104,39 @@ TEST(MultiplotConfigWidget, marksModifiedWhenTitleChangesAndClearsWhenReverted) 
   EXPECT_FALSE(widget.isCurrentConfigModified());
 }
 
-TEST(MultiplotConfigWidget, applySavePromptIconsSetsSaveAndDiscard) {
+TEST_F(MultiplotConfigWidgetTest, clearOverrideMarksModifiedWhenBaselineHadOverride) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  config.setPreferencesOverridden(true);
+  config.setThemeId(QStringLiteral("dark"));
+
+  MultiplotConfigWidget widget;
+  widget.setConfig(&config);
+  widget.setCurrentConfigModified(false);
+  ASSERT_FALSE(widget.isCurrentConfigModified());
+
+  config.setPreferencesOverridden(false);
+  config.applyUserDefaults();
+  EXPECT_TRUE(widget.isCurrentConfigModified());
+}
+
+TEST_F(MultiplotConfigWidgetTest, themeChangeWithoutOverrideCanSettleSnapshot) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  MultiplotConfigWidget widget;
+  widget.setConfig(&config);
+  ASSERT_FALSE(config.isPreferencesOverridden());
+
+  config.setThemeId(QStringLiteral("dark"));
+  ASSERT_TRUE(widget.isCurrentConfigModified());
+
+  widget.setCurrentConfigModified(false);
+  EXPECT_FALSE(widget.isCurrentConfigModified());
+}
+
+TEST_F(MultiplotConfigWidgetTest, applySavePromptIconsSetsSaveAndDiscard) {
   ensureApplication();
 
   QMessageBox messageBox;

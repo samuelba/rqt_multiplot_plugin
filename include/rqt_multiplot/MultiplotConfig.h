@@ -47,6 +47,9 @@ class MultiplotConfig : public Config {
   QString getThemeId() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  bool isPreferencesOverridden() const;
+  void setPreferencesOverridden(bool overridden);
+  void applyUserDefaults();
 
   MultiplotConfig& operator=(const MultiplotConfig& src);
 
@@ -73,6 +76,7 @@ class MultiplotConfig : public Config {
   QString timeZoneId_;
   QString themeId_;
   bool openGLCanvasEnabled_;
+  bool preferencesOverridden_;
 
   PlotTableConfig* createTab(const QString& title);
   void applyThemeColorsTo(PlotTableConfig* table) const;

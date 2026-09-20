@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
-    <height>360</height>
+    <width>560</width>
+    <height>460</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,6 +71,55 @@
       </layout>
      </widget>
     </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelStatus">
+     <property name="text">
+      <string>Using user defaults</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labelHint">
+     <property name="text">
+      <string>Configuration overrides are stored in the plot file when you save. User defaults are stored for this user immediately.</string>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="persistActionsLayout">
+     <item>
+      <widget class="QPushButton" name="buttonSaveAsDefaults">
+       <property name="text">
+        <string>Save as defaults</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="buttonOverrideConfiguration">
+       <property name="text">
+        <string>Override in this configuration</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="buttonClearOverride">
+       <property name="text">
+        <string>Clear configuration override</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="buttonRestoreFactory">
+       <property name="text">
+        <string>Restore factory defaults</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">

@@ -1,6 +1,7 @@
 #include <QBuffer>
 #include <QColor>
 #include <QDataStream>
+#include <QDir>
 #include <QIODevice>
 #include <QSettings>
 #include <QTemporaryDir>
@@ -11,6 +12,7 @@
 #include <rqt_multiplot/MultiplotConfig.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/UserPreferences.h>
 #include <rqt_multiplot/XmlSettings.h>
 
 namespace {
@@ -19,6 +21,7 @@ using rqt_multiplot::CurveConfig;
 using rqt_multiplot::MultiplotConfig;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotTableConfig;
+using rqt_multiplot::UserPreferences;
 using rqt_multiplot::XmlSettings;
 
 QString settingsPath(const QTemporaryDir& dir, const char* name) {
@@ -28,6 +31,20 @@ QString settingsPath(const QTemporaryDir& dir, const char* name) {
 void beginMultiplot(QSettings& settings) {
   settings.beginGroup("rqt_multiplot");
 }
+
+class IsolatedUserPreferencesEnvironment : public ::testing::Environment {
+ public:
+  void SetUp() override {
+    ASSERT_TRUE(tempDir_.isValid());
+    UserPreferences::setTestSettingsFile(tempDir_.filePath(QStringLiteral("preferences.ini")));
+    UserPreferences::factory().save();
+  }
+
+  void TearDown() override { UserPreferences::clearTestSettingsFile(); }
+
+ private:
+  QTemporaryDir tempDir_;
+};
 
 TEST(MultiplotConfig, defaultsToOneTabWithOnePlot) {
   MultiplotConfig config(nullptr);
@@ -382,6 +399,7 @@ TEST(MultiplotConfig, savesAndLoadsTimeZone) {
 
   {
     MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
     config.setTimeZoneId(QStringLiteral("Europe/Zurich"));
 
     QSettings settings(path, XmlSettings::format);
@@ -435,6 +453,7 @@ TEST(MultiplotConfig, invalidTimeZoneIdFallsBackToLocal) {
 
 TEST(MultiplotConfig, roundTripsTimeZoneThroughDataStream) {
   MultiplotConfig source(nullptr);
+  source.setPreferencesOverridden(true);
   source.setTimeZoneId(QStringLiteral("utc"));
 
   QBuffer buffer;
@@ -526,6 +545,7 @@ TEST(MultiplotConfig, savesAndLoadsTheme) {
 
   {
     MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
     config.setThemeId(QStringLiteral("dark"));
 
     QSettings settings(path, XmlSettings::format);
@@ -542,6 +562,7 @@ TEST(MultiplotConfig, savesAndLoadsTheme) {
   loaded.load(settings);
   settings.endGroup();
 
+  EXPECT_TRUE(loaded.isPreferencesOverridden());
   EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
   EXPECT_EQ(loaded.getTableConfig(0)->getBackgroundColor(), QColor(0x1e, 0x1e, 0x1e));
   EXPECT_EQ(loaded.getTableConfig(0)->getForegroundColor(), QColor(0xe6, 0xe6, 0xe6));
@@ -579,6 +600,7 @@ TEST(MultiplotConfig, missingThemeKeyLoadsLightAndOverwritesTabColors) {
 
 TEST(MultiplotConfig, roundTripsThemeThroughDataStream) {
   MultiplotConfig source(nullptr);
+  source.setPreferencesOverridden(true);
   source.setThemeId(QStringLiteral("dark"));
 
   QBuffer buffer;
@@ -625,6 +647,7 @@ TEST(MultiplotConfig, savesAndLoadsOpenGLCanvas) {
 
   {
     MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
     config.setOpenGLCanvasEnabled(true);
 
     QSettings settings(path, XmlSettings::format);
@@ -641,6 +664,7 @@ TEST(MultiplotConfig, savesAndLoadsOpenGLCanvas) {
   loaded.load(settings);
   settings.endGroup();
 
+  EXPECT_TRUE(loaded.isPreferencesOverridden());
   EXPECT_TRUE(loaded.isOpenGLCanvasEnabled());
 }
 
@@ -672,6 +696,7 @@ TEST(MultiplotConfig, missingOpenGLCanvasKeyLoadsDisabled) {
 
 TEST(MultiplotConfig, roundTripsOpenGLCanvasThroughDataStream) {
   MultiplotConfig source(nullptr);
+  source.setPreferencesOverridden(true);
   source.setOpenGLCanvasEnabled(true);
 
   QBuffer buffer;
@@ -711,6 +736,141 @@ TEST(MultiplotConfig, legacyDataStreamWithoutOpenGLCanvasKeepsDisabled) {
   EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
 }
 
+TEST(MultiplotConfig, saveOmitsPreferenceKeysWhenNotOverridden) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "no-pref-override.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setThemeId(QStringLiteral("dark"));
+    config.setTimeZoneId(QStringLiteral("utc"));
+    config.setOpenGLCanvasEnabled(true);
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  EXPECT_FALSE(settings.contains(QStringLiteral("time_zone")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("theme")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("opengl_canvas")));
+  settings.endGroup();
+}
+
+TEST(MultiplotConfig, loadUsesUserDefaultsWhenPreferenceKeysMissing) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "user-defaults.xml");
+  const QString prefsPath = dir.filePath(QStringLiteral("preferences.ini"));
+  UserPreferences::setTestSettingsFile(prefsPath);
+  UserPreferences prefs;
+  prefs.timeZoneId = QStringLiteral("utc");
+  prefs.themeId = QStringLiteral("dark");
+  prefs.openGLCanvasEnabled = true;
+  prefs.save();
+
+  {
+    MultiplotConfig config(nullptr);
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_FALSE(loaded.isPreferencesOverridden());
+  EXPECT_EQ(loaded.getTimeZoneId(), QStringLiteral("utc"));
+  EXPECT_EQ(loaded.getThemeId(), QStringLiteral("dark"));
+  EXPECT_TRUE(loaded.isOpenGLCanvasEnabled());
+  UserPreferences::clearTestSettingsFile();
+}
+
+TEST(MultiplotConfig, sessionPreferenceChangeDoesNotAffectSnapshotWhenNotOverridden) {
+  MultiplotConfig config(nullptr);
+  const QByteArray original = snapshotOf(config);
+
+  config.setTimeZoneId(QStringLiteral("utc"));
+  config.setOpenGLCanvasEnabled(true);
+  EXPECT_EQ(snapshotOf(config), original);
+
+  config.setPreferencesOverridden(true);
+  EXPECT_NE(snapshotOf(config), original);
+}
+
+TEST(MultiplotConfig, saveOmitsPreferenceKeysAfterClearingOverride) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "clear-override.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
+    config.setThemeId(QStringLiteral("dark"));
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    ASSERT_TRUE(settings.contains(QStringLiteral("theme")));
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+  ASSERT_TRUE(loaded.isPreferencesOverridden());
+
+  loaded.setPreferencesOverridden(false);
+  loaded.applyUserDefaults();
+
+  QSettings saved(path, XmlSettings::format);
+  beginMultiplot(saved);
+  loaded.save(saved);
+  saved.endGroup();
+  saved.sync();
+
+  QSettings verify(path, XmlSettings::format);
+  beginMultiplot(verify);
+  EXPECT_FALSE(verify.contains(QStringLiteral("time_zone")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("theme")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("opengl_canvas")));
+  verify.endGroup();
+}
+
+TEST(MultiplotConfig, resetAppliesUserDefaults) {
+  const QString prefsPath = QDir::tempPath() + QStringLiteral("/rqt_multiplot_reset_prefs.ini");
+  UserPreferences::setTestSettingsFile(prefsPath);
+  UserPreferences prefs;
+  prefs.timeZoneId = QStringLiteral("utc");
+  prefs.themeId = QStringLiteral("dark");
+  prefs.openGLCanvasEnabled = true;
+  prefs.save();
+
+  MultiplotConfig config(nullptr);
+  config.setPreferencesOverridden(true);
+  config.setThemeId(QStringLiteral("light"));
+  config.reset();
+
+  EXPECT_FALSE(config.isPreferencesOverridden());
+  EXPECT_EQ(config.getTimeZoneId(), QStringLiteral("utc"));
+  EXPECT_EQ(config.getThemeId(), QStringLiteral("dark"));
+  EXPECT_TRUE(config.isOpenGLCanvasEnabled());
+  UserPreferences::clearTestSettingsFile();
+}
+
 TEST(MultiplotConfig, prefersTabsWhenBothGroupsExist) {
   QTemporaryDir dir;
   ASSERT_TRUE(dir.isValid());
@@ -741,5 +901,11 @@ TEST(MultiplotConfig, prefersTabsWhenBothGroupsExist) {
   ASSERT_EQ(loaded.getNumTabs(), 1u);
   EXPECT_EQ(loaded.getTableConfig(0)->getTitle(), QString("FromTabs"));
 }
+
+struct RegisterIsolatedUserPreferences {
+  RegisterIsolatedUserPreferences() { ::testing::AddGlobalTestEnvironment(new IsolatedUserPreferencesEnvironment()); }
+};
+
+const RegisterIsolatedUserPreferences kRegisterIsolatedUserPreferences;
 
 }  // namespace
