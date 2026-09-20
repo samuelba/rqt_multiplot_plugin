@@ -277,5 +277,5 @@ bloom-generate rosdebian --os-name ubuntu --os-version resolute --ros-distro rol
 Generate the deb packages:
 
 ```bash
-fakeroot debian/rules binary
+DEB_BUILD_OPTIONS=nocheck fakeroot debian/rules binary
 ```

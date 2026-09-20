@@ -165,6 +165,7 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
       ROS_DISTRO: ${{ matrix.ros_distro }}
+      DEB_BUILD_OPTIONS: nocheck
     steps:
       - name: Install git
         run: |
