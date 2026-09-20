@@ -13,9 +13,12 @@
 #include <QEvent>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPainter>
+#include <QProxyStyle>
 #include <QSize>
 #include <QStyle>
 #include <QStyleFactory>
+#include <QStyleOption>
 #include <QVariant>
 
 #include <rqt_multiplot/PackageResource.h>
@@ -31,9 +34,42 @@ QStyle* fusionStyle() {
   return style;
 }
 
+class FusionMenuBarStyle : public QProxyStyle {
+ public:
+  FusionMenuBarStyle() : QProxyStyle(QStringLiteral("fusion")) { setObjectName(QStringLiteral("Fusion")); }
+
+  int pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const override {
+    if (metric == PM_MenuBarHMargin || metric == PM_MenuBarPanelWidth || metric == PM_MenuBarItemSpacing) {
+      return 0;
+    }
+    return QProxyStyle::pixelMetric(metric, option, widget);
+  }
+
+  void drawControl(ControlElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget) const override {
+    if (element == CE_MenuBarItem) {
+      if (const auto* menuItem = qstyleoption_cast<const QStyleOptionMenuItem*>(option)) {
+        QStyleOptionMenuItem background(*menuItem);
+        background.text.clear();
+        QProxyStyle::drawControl(element, &background, painter, widget);
+        proxy()->drawItemText(painter, menuItem->rect,
+                              Qt::AlignCenter | Qt::AlignVCenter | Qt::TextShowMnemonic | Qt::TextDontClip | Qt::TextSingleLine,
+                              menuItem->palette, (menuItem->state & State_Enabled) != 0, menuItem->text, QPalette::ButtonText);
+        return;
+      }
+    }
+    QProxyStyle::drawControl(element, option, painter, widget);
+  }
+};
+
+QStyle* fusionMenuBarStyle() {
+  static QStyle* style = new FusionMenuBarStyle();
+  return style;
+}
+
 void setFusionStyle(QWidget* widget) {
-  if (QStyle* fusion = fusionStyle()) {
-    widget->setStyle(fusion);
+  QStyle* style = qobject_cast<QMenuBar*>(widget) != nullptr ? fusionMenuBarStyle() : fusionStyle();
+  if (style != nullptr) {
+    widget->setStyle(style);
   }
 }
 

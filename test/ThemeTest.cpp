@@ -13,6 +13,7 @@
 #include <QMenuBar>
 #include <QPalette>
 #include <QPushButton>
+#include <QStyle>
 #include <QWidget>
 
 #include <gtest/gtest.h>
@@ -122,6 +123,32 @@ TEST(Theme, applySetsPaletteOnMenus) {
   EXPECT_EQ(menuBar->palette().color(QPalette::Window), window);
   EXPECT_EQ(fileMenu->palette().color(QPalette::Window), window);
   EXPECT_LT(window.lightnessF(), 0.5);
+}
+
+TEST(Theme, menuBarFirstItemHasNoLeftMargin) {
+  ensureApplication();
+
+  QWidget root;
+  auto* menuBar = new QMenuBar(&root);
+  menuBar->setNativeMenuBar(false);
+  menuBar->addMenu(QStringLiteral("&File"));
+  menuBar->addMenu(QStringLiteral("&Edit"));
+  Theme::apply(&root, Theme::Id::Light);
+  menuBar->resize(400, menuBar->sizeHint().height());
+
+  ASSERT_GE(menuBar->actions().size(), 2);
+  QAction* fileAction = menuBar->actions().first();
+  QAction* editAction = menuBar->actions().at(1);
+  const QRect fileGeom = menuBar->actionGeometry(fileAction);
+  const QRect editGeom = menuBar->actionGeometry(editAction);
+  const QSize textSize = menuBar->fontMetrics().size(Qt::TextShowMnemonic, QStringLiteral("File"));
+
+  EXPECT_EQ(menuBar->style()->pixelMetric(QStyle::PM_MenuBarHMargin, nullptr, menuBar), 0);
+  EXPECT_EQ(menuBar->style()->pixelMetric(QStyle::PM_MenuBarPanelWidth, nullptr, menuBar), 0);
+  EXPECT_EQ(menuBar->style()->pixelMetric(QStyle::PM_MenuBarItemSpacing, nullptr, menuBar), 0);
+  EXPECT_EQ(fileGeom.x(), 0);
+  EXPECT_GE(fileGeom.width(), textSize.width());
+  EXPECT_GE(editGeom.x(), fileGeom.right());
 }
 
 TEST(PlotTableConfigWidget, hasNoPlotColorPickers) {
