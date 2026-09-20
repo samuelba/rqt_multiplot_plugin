@@ -20,10 +20,10 @@ FetchContent_Populate(
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
-find_package(Qt6 REQUIRED COMPONENTS Concurrent PrintSupport Svg Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Concurrent OpenGL OpenGLWidgets PrintSupport Svg Widgets)
 
 file(GLOB QWT_SOURCES CONFIGURE_DEPENDS "${qwt_SOURCE_DIR}/src/*.cpp")
-list(FILTER QWT_SOURCES EXCLUDE REGEX "qwt_polar_|qwt_plot_glcanvas|qwt_plot_opengl")
+list(FILTER QWT_SOURCES EXCLUDE REGEX "qwt_polar_|qwt_plot_glcanvas")
 
 set(_qwt_include_root "${qwt_BINARY_DIR}/include")
 file(MAKE_DIRECTORY "${_qwt_include_root}")
@@ -37,13 +37,14 @@ set_target_properties(qwt_qt6 PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 target_compile_options(qwt_qt6 PRIVATE -w)
-target_compile_definitions(qwt_qt6 PUBLIC QWT_NO_OPENGL)
 target_include_directories(qwt_qt6 PUBLIC
   "${_qwt_include_root}"
   "${qwt_SOURCE_DIR}/src"
 )
 target_link_libraries(qwt_qt6 PUBLIC
   Qt6::Concurrent
+  Qt6::OpenGL
+  Qt6::OpenGLWidgets
   Qt6::PrintSupport
   Qt6::Svg
   Qt6::Widgets

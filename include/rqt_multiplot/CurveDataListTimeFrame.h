@@ -19,7 +19,8 @@
 #ifndef RQT_MULTIPLOT_CURVE_DATA_LIST_TIME_FRAME_H
 #define RQT_MULTIPLOT_CURVE_DATA_LIST_TIME_FRAME_H
 
-#include <QList>
+#include <deque>
+#include <set>
 
 #include <rqt_multiplot/CurveData.h>
 
@@ -38,8 +39,12 @@ class CurveDataListTimeFrame : public CurveData {
   void clearPoints() override;
 
  private:
+  void dropExpiredPoints(double timeCutoff);
+  void syncBounds();
+
   double timeFrameLength_;
-  QList<QPointF> points_;
+  std::deque<QPointF> points_;  // X is non-decreasing
+  std::multiset<double> yValues_;
   BoundingRectangle bounds_;
 };
 }  // namespace rqt_multiplot

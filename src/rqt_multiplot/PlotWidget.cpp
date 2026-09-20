@@ -40,7 +40,6 @@
 #include <QWidgetAction>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
 #include <qwt/qwt_plot_grid.h>
 #include <qwt/qwt_plot_picker.h>
@@ -56,6 +55,7 @@
 #include <rqt_multiplot/CurveData.h>
 #include <rqt_multiplot/OffsetScaleDraw.h>
 #include <rqt_multiplot/OffsetScaleEngine.h>
+#include <rqt_multiplot/PlotCanvasPolicy.h>
 #include <rqt_multiplot/PlotConfigDialog.h>
 #include <rqt_multiplot/PlotConfigWidget.h>
 #include <rqt_multiplot/PlotCursor.h>
@@ -64,6 +64,7 @@
 #include <rqt_multiplot/PlotMagnifier.h>
 #include <rqt_multiplot/PlotMouseBindings.h>
 #include <rqt_multiplot/PlotPanner.h>
+#include <rqt_multiplot/PlotReplotPolicy.h>
 #include <rqt_multiplot/PlotZoomer.h>
 #include <rqt_multiplot/TimeZoneUtil.h>
 
@@ -90,6 +91,20 @@ QwtText axisTitleWithColor(const QString& text, const QColor& color) {
   return title;
 }
 
+class BoolGuard {
+ public:
+  explicit BoolGuard(bool& flag) : flag_(flag) { flag_ = true; }
+  ~BoolGuard() { flag_ = false; }
+
+  BoolGuard(const BoolGuard&) = delete;
+  BoolGuard& operator=(const BoolGuard&) = delete;
+  BoolGuard(BoolGuard&&) = delete;
+  BoolGuard& operator=(BoolGuard&&) = delete;
+
+ private:
+  bool& flag_;
+};
+
 }  // namespace
 
 /*****************************************************************************/
@@ -113,6 +128,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       paused_(true),
       rescale_(false),
       replot_(false),
+      replotting_(false),
       gridVisible_(false),
       userScaleLocked_(false),
       state_(Normal),
@@ -147,7 +163,6 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->plot->setAutoReplot(false);
   ui_->plot->setAutoDelete(false);
-  dynamic_cast<QFrame*>(ui_->plot->canvas())->setFrameStyle(QFrame::NoFrame);
 
   ui_->plot->enableAxis(QwtPlot::xTop);
   ui_->plot->enableAxis(QwtPlot::yRight);
@@ -174,11 +189,6 @@ PlotWidget::PlotWidget(QWidget* parent)
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
   buildSplitMenu();
 
-  auto* canvas = dynamic_cast<QwtPlotCanvas*>(ui_->plot->canvas());
-  if (canvas != nullptr) {
-    canvas->setContextMenuPolicy(Qt::NoContextMenu);
-  }
-  cursor_ = new PlotCursor(canvas);
   grid_ = new QwtPlotGrid();
   grid_->attach(ui_->plot);
   grid_->enableX(true);
@@ -187,10 +197,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   grid_->enableYMin(false);
   grid_->setVisible(false);
   updateGridPen();
-  magnifier_ = new PlotMagnifier(canvas);
-  panner_ = new PlotPanner(canvas);
-  zoomer_ = new PlotZoomer(canvas);
-  zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  createCanvasPickers();
 
 #if QWT_VERSION >= 0x060100
   currentBounds_.getMinimum().setX(ui_->plot->axisScaleDiv(QwtPlot::xBottom).lowerBound());
@@ -217,8 +224,6 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   connect(ui_->plot->axisWidget(QwtPlot::xBottom), SIGNAL(scaleDivChanged()), this, SLOT(plotXBottomScaleDivChanged()));
   connect(ui_->plot->axisWidget(QwtPlot::yLeft), SIGNAL(scaleDivChanged()), this, SLOT(plotYLeftScaleDivChanged()));
-  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
-  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
 
   connect(timer_, SIGNAL(timeout()), this, SLOT(timerTimeout()));
 
@@ -397,7 +402,9 @@ void PlotWidget::setCurrentScale(const BoundingRectangle& bounds) {
 
     rescale_ = false;
 
-    forceReplot();
+    if (shouldReplotAfterApplyingScale(replotting_)) {
+      forceReplot();
+    }
   }
 }
 
@@ -464,6 +471,60 @@ void PlotWidget::setUserScaleLocked(bool locked) {
 
 bool PlotWidget::isUserScaleLocked() const {
   return userScaleLocked_;
+}
+
+void PlotWidget::setOpenGLCanvasEnabled(bool enabled) {
+  const bool available = openGLPlotCanvasAvailable();
+  warnIfOpenGLCanvasFallback(enabled, available);
+  const bool wantOpenGL = enabled && available;
+  if (isOpenGLPlotCanvas(ui_->plot->canvas()) == wantOpenGL) {
+    return;
+  }
+
+  QPalette canvasPalette;
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    canvasPalette = canvas->palette();
+  }
+
+  destroyCanvasPickers();
+  ui_->plot->setCanvas(createPlotCanvas(ui_->plot, wantOpenGL));
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    canvas->setPalette(canvasPalette);
+  }
+  ui_->plot->invalidateLayoutCache();
+  createCanvasPickers();
+  applyPlotChrome();
+  emit canvasChanged();
+}
+
+bool PlotWidget::isOpenGLCanvasEnabled() const {
+  return isOpenGLPlotCanvas(ui_->plot->canvas());
+}
+
+void PlotWidget::createCanvasPickers() {
+  QWidget* canvas = ui_->plot->canvas();
+  configurePlotCanvas(canvas);
+  cursor_ = new PlotCursor(canvas);
+  magnifier_ = new PlotMagnifier(canvas);
+  panner_ = new PlotPanner(canvas);
+  zoomer_ = new PlotZoomer(canvas);
+  zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
+  connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
+  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
+}
+
+void PlotWidget::destroyCanvasPickers() {
+  if (zoomer_ != nullptr) {
+    disconnect(zoomer_, nullptr, this, nullptr);
+  }
+  delete zoomer_;
+  zoomer_ = nullptr;
+  delete magnifier_;
+  magnifier_ = nullptr;
+  delete panner_;
+  panner_ = nullptr;
+  delete cursor_;
+  cursor_ = nullptr;
 }
 
 /*****************************************************************************/
@@ -560,6 +621,11 @@ void PlotWidget::requestReplot() {
 }
 
 void PlotWidget::forceReplot() {
+  if (replotting_) {
+    return;
+  }
+  const BoolGuard replotGuard(replotting_);
+
   BoundingRectangle preferredBounds = getPreferredScale();
 
   if (shouldApplyPreferredScale(rescale_, userScaleLocked_)) {
@@ -911,7 +977,7 @@ void PlotWidget::applyAxisTimeOffsets() {
 
   relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::xBottom));
   relayoutScaleWidget(ui_->plot->axisWidget(QwtPlot::yLeft));
-  ui_->plot->updateLayout();
+  ui_->plot->invalidateLayoutCache();
   forceReplot();
 }
 

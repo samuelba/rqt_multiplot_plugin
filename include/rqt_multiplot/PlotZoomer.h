@@ -25,13 +25,13 @@
 
 #include <qwt/qwt_plot_zoomer.h>
 
-class QwtPlotCanvas;
+class QWidget;
 
 namespace rqt_multiplot {
 class PlotZoomer : public QwtPlotZoomer {
   Q_OBJECT
  public:
-  explicit PlotZoomer(QwtPlotCanvas* canvas, bool doReplot = true);
+  explicit PlotZoomer(QWidget* canvas, bool doReplot = true);
   ~PlotZoomer() override;
 
   void updateOverlayPens();

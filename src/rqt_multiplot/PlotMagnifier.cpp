@@ -21,7 +21,6 @@
 #include <QMouseEvent>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_scale_div.h>
 
 #include <rqt_multiplot/PlotMouseBindings.h>
@@ -34,7 +33,7 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotMagnifier::PlotMagnifier(QwtPlotCanvas* canvas) : QwtPlotMagnifier(canvas), magnifying_(false), dragStarted_(false) {}
+PlotMagnifier::PlotMagnifier(QWidget* canvas) : QwtPlotMagnifier(canvas), magnifying_(false), dragStarted_(false) {}
 
 PlotMagnifier::~PlotMagnifier() = default;
 

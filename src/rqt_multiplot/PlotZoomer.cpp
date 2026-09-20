@@ -23,7 +23,6 @@
 #include <QPen>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 
 #include <rqt_multiplot/PlotMouseBindings.h>
 
@@ -35,7 +34,7 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotZoomer::PlotZoomer(QwtPlotCanvas* canvas, bool doReplot) : QwtPlotZoomer(canvas, doReplot) {
+PlotZoomer::PlotZoomer(QWidget* canvas, bool doReplot) : QwtPlotZoomer(canvas, doReplot) {
   setMousePattern(MouseSelect1, Qt::LeftButton, Qt::ControlModifier);
   setRubberBand(RectRubberBand);
   updateOverlayPens();

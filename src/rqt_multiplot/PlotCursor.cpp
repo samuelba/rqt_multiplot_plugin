@@ -30,7 +30,6 @@
 #include <QtMath>
 
 #include <qwt/qwt_plot.h>
-#include <qwt/qwt_plot_canvas.h>
 #include <qwt/qwt_plot_curve.h>
 #include <qwt/qwt_scale_map.h>
 #include <qwt/qwt_scale_widget.h>
@@ -49,7 +48,7 @@ namespace rqt_multiplot {
 /* Constructors and Destructor                                               */
 /*****************************************************************************/
 
-PlotCursor::PlotCursor(QwtPlotCanvas* canvas)
+PlotCursor::PlotCursor(QWidget* canvas)
     : QwtPlotPicker(canvas),
       trackPoints_(false),
       mouseControl_(false),

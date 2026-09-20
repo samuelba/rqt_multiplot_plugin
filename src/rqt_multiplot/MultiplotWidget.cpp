@@ -335,12 +335,14 @@ void MultiplotWidget::openPreferences() {
   PreferencesDialog dialog(this);
   dialog.setTimeZoneId(config_->getTimeZoneId());
   dialog.setThemeId(config_->getThemeId());
+  dialog.setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
   if (dialog.exec() != QDialog::Accepted) {
     return;
   }
 
   config_->setTimeZoneId(dialog.timeZoneId());
   config_->setThemeId(dialog.themeId());
+  config_->setOpenGLCanvasEnabled(dialog.isOpenGLCanvasEnabled());
 }
 
 void MultiplotWidget::configThemeChanged(const QString& themeId) {

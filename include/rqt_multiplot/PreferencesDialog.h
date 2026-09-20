@@ -25,11 +25,14 @@ class PreferencesDialog : public QDialog {
   QString timeZoneId() const;
   void setThemeId(const QString& themeId);
   QString themeId() const;
+  void setOpenGLCanvasEnabled(bool enabled);
+  bool isOpenGLCanvasEnabled() const;
 
  private:
   Ui::PreferencesDialog* ui_;
   QString timeZoneId_;
   QString themeId_;
+  bool openGLCanvasEnabled_;
 
   void populateTimeZoneCombo();
   void populateThemeCombo();
