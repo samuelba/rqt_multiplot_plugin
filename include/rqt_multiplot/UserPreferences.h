@@ -8,12 +8,15 @@
 
 #include <QString>
 
+#include <rqt_multiplot/PlotTitleStyle.h>
+
 namespace rqt_multiplot {
 
 struct UserPreferences {
   QString timeZoneId;
   QString themeId;
   bool openGLCanvasEnabled = false;
+  PlotTitleStyle plotTitleStyle;
 
   static UserPreferences factory();
   static UserPreferences load();

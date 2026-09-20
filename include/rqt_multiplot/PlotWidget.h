@@ -40,6 +40,7 @@
 #include <rqt_multiplot/MessageBroker.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/PlotTitleStyle.h>
 
 namespace Ui {
 class PlotWidget;
@@ -88,6 +89,8 @@ class PlotWidget : public QWidget {
   bool isUserScaleLocked() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  void setPlotTitleStyle(const PlotTitleStyle& style);
+  PlotTitleStyle plotTitleStyle() const;
 
   const QVector<PlotCurve*>& getCurves() const;
 
@@ -168,8 +171,10 @@ class PlotWidget : public QWidget {
   PlotTableConfig::TimeAxisFormat timeAxisFormat_;
   QTimeZone timeZone_;
   QColor gridForegroundColor_;
+  PlotTitleStyle plotTitleStyle_;
 
   void updateAxisTitle(PlotAxesConfig::Axis axis);
+  void applyPlotTitleStyle();
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;
   bool axisUsesTimeFormat(CurveConfig::Axis axis) const;
   void seedAxisOrigin(CurveConfig::Axis axis);

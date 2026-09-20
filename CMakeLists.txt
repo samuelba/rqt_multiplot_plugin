@@ -162,6 +162,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotTableConfigWidget.cpp
   src/rqt_multiplot/PlotTableWidget.cpp
   src/rqt_multiplot/PlotTabWidget.cpp
+  src/rqt_multiplot/PlotTitleStyle.cpp
   src/rqt_multiplot/PlotWidget.cpp
   src/rqt_multiplot/PlotZoomer.cpp
   src/rqt_multiplot/ProgressChangeEvent.cpp
@@ -273,6 +274,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotTableConfigWidget.h
   include/rqt_multiplot/PlotTableWidget.h
   include/rqt_multiplot/PlotTabWidget.h
+  include/rqt_multiplot/PlotTitleStyle.h
   include/rqt_multiplot/PlotWidget.h
   include/rqt_multiplot/PlotZoomer.h
   include/rqt_multiplot/ProgressChangeEvent.h
@@ -420,6 +422,8 @@ if(BUILD_TESTING)
     test/PlotSplitterHandleTest.cpp
     test/PlotCurveTest.cpp
     test/PlotLegendTest.cpp
+    test/PlotTitleStyleTest.cpp
+    test/PlotWidgetTitleStyleTest.cpp
     test/PlotWidgetSplitMenuTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp

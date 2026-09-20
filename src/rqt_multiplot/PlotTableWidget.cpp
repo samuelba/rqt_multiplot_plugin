@@ -56,6 +56,7 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
       config_(nullptr),
       timeZone_(TimeZoneUtil::localTimeZone()),
       openGLCanvasEnabled_(false),
+      plotTitleStyle_(PlotTitleStyle::factory()),
       registry_(new MessageSubscriberRegistry(this)),
       bagReader_(new BagReader(this)) {
   setLayout(layout_);
@@ -156,6 +157,17 @@ void PlotTableWidget::setOpenGLCanvasEnabled(bool enabled) {
 
 bool PlotTableWidget::isOpenGLCanvasEnabled() const {
   return openGLCanvasEnabled_;
+}
+
+void PlotTableWidget::setPlotTitleStyle(const PlotTitleStyle& style) {
+  plotTitleStyle_ = style;
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setPlotTitleStyle(style);
+  }
+}
+
+PlotTitleStyle PlotTableWidget::plotTitleStyle() const {
+  return plotTitleStyle_;
 }
 
 CurveValuesWidget* PlotTableWidget::getCurveValuesWidget() const {
@@ -487,6 +499,7 @@ PlotWidget* PlotTableWidget::createPlotWidget() {
   auto* plot = new PlotWidget(this);
   connectPlotWidget(plot);
   plot->setOpenGLCanvasEnabled(openGLCanvasEnabled_);
+  plot->setPlotTitleStyle(plotTitleStyle_);
   return plot;
 }
 

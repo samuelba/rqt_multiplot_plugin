@@ -67,6 +67,7 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
       timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
       themeId_(QString::fromLatin1(Theme::kLightId)),
       openGLCanvasEnabled_(false),
+      plotTitleStyle_(PlotTitleStyle::factory()),
       preferencesOverridden_(false) {
   createTab("Tab 1");
   applyUserDefaults();
@@ -213,6 +214,25 @@ bool MultiplotConfig::isOpenGLCanvasEnabled() const {
   return openGLCanvasEnabled_;
 }
 
+void MultiplotConfig::setPlotTitleStyle(const PlotTitleStyle& style) {
+  PlotTitleStyle normalized = style;
+  normalized.fontSize = PlotTitleStyle::clampFontSize(normalized.fontSize);
+  if (!normalized.customColor.isValid()) {
+    normalized.customColor = PlotTitleStyle::factory().customColor;
+  }
+  if (normalized == plotTitleStyle_) {
+    return;
+  }
+
+  plotTitleStyle_ = normalized;
+  emit plotTitleStyleChanged(plotTitleStyle_);
+  emit changed();
+}
+
+PlotTitleStyle MultiplotConfig::plotTitleStyle() const {
+  return plotTitleStyle_;
+}
+
 bool MultiplotConfig::isPreferencesOverridden() const {
   return preferencesOverridden_;
 }
@@ -231,6 +251,7 @@ void MultiplotConfig::applyUserDefaults() {
   setTimeZoneId(prefs.timeZoneId);
   setThemeId(prefs.themeId);
   setOpenGLCanvasEnabled(prefs.openGLCanvasEnabled);
+  setPlotTitleStyle(prefs.plotTitleStyle);
 }
 
 /*****************************************************************************/
@@ -242,10 +263,18 @@ void MultiplotConfig::save(QSettings& settings) const {
     settings.setValue("time_zone", timeZoneId_);
     settings.setValue("theme", themeId_);
     settings.setValue("opengl_canvas", openGLCanvasEnabled_);
+    settings.setValue("plot_title_font_size", plotTitleStyle_.fontSize);
+    settings.setValue("plot_title_bold", plotTitleStyle_.bold);
+    settings.setValue("plot_title_auto_color", plotTitleStyle_.autoColor);
+    settings.setValue("plot_title_color", plotTitleStyle_.customColor.name());
   } else {
     settings.remove("time_zone");
     settings.remove("theme");
     settings.remove("opengl_canvas");
+    settings.remove("plot_title_font_size");
+    settings.remove("plot_title_bold");
+    settings.remove("plot_title_auto_color");
+    settings.remove("plot_title_color");
   }
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
   settings.beginGroup("tabs");
@@ -260,8 +289,11 @@ void MultiplotConfig::save(QSettings& settings) const {
 }
 
 void MultiplotConfig::load(QSettings& settings) {
-  const bool hasPreferenceOverride = settings.contains(QStringLiteral("time_zone")) || settings.contains(QStringLiteral("theme")) ||
-                                     settings.contains(QStringLiteral("opengl_canvas"));
+  const bool hasPreferenceOverride =
+      settings.contains(QStringLiteral("time_zone")) || settings.contains(QStringLiteral("theme")) ||
+      settings.contains(QStringLiteral("opengl_canvas")) || settings.contains(QStringLiteral("plot_title_font_size")) ||
+      settings.contains(QStringLiteral("plot_title_bold")) || settings.contains(QStringLiteral("plot_title_auto_color")) ||
+      settings.contains(QStringLiteral("plot_title_color"));
   const QStringList groups = settings.childGroups();
   if (groups.contains("tabs")) {
     loadTabs(settings);
@@ -277,6 +309,16 @@ void MultiplotConfig::load(QSettings& settings) {
     timeZoneId_ = normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
     themeId_ = Theme::toId(Theme::fromId(settings.value(QStringLiteral("theme"), QString::fromLatin1(Theme::kLightId)).toString()));
     openGLCanvasEnabled_ = settings.value(QStringLiteral("opengl_canvas"), false).toBool();
+    PlotTitleStyle loadedStyle = PlotTitleStyle::factory();
+    loadedStyle.fontSize =
+        PlotTitleStyle::clampFontSize(settings.value(QStringLiteral("plot_title_font_size"), loadedStyle.fontSize).toInt());
+    loadedStyle.bold = settings.value(QStringLiteral("plot_title_bold"), loadedStyle.bold).toBool();
+    loadedStyle.autoColor = settings.value(QStringLiteral("plot_title_auto_color"), loadedStyle.autoColor).toBool();
+    loadedStyle.customColor = QColor(settings.value(QStringLiteral("plot_title_color"), loadedStyle.customColor.name()).toString());
+    if (!loadedStyle.customColor.isValid()) {
+      loadedStyle.customColor = PlotTitleStyle::factory().customColor;
+    }
+    plotTitleStyle_ = loadedStyle;
   } else {
     applyUserDefaults();
   }
@@ -285,6 +327,7 @@ void MultiplotConfig::load(QSettings& settings) {
   emit timezoneChanged(timeZoneId_);
   emit themeChanged(themeId_);
   emit openGLCanvasChanged(openGLCanvasEnabled_);
+  emit plotTitleStyleChanged(plotTitleStyle_);
 }
 
 void MultiplotConfig::reset() {
@@ -315,6 +358,10 @@ void MultiplotConfig::write(QDataStream& stream) const {
     stream << timeZoneId_;
     stream << themeId_;
     stream << openGLCanvasEnabled_;
+    stream << plotTitleStyle_.fontSize;
+    stream << plotTitleStyle_.bold;
+    stream << plotTitleStyle_.autoColor;
+    stream << plotTitleStyle_.customColor.name();
   }
 }
 
@@ -357,6 +404,24 @@ void MultiplotConfig::read(QDataStream& stream) {
           setTimeZoneId(loadedTimeZoneId);
           setThemeId(loadedThemeId);
           setOpenGLCanvasEnabled(loadedOpenGL);
+          if (!in.atEnd()) {
+            PlotTitleStyle loadedStyle = PlotTitleStyle::factory();
+            int loadedFontSize = loadedStyle.fontSize;
+            bool loadedBold = loadedStyle.bold;
+            bool loadedAutoColor = loadedStyle.autoColor;
+            QString loadedColorName;
+            in >> loadedFontSize >> loadedBold >> loadedAutoColor >> loadedColorName;
+            loadedStyle.fontSize = PlotTitleStyle::clampFontSize(loadedFontSize);
+            loadedStyle.bold = loadedBold;
+            loadedStyle.autoColor = loadedAutoColor;
+            loadedStyle.customColor = QColor(loadedColorName);
+            if (!loadedStyle.customColor.isValid()) {
+              loadedStyle.customColor = PlotTitleStyle::factory().customColor;
+            }
+            setPlotTitleStyle(loadedStyle);
+          } else {
+            setPlotTitleStyle(PlotTitleStyle::factory());
+          }
         } else {
           applyUserDefaults();
         }
@@ -416,6 +481,7 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   timeZoneId_ = src.timeZoneId_;
   themeId_ = src.themeId_;
   openGLCanvasEnabled_ = src.openGLCanvasEnabled_;
+  plotTitleStyle_ = src.plotTitleStyle_;
   preferencesOverridden_ = src.preferencesOverridden_;
   applyThemeColors();
 
@@ -424,6 +490,7 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   emit timezoneChanged(timeZoneId_);
   emit themeChanged(themeId_);
   emit openGLCanvasChanged(openGLCanvasEnabled_);
+  emit plotTitleStyleChanged(plotTitleStyle_);
   deleteTabs(previous);
   emit changed();
 

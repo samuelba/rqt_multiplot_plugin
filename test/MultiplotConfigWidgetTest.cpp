@@ -13,6 +13,7 @@
 #include <rqt_multiplot/MultiplotConfig.h>
 #include <rqt_multiplot/MultiplotConfigWidget.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/PlotTitleStyle.h>
 #include <rqt_multiplot/UserPreferences.h>
 
 namespace {
@@ -119,6 +120,20 @@ TEST_F(MultiplotConfigWidgetTest, clearOverrideMarksModifiedWhenBaselineHadOverr
   config.setPreferencesOverridden(false);
   config.applyUserDefaults();
   EXPECT_TRUE(widget.isCurrentConfigModified());
+}
+
+TEST_F(MultiplotConfigWidgetTest, plotTitleStyleChangeWithoutOverrideDoesNotMarkModified) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  MultiplotConfigWidget widget;
+  widget.setConfig(&config);
+  ASSERT_FALSE(config.isPreferencesOverridden());
+
+  rqt_multiplot::PlotTitleStyle style = rqt_multiplot::PlotTitleStyle::factory();
+  style.fontSize = 18;
+  config.setPlotTitleStyle(style);
+  EXPECT_FALSE(widget.isCurrentConfigModified());
 }
 
 TEST_F(MultiplotConfigWidgetTest, themeChangeWithoutOverrideCanSettleSnapshot) {

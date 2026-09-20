@@ -66,6 +66,7 @@
 #include <rqt_multiplot/PlotPanner.h>
 #include <rqt_multiplot/PlotReplotPolicy.h>
 #include <rqt_multiplot/PlotZoomer.h>
+#include <rqt_multiplot/Theme.h>
 #include <rqt_multiplot/TimeZoneUtil.h>
 
 #include <ui_PlotWidget.h>
@@ -138,7 +139,8 @@ PlotWidget::PlotWidget(QWidget* parent)
       yOrigin_(0.0),
       timeAxisFormat_(PlotTableConfig::StartFromZero),
       timeZone_(TimeZoneUtil::localTimeZone()),
-      gridForegroundColor_(Qt::black) {
+      gridForegroundColor_(Qt::black),
+      plotTitleStyle_(PlotTitleStyle::factory()) {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
 
   ui_->setupUi(this);
@@ -497,6 +499,19 @@ void PlotWidget::setOpenGLCanvasEnabled(bool enabled) {
   emit canvasChanged();
 }
 
+void PlotWidget::setPlotTitleStyle(const PlotTitleStyle& style) {
+  plotTitleStyle_ = style;
+  plotTitleStyle_.fontSize = PlotTitleStyle::clampFontSize(plotTitleStyle_.fontSize);
+  if (!plotTitleStyle_.customColor.isValid()) {
+    plotTitleStyle_.customColor = PlotTitleStyle::factory().customColor;
+  }
+  applyPlotTitleStyle();
+}
+
+PlotTitleStyle PlotWidget::plotTitleStyle() const {
+  return plotTitleStyle_;
+}
+
 bool PlotWidget::isOpenGLCanvasEnabled() const {
   return isOpenGLPlotCanvas(ui_->plot->canvas());
 }
@@ -655,6 +670,9 @@ void PlotWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   qreal textHeight = 0;
 
   if (config_ != nullptr) {
+    const QFont titleFont = plotTitleStyle_.toFont(painter.font());
+    painter.setFont(titleFont);
+    painter.setPen(plotTitleStyle_.resolvedColor(Theme::currentId()));
     textHeight = painter.fontMetrics().boundingRect(config_->getTitle()).height();
 
     painter.drawText(QRectF(plotBounds.x(), plotBounds.y(), plotBounds.width(), textHeight), Qt::AlignHCenter | Qt::AlignVCenter,
@@ -804,6 +822,24 @@ void PlotWidget::applyPlotChrome() {
     updateAxisTitle(PlotAxesConfig::X);
     updateAxisTitle(PlotAxesConfig::Y);
   }
+  applyPlotTitleStyle();
+}
+
+void PlotWidget::applyPlotTitleStyle() {
+  if (ui_->lineEditTitle == nullptr) {
+    return;
+  }
+
+  ui_->lineEditTitle->setFont(plotTitleStyle_.toFont(ui_->lineEditTitle->font()));
+
+  QPalette pal = ui_->lineEditTitle->palette();
+  if (plotTitleStyle_.autoColor) {
+    pal.setColor(QPalette::Text, palette().color(QPalette::Text));
+  } else {
+    pal.setColor(QPalette::Text, plotTitleStyle_.customColor);
+  }
+  ui_->lineEditTitle->setPalette(pal);
+  lineEditTitleTextChanged(ui_->lineEditTitle->text());
 }
 
 void PlotWidget::refreshStatefulIcons() {

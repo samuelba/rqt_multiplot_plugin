@@ -89,6 +89,7 @@ void PlotTabWidget::setConfig(MultiplotConfig* config) {
     connect(config_, SIGNAL(currentTabIndexChanged(size_t)), this, SLOT(configCurrentTabIndexChanged(size_t)));
     connect(config_, &MultiplotConfig::timezoneChanged, this, &PlotTabWidget::configTimezoneChanged);
     connect(config_, &MultiplotConfig::openGLCanvasChanged, this, &PlotTabWidget::configOpenGLCanvasChanged);
+    connect(config_, &MultiplotConfig::plotTitleStyleChanged, this, &PlotTabWidget::configPlotTitleStyleChanged);
   }
 
   rebuildTabs();
@@ -184,6 +185,7 @@ void PlotTabWidget::appendPlotTable(PlotTableConfig* tableConfig) {
   if (config_ != nullptr) {
     plotTable->setTimeZone(config_->timeZone());
     plotTable->setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
+    plotTable->setPlotTitleStyle(config_->plotTitleStyle());
   }
   plotTable->setConfig(tableConfig);
   connect(plotTable, SIGNAL(plotPausedChanged()), this, SIGNAL(plotPausedChanged()));
@@ -348,6 +350,14 @@ void PlotTabWidget::configOpenGLCanvasChanged(bool enabled) {
   for (int index = 0; index < tabWidget_->count(); ++index) {
     if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
       plotTable->setOpenGLCanvasEnabled(enabled);
+    }
+  }
+}
+
+void PlotTabWidget::configPlotTitleStyleChanged(const PlotTitleStyle& style) {
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
+      plotTable->setPlotTitleStyle(style);
     }
   }
 }
