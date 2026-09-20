@@ -27,12 +27,21 @@ class PreferencesDialog : public QDialog {
   QString themeId() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  void setOverrideActive(bool active);
+  bool isOverrideActive() const;
+
+ signals:
+  void saveAsDefaultsRequested();
+  void overrideInConfigurationRequested();
+  void clearConfigurationOverrideRequested();
+  void restoreFactoryDefaultsRequested();
 
  private:
   Ui::PreferencesDialog* ui_;
   QString timeZoneId_;
   QString themeId_;
   bool openGLCanvasEnabled_;
+  bool overrideActive_;
 
   void populateTimeZoneCombo();
   void populateThemeCombo();
@@ -40,6 +49,8 @@ class PreferencesDialog : public QDialog {
   void selectThemeId(const QString& themeId);
   QString selectedTimeZoneId() const;
   QString selectedThemeId() const;
+  void updateStatus();
+  void syncFromWidgets();
 
  private slots:
   void acceptDialog();

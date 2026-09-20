@@ -5,6 +5,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QLabel>
 #include <QPushButton>
 #include <QTabWidget>
 
@@ -103,6 +104,29 @@ TEST(PreferencesDialog, openGLCanvasDefaultsOff) {
   ASSERT_NE(check, nullptr);
   EXPECT_FALSE(check->isChecked());
   EXPECT_FALSE(dialog.isOpenGLCanvasEnabled());
+}
+
+TEST(PreferencesDialog, showsOverrideStatusAndPersistButtons) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  auto* status = dialog.findChild<QLabel*>(QStringLiteral("labelStatus"));
+  auto* clearOverride = dialog.findChild<QPushButton*>(QStringLiteral("buttonClearOverride"));
+  auto* saveDefaults = dialog.findChild<QPushButton*>(QStringLiteral("buttonSaveAsDefaults"));
+  auto* overrideConfig = dialog.findChild<QPushButton*>(QStringLiteral("buttonOverrideConfiguration"));
+  auto* restoreFactory = dialog.findChild<QPushButton*>(QStringLiteral("buttonRestoreFactory"));
+  ASSERT_NE(status, nullptr);
+  ASSERT_NE(clearOverride, nullptr);
+  ASSERT_NE(saveDefaults, nullptr);
+  ASSERT_NE(overrideConfig, nullptr);
+  ASSERT_NE(restoreFactory, nullptr);
+
+  EXPECT_EQ(status->text(), QStringLiteral("Using user defaults"));
+  EXPECT_FALSE(clearOverride->isEnabled());
+
+  dialog.setOverrideActive(true);
+  EXPECT_EQ(status->text(), QStringLiteral("This configuration overrides user defaults"));
+  EXPECT_TRUE(clearOverride->isEnabled());
 }
 
 TEST(PreferencesDialog, okWritesOpenGLCanvasEnabled) {

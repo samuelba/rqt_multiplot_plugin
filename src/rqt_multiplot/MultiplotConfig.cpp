@@ -22,6 +22,7 @@
 
 #include "rqt_multiplot/Theme.h"
 #include "rqt_multiplot/TimeZoneUtil.h"
+#include "rqt_multiplot/UserPreferences.h"
 
 #include <QBuffer>
 #include <QByteArray>
@@ -33,6 +34,7 @@ namespace rqt_multiplot {
 
 namespace {
 constexpr quint32 kTabsStreamMagic = 0x52544D31;
+constexpr auto kPreferencesStreamMarker = "__rtp_prefs_v2__";
 constexpr quint64 kMaxStreamTabs = 256;
 constexpr auto kTimeZoneLocal = "local";
 constexpr auto kTimeZoneUtc = "utc";
@@ -64,8 +66,10 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
       currentTabIndex_(0),
       timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
       themeId_(QString::fromLatin1(Theme::kLightId)),
-      openGLCanvasEnabled_(false) {
+      openGLCanvasEnabled_(false),
+      preferencesOverridden_(false) {
   createTab("Tab 1");
+  applyUserDefaults();
 }
 
 MultiplotConfig::~MultiplotConfig() = default;
@@ -209,14 +213,40 @@ bool MultiplotConfig::isOpenGLCanvasEnabled() const {
   return openGLCanvasEnabled_;
 }
 
+bool MultiplotConfig::isPreferencesOverridden() const {
+  return preferencesOverridden_;
+}
+
+void MultiplotConfig::setPreferencesOverridden(bool overridden) {
+  if (overridden == preferencesOverridden_) {
+    return;
+  }
+
+  preferencesOverridden_ = overridden;
+  emit changed();
+}
+
+void MultiplotConfig::applyUserDefaults() {
+  const UserPreferences prefs = UserPreferences::load();
+  setTimeZoneId(prefs.timeZoneId);
+  setThemeId(prefs.themeId);
+  setOpenGLCanvasEnabled(prefs.openGLCanvasEnabled);
+}
+
 /*****************************************************************************/
 /* Methods                                                                   */
 /*****************************************************************************/
 
 void MultiplotConfig::save(QSettings& settings) const {
-  settings.setValue("time_zone", timeZoneId_);
-  settings.setValue("theme", themeId_);
-  settings.setValue("opengl_canvas", openGLCanvasEnabled_);
+  if (preferencesOverridden_) {
+    settings.setValue("time_zone", timeZoneId_);
+    settings.setValue("theme", themeId_);
+    settings.setValue("opengl_canvas", openGLCanvasEnabled_);
+  } else {
+    settings.remove("time_zone");
+    settings.remove("theme");
+    settings.remove("opengl_canvas");
+  }
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
   settings.beginGroup("tabs");
 
@@ -230,25 +260,25 @@ void MultiplotConfig::save(QSettings& settings) const {
 }
 
 void MultiplotConfig::load(QSettings& settings) {
-  const QString loadedTimeZone =
-      normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
-  const QString loadedTheme =
-      Theme::toId(Theme::fromId(settings.value(QStringLiteral("theme"), QString::fromLatin1(Theme::kLightId)).toString()));
-  const bool loadedOpenGL = settings.value(QStringLiteral("opengl_canvas"), false).toBool();
+  const bool hasPreferenceOverride = settings.contains(QStringLiteral("time_zone")) || settings.contains(QStringLiteral("theme")) ||
+                                     settings.contains(QStringLiteral("opengl_canvas"));
   const QStringList groups = settings.childGroups();
   if (groups.contains("tabs")) {
-    timeZoneId_ = loadedTimeZone;
-    themeId_ = loadedTheme;
-    openGLCanvasEnabled_ = loadedOpenGL;
     loadTabs(settings);
   } else if (groups.contains("table")) {
-    timeZoneId_ = loadedTimeZone;
-    themeId_ = loadedTheme;
-    openGLCanvasEnabled_ = loadedOpenGL;
     loadLegacyTable(settings);
   } else {
     reset();
     return;
+  }
+
+  preferencesOverridden_ = hasPreferenceOverride;
+  if (hasPreferenceOverride) {
+    timeZoneId_ = normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
+    themeId_ = Theme::toId(Theme::fromId(settings.value(QStringLiteral("theme"), QString::fromLatin1(Theme::kLightId)).toString()));
+    openGLCanvasEnabled_ = settings.value(QStringLiteral("opengl_canvas"), false).toBool();
+  } else {
+    applyUserDefaults();
   }
 
   applyThemeColors();
@@ -261,10 +291,8 @@ void MultiplotConfig::reset() {
   const QVector<PlotTableConfig*> previous = takeTabs();
   createTab("Tab 1");
   currentTabIndex_ = 0;
-  timeZoneId_ = QString::fromLatin1(kTimeZoneLocal);
-  themeId_ = QString::fromLatin1(Theme::kLightId);
-  openGLCanvasEnabled_ = false;
-  applyThemeColors();
+  preferencesOverridden_ = false;
+  applyUserDefaults();
 
   emit tabsChanged();
   emit currentTabIndexChanged(0);
@@ -281,9 +309,13 @@ void MultiplotConfig::write(QDataStream& stream) const {
     table->write(stream);
   }
 
-  stream << timeZoneId_;
-  stream << themeId_;
-  stream << openGLCanvasEnabled_;
+  stream << QString::fromLatin1(kPreferencesStreamMarker);
+  stream << preferencesOverridden_;
+  if (preferencesOverridden_) {
+    stream << timeZoneId_;
+    stream << themeId_;
+    stream << openGLCanvasEnabled_;
+  }
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
@@ -310,21 +342,42 @@ void MultiplotConfig::read(QDataStream& stream) {
     quint64 currentTabIndex = 0;
     in >> numTabs >> currentTabIndex;
     replaceTabsFromStream(in, numTabs, currentTabIndex);
-    QString loadedTimeZoneId = QString::fromLatin1(kTimeZoneLocal);
-    QString loadedThemeId = QString::fromLatin1(Theme::kLightId);
     if (!in.atEnd()) {
-      in >> loadedTimeZoneId;
+      QString marker;
+      in >> marker;
+      if (marker == QLatin1String(kPreferencesStreamMarker)) {
+        bool loadedOverride = false;
+        in >> loadedOverride;
+        preferencesOverridden_ = loadedOverride;
+        if (loadedOverride) {
+          QString loadedTimeZoneId;
+          QString loadedThemeId;
+          bool loadedOpenGL = false;
+          in >> loadedTimeZoneId >> loadedThemeId >> loadedOpenGL;
+          setTimeZoneId(loadedTimeZoneId);
+          setThemeId(loadedThemeId);
+          setOpenGLCanvasEnabled(loadedOpenGL);
+        } else {
+          applyUserDefaults();
+        }
+      } else {
+        preferencesOverridden_ = true;
+        setTimeZoneId(marker);
+        QString loadedThemeId = QString::fromLatin1(Theme::kLightId);
+        if (!in.atEnd()) {
+          in >> loadedThemeId;
+        }
+        setThemeId(loadedThemeId);
+        bool loadedOpenGL = false;
+        if (!in.atEnd()) {
+          in >> loadedOpenGL;
+        }
+        setOpenGLCanvasEnabled(loadedOpenGL);
+      }
+    } else {
+      preferencesOverridden_ = false;
+      applyUserDefaults();
     }
-    if (!in.atEnd()) {
-      in >> loadedThemeId;
-    }
-    setTimeZoneId(loadedTimeZoneId);
-    setThemeId(loadedThemeId);
-    bool loadedOpenGL = false;
-    if (!in.atEnd()) {
-      in >> loadedOpenGL;
-    }
-    setOpenGLCanvasEnabled(loadedOpenGL);
     return;
   }
 
@@ -363,6 +416,7 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   timeZoneId_ = src.timeZoneId_;
   themeId_ = src.themeId_;
   openGLCanvasEnabled_ = src.openGLCanvasEnabled_;
+  preferencesOverridden_ = src.preferencesOverridden_;
   applyThemeColors();
 
   emit tabsChanged();

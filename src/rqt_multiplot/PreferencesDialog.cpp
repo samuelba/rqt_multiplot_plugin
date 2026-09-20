@@ -11,6 +11,8 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QLabel>
+#include <QPushButton>
 #include <QTimeZone>
 
 #include <ui_PreferencesDialog.h>
@@ -28,7 +30,8 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags)
       ui_(new Ui::PreferencesDialog()),
       timeZoneId_(QString::fromLatin1(kTimeZoneLocal)),
       themeId_(QString::fromLatin1(Theme::kLightId)),
-      openGLCanvasEnabled_(false) {
+      openGLCanvasEnabled_(false),
+      overrideActive_(false) {
   ui_->setupUi(this);
   populateTimeZoneCombo();
   populateThemeCombo();
@@ -36,6 +39,23 @@ PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags)
   Theme::apply(this);
   connect(ui_->buttonBox, &QDialogButtonBox::accepted, this, &PreferencesDialog::acceptDialog);
   connect(ui_->buttonBox, &QDialogButtonBox::rejected, this, &PreferencesDialog::reject);
+  connect(ui_->buttonSaveAsDefaults, &QPushButton::clicked, this, [this]() {
+    syncFromWidgets();
+    emit saveAsDefaultsRequested();
+  });
+  connect(ui_->buttonOverrideConfiguration, &QPushButton::clicked, this, [this]() {
+    syncFromWidgets();
+    overrideActive_ = true;
+    updateStatus();
+    emit overrideInConfigurationRequested();
+  });
+  connect(ui_->buttonClearOverride, &QPushButton::clicked, this, [this]() {
+    overrideActive_ = false;
+    updateStatus();
+    emit clearConfigurationOverrideRequested();
+  });
+  connect(ui_->buttonRestoreFactory, &QPushButton::clicked, this, &PreferencesDialog::restoreFactoryDefaultsRequested);
+  updateStatus();
 }
 
 PreferencesDialog::~PreferencesDialog() {
@@ -67,6 +87,15 @@ void PreferencesDialog::setOpenGLCanvasEnabled(bool enabled) {
 
 bool PreferencesDialog::isOpenGLCanvasEnabled() const {
   return openGLCanvasEnabled_;
+}
+
+void PreferencesDialog::setOverrideActive(bool active) {
+  overrideActive_ = active;
+  updateStatus();
+}
+
+bool PreferencesDialog::isOverrideActive() const {
+  return overrideActive_;
 }
 
 void PreferencesDialog::populateTimeZoneCombo() {
@@ -139,10 +168,20 @@ QString PreferencesDialog::selectedThemeId() const {
   return QString::fromLatin1(Theme::kLightId);
 }
 
-void PreferencesDialog::acceptDialog() {
+void PreferencesDialog::updateStatus() {
+  ui_->labelStatus->setText(overrideActive_ ? QStringLiteral("This configuration overrides user defaults")
+                                            : QStringLiteral("Using user defaults"));
+  ui_->buttonClearOverride->setEnabled(overrideActive_);
+}
+
+void PreferencesDialog::syncFromWidgets() {
   timeZoneId_ = selectedTimeZoneId();
   themeId_ = selectedThemeId();
   openGLCanvasEnabled_ = ui_->checkOpenGLCanvas->isChecked();
+}
+
+void PreferencesDialog::acceptDialog() {
+  syncFromWidgets();
   accept();
 }
 

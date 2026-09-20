@@ -32,6 +32,7 @@
 #include <rqt_multiplot/PlotTableWidget.h>
 #include <rqt_multiplot/PreferencesDialog.h>
 #include <rqt_multiplot/Theme.h>
+#include <rqt_multiplot/UserPreferences.h>
 
 #include <ui_MultiplotWidget.h>
 
@@ -332,17 +333,73 @@ void MultiplotWidget::plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable)
 }
 
 void MultiplotWidget::openPreferences() {
+  const QString snapshotTimeZoneId = config_->getTimeZoneId();
+  const QString snapshotThemeId = config_->getThemeId();
+  const bool snapshotOpenGLCanvasEnabled = config_->isOpenGLCanvasEnabled();
+  const bool snapshotPreferencesOverridden = config_->isPreferencesOverridden();
+
   PreferencesDialog dialog(this);
-  dialog.setTimeZoneId(config_->getTimeZoneId());
-  dialog.setThemeId(config_->getThemeId());
-  dialog.setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
-  if (dialog.exec() != QDialog::Accepted) {
+  dialog.setTimeZoneId(snapshotTimeZoneId);
+  dialog.setThemeId(snapshotThemeId);
+  dialog.setOpenGLCanvasEnabled(snapshotOpenGLCanvasEnabled);
+  dialog.setOverrideActive(snapshotPreferencesOverridden);
+
+  const auto applyFromDialog = [&dialog, this]() {
+    config_->setTimeZoneId(dialog.timeZoneId());
+    config_->setThemeId(dialog.themeId());
+    config_->setOpenGLCanvasEnabled(dialog.isOpenGLCanvasEnabled());
+  };
+
+  connect(&dialog, &PreferencesDialog::saveAsDefaultsRequested, [&dialog, this, applyFromDialog]() {
+    UserPreferences prefs;
+    prefs.timeZoneId = dialog.timeZoneId();
+    prefs.themeId = dialog.themeId();
+    prefs.openGLCanvasEnabled = dialog.isOpenGLCanvasEnabled();
+    prefs.save();
+    config_->setPreferencesOverridden(false);
+    applyFromDialog();
+    dialog.setOverrideActive(false);
+    ui_->configWidget->setCurrentConfigModified(false);
+  });
+
+  connect(&dialog, &PreferencesDialog::overrideInConfigurationRequested, [this, applyFromDialog]() {
+    config_->setPreferencesOverridden(true);
+    applyFromDialog();
+  });
+
+  connect(&dialog, &PreferencesDialog::clearConfigurationOverrideRequested, [&dialog, this]() {
+    config_->setPreferencesOverridden(false);
+    config_->applyUserDefaults();
+    dialog.setTimeZoneId(config_->getTimeZoneId());
+    dialog.setThemeId(config_->getThemeId());
+    dialog.setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
+    dialog.setOverrideActive(false);
+  });
+
+  connect(&dialog, &PreferencesDialog::restoreFactoryDefaultsRequested, [&dialog, this, applyFromDialog]() {
+    const UserPreferences factory = UserPreferences::factory();
+    factory.save();
+    dialog.setTimeZoneId(factory.timeZoneId);
+    dialog.setThemeId(factory.themeId);
+    dialog.setOpenGLCanvasEnabled(factory.openGLCanvasEnabled);
+    if (!config_->isPreferencesOverridden()) {
+      applyFromDialog();
+      ui_->configWidget->setCurrentConfigModified(false);
+    }
+  });
+
+  if (dialog.exec() == QDialog::Accepted) {
+    applyFromDialog();
+    if (!snapshotPreferencesOverridden && !config_->isPreferencesOverridden()) {
+      ui_->configWidget->setCurrentConfigModified(false);
+    }
     return;
   }
 
-  config_->setTimeZoneId(dialog.timeZoneId());
-  config_->setThemeId(dialog.themeId());
-  config_->setOpenGLCanvasEnabled(dialog.isOpenGLCanvasEnabled());
+  config_->setPreferencesOverridden(snapshotPreferencesOverridden);
+  config_->setTimeZoneId(snapshotTimeZoneId);
+  config_->setThemeId(snapshotThemeId);
+  config_->setOpenGLCanvasEnabled(snapshotOpenGLCanvasEnabled);
 }
 
 void MultiplotWidget::configThemeChanged(const QString& themeId) {

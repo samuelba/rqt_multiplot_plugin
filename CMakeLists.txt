@@ -171,6 +171,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/TimeZoneUtil.cpp
+  src/rqt_multiplot/UserPreferences.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
   src/rqt_multiplot/UrlComboBox.cpp
   src/rqt_multiplot/UrlCompleter.cpp
@@ -282,6 +283,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/StatusWidget.h
   include/rqt_multiplot/Theme.h
   include/rqt_multiplot/TimeZoneUtil.h
+  include/rqt_multiplot/UserPreferences.h
   include/rqt_multiplot/ThreadedTimer.h
   include/rqt_multiplot/UrlComboBox.h
   include/rqt_multiplot/UrlCompleter.h
@@ -424,6 +426,7 @@ if(BUILD_TESTING)
     test/StatusWidgetTest.cpp
     test/ThemeTest.cpp
     test/TimeZoneUtilTest.cpp
+    test/UserPreferencesTest.cpp
     test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp
     test/PlotMouseBindingsTest.cpp
