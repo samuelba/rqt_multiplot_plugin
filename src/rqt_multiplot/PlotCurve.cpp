@@ -46,7 +46,8 @@ PlotCurve::PlotCurve(QObject* parent)
       data_(new CurveDataVector()),
       dataSequencer_(new CurveDataSequencer(this)),
       paused_(true),
-      snapshotDataBackend_(false) {
+      snapshotDataBackend_(false),
+      appliedUnitConversion_{CurveAxisConfig::None, CurveAxisConfig::None} {
   qRegisterMetaType<BoundingRectangle>("BoundingRectangle");
   qRegisterMetaType<QVector<QPointF>>("QVector<QPointF>");
 
@@ -92,6 +93,7 @@ void PlotCurve::setConfig(CurveConfig* config) {
       connect(config->getStyleConfig(), SIGNAL(changed()), this, SLOT(configStyleConfigChanged()));
       connect(config->getDataConfig(), SIGNAL(changed()), this, SLOT(configDataConfigChanged()));
 
+      syncAppliedUnitConversions();
       configTitleChanged(config->getTitle());
       configAxisConfigChanged();
       configColorConfigCurrentColorChanged(config->getColorConfig()->getCurrentColor());
@@ -379,13 +381,78 @@ void PlotCurve::configTitleChanged(const QString& title) {
   setTitle(title);
 }
 
+void PlotCurve::rescaleStoredAxis(CurveConfig::Axis axis, double factor) {
+  if ((data_ == nullptr) || factor == 1.0) {
+    return;
+  }
+
+  QVector<QPointF> points;
+  points.reserve(static_cast<int>(data_->getNumPoints()));
+  for (size_t index = 0; index < data_->getNumPoints(); ++index) {
+    QPointF point = data_->getPoint(index);
+    if (axis == CurveConfig::X) {
+      point.setX(point.x() * factor);
+    } else {
+      point.setY(point.y() * factor);
+    }
+    points.append(point);
+  }
+  data_->replacePoints(points);
+  snapshotHistory_.rescaleAxis(static_cast<int>(axis), factor);
+  syncGhosts();
+}
+
+void PlotCurve::syncAppliedUnitConversions() {
+  if (config_ == nullptr) {
+    appliedUnitConversion_[0] = CurveAxisConfig::None;
+    appliedUnitConversion_[1] = CurveAxisConfig::None;
+    return;
+  }
+
+  appliedUnitConversion_[0] = config_->getAxisConfig(CurveConfig::X)->getUnitConversion();
+  appliedUnitConversion_[1] = config_->getAxisConfig(CurveConfig::Y)->getUnitConversion();
+}
+
 void PlotCurve::configAxisConfigChanged() {
+  bool replotNeeded = false;
+  std::optional<BoundingRectangle> oldBounds;
+
+  if (config_ != nullptr) {
+    for (int axisIndex = 0; axisIndex < 2; ++axisIndex) {
+      const auto axis = static_cast<CurveConfig::Axis>(axisIndex);
+      const auto current = config_->getAxisConfig(axis)->getUnitConversion();
+      const auto previous = appliedUnitConversion_[axisIndex];
+      if (current == previous) {
+        continue;
+      }
+
+      const double factor = CurveAxisConfig::conversionFactor(current) / CurveAxisConfig::conversionFactor(previous);
+      if (factor != 1.0) {
+        if (!replotNeeded) {
+          oldBounds = getPreferredScale();
+        }
+        rescaleStoredAxis(axis, factor);
+        replotNeeded = true;
+      }
+      appliedUnitConversion_[axisIndex] = current;
+    }
+  }
+
   const bool snapshot = (config_ != nullptr) && CurveDataSequencer::isSnapshotConfig(*config_);
   if (snapshot != snapshotDataBackend_) {
     createDataBackend();
   }
   updateSnapshotHistoryCapacity();
-  emit preferredScaleChanged(getPreferredScale());
+
+  if (replotNeeded) {
+    const BoundingRectangle bounds = getPreferredScale();
+    if (!oldBounds.has_value() || bounds != *oldBounds) {
+      emit preferredScaleChanged(bounds);
+    }
+    emit replotRequested();
+  } else {
+    emit preferredScaleChanged(getPreferredScale());
+  }
 }
 
 void PlotCurve::configColorConfigCurrentColorChanged(const QColor& color) {

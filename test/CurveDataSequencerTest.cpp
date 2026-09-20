@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include <QVector>
 
 #include <gtest/gtest.h>
@@ -161,6 +163,37 @@ TEST(CurveDataSequencer, timeSeriesHasNoIncompatibilityReason) {
   config.getAxisConfig(CurveConfig::Y)->setField("position/0");
 
   EXPECT_TRUE(CurveDataSequencer::snapshotIncompatibilityReason(config).isEmpty());
+}
+
+TEST(CurveDataSequencer, appliesRadiansToDegreesOnSnapshotYAxis) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/*");
+  config.getAxisConfig(CurveConfig::Y)->setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+
+  QVector<QPointF> points;
+  ASSERT_TRUE(CurveDataSequencer::tryBuildSnapshotSeries(jointStateMessage(), config, points));
+  ASSERT_EQ(points.size(), 3);
+  EXPECT_DOUBLE_EQ(points[0].x(), 0.0);
+  EXPECT_NEAR(points[0].y(), 1.25 * 180.0 / M_PI, 1e-9);
+  EXPECT_DOUBLE_EQ(points[1].x(), 1.0);
+  EXPECT_NEAR(points[1].y(), -0.5 * 180.0 / M_PI, 1e-9);
+  EXPECT_DOUBLE_EQ(points[2].x(), 2.0);
+  EXPECT_NEAR(points[2].y(), 3.0 * 180.0 / M_PI, 1e-9);
+}
+
+TEST(CurveDataSequencer, arrayIndexAxisIsNotConverted) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+  config.getAxisConfig(CurveConfig::X)->setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/*");
+
+  QVector<QPointF> points;
+  ASSERT_TRUE(CurveDataSequencer::tryBuildSnapshotSeries(jointStateMessage(), config, points));
+  ASSERT_EQ(points.size(), 3);
+  EXPECT_DOUBLE_EQ(points[0].x(), 0.0);
+  EXPECT_DOUBLE_EQ(points[1].x(), 1.0);
+  EXPECT_DOUBLE_EQ(points[2].x(), 2.0);
 }
 
 }  // namespace

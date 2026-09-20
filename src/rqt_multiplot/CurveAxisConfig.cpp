@@ -18,6 +18,8 @@
 
 #include "rqt_multiplot/CurveAxisConfig.h"
 
+#include <QtMath>
+
 #include <utility>
 
 namespace rqt_multiplot {
@@ -34,6 +36,17 @@ CurveAxisConfig::FieldType parseFieldType(int raw) {
   }
 }
 
+CurveAxisConfig::UnitConversion parseUnitConversion(int raw) {
+  switch (raw) {
+    case CurveAxisConfig::None:
+    case CurveAxisConfig::RadiansToDegrees:
+    case CurveAxisConfig::DegreesToRadians:
+      return static_cast<CurveAxisConfig::UnitConversion>(raw);
+    default:
+      return CurveAxisConfig::None;
+  }
+}
+
 }  // namespace
 
 /*****************************************************************************/
@@ -47,6 +60,7 @@ CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, F
       fieldType_(fieldType),
       field_(std::move(field)),
       labelFromZero_(labelFromZero),
+      unitConversion_(None),
       scaleConfig_(new CurveAxisScaleConfig(this)) {
   connect(scaleConfig_, SIGNAL(changed()), this, SLOT(scaleChanged()));
 }
@@ -122,6 +136,38 @@ bool CurveAxisConfig::isLabelFromZero() const {
   return labelFromZero_;
 }
 
+void CurveAxisConfig::setUnitConversion(UnitConversion unitConversion) {
+  if (unitConversion != unitConversion_) {
+    unitConversion_ = unitConversion;
+
+    emit unitConversionChanged(unitConversion);
+    emit changed();
+  }
+}
+
+CurveAxisConfig::UnitConversion CurveAxisConfig::getUnitConversion() const {
+  return unitConversion_;
+}
+
+double CurveAxisConfig::conversionFactor(UnitConversion unitConversion) {
+  switch (unitConversion) {
+    case RadiansToDegrees:
+      return 180.0 / M_PI;
+    case DegreesToRadians:
+      return M_PI / 180.0;
+    case None:
+    default:
+      return 1.0;
+  }
+}
+
+double CurveAxisConfig::convertValue(double value) const {
+  if (fieldType_ == ArrayIndex || isTimeSource()) {
+    return value;
+  }
+  return value * conversionFactor(unitConversion_);
+}
+
 bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
   return (field == QLatin1String("stamp")) || field.endsWith(QLatin1String("/stamp"));
 }
@@ -168,6 +214,7 @@ void CurveAxisConfig::save(QSettings& settings) const {
   settings.setValue("field_type", fieldType_);
   settings.setValue("field", field_);
   settings.setValue("label_from_zero", labelFromZero_);
+  settings.setValue("unit_conversion", unitConversion_);
 
   settings.beginGroup("scale");
   scaleConfig_->save(settings);
@@ -181,6 +228,7 @@ void CurveAxisConfig::load(QSettings& settings) {
   setFieldType(fieldType);
   setField(settings.value("field").toString());
   setLabelFromZero(settings.value("label_from_zero", fieldType == MessageReceiptTime).toBool());
+  setUnitConversion(parseUnitConversion(settings.value("unit_conversion", None).toInt()));
 
   settings.beginGroup("scale");
   scaleConfig_->load(settings);
@@ -193,6 +241,7 @@ void CurveAxisConfig::reset() {
   setFieldType(MessageData);
   setField(QString());
   setLabelFromZero(false);
+  setUnitConversion(None);
 
   scaleConfig_->reset();
 }
@@ -203,6 +252,7 @@ void CurveAxisConfig::write(QDataStream& stream) const {
   stream << (int)fieldType_;
   stream << field_;
   stream << labelFromZero_;
+  stream << static_cast<int>(unitConversion_);
 
   scaleConfig_->write(stream);
 }
@@ -213,6 +263,7 @@ void CurveAxisConfig::read(QDataStream& stream) {
   QString field;
   int fieldType = 0;
   bool labelFromZero = false;
+  int unitConversion = 0;
 
   stream >> topic;
   setTopic(topic);
@@ -224,6 +275,8 @@ void CurveAxisConfig::read(QDataStream& stream) {
   setField(field);
   stream >> labelFromZero;
   setLabelFromZero(labelFromZero);
+  stream >> unitConversion;
+  setUnitConversion(parseUnitConversion(unitConversion));
 
   scaleConfig_->read(stream);
 }
@@ -242,6 +295,7 @@ CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
   setFieldType(src.fieldType_);
   setField(src.field_);
   setLabelFromZero(src.labelFromZero_);
+  setUnitConversion(src.unitConversion_);
 
   *scaleConfig_ = *src.scaleConfig_;
 

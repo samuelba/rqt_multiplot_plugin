@@ -175,7 +175,13 @@ bool extractAxisSeries(const Message& message, const CurveAxisConfig& axis, std:
   if (axis.getFieldType() != CurveAxisConfig::MessageData || message.isEmpty()) {
     return false;
   }
-  return tryGetNumericSeries(*message.getCompound(), axis.getField().toStdString(), values);
+  if (!tryGetNumericSeries(*message.getCompound(), axis.getField().toStdString(), values)) {
+    return false;
+  }
+  for (auto& value : values) {
+    value = axis.convertValue(value);
+  }
+  return true;
 }
 
 void fillIndexSeries(std::vector<double>& values, size_t count) {
@@ -291,7 +297,7 @@ void CurveDataSequencer::processMessage(const Message& message) {
     if (!tryGetNumericValue(*message.getCompound(), xAxisConfig->getField().toStdString(), x)) {
       return;
     }
-    point.setX(x);
+    point.setX(xAxisConfig->convertValue(x));
   } else {
     point.setX(message.getReceiptTime().seconds());
   }
@@ -302,7 +308,7 @@ void CurveDataSequencer::processMessage(const Message& message) {
       qWarning() << "No such member" << yAxisConfig->getField();
       return;
     }
-    point.setY(y);
+    point.setY(yAxisConfig->convertValue(y));
   } else {
     point.setY(message.getReceiptTime().seconds());
   }
@@ -357,7 +363,7 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
       if (!tryGetNumericValue(*message.getCompound(), axisConfig->getField().toStdString(), axisValue)) {
         return;
       }
-      timeValue.value_ = axisValue;
+      timeValue.value_ = axisConfig->convertValue(axisValue);
     } else {
       timeValue.value_ = message.getReceiptTime().seconds();
     }

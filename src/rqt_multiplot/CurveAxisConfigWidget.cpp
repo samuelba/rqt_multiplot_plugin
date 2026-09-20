@@ -82,6 +82,8 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent),
 
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
   connect(ui_->checkBoxFieldArrayIndex, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldArrayIndexStateChanged(int)));
+  connect(ui_->checkBoxRadiansToDegrees, SIGNAL(stateChanged(int)), this, SLOT(checkBoxRadiansToDegreesStateChanged(int)));
+  connect(ui_->checkBoxDegreesToRadians, SIGNAL(stateChanged(int)), this, SLOT(checkBoxDegreesToRadiansStateChanged(int)));
 
   if (ui_->comboBoxTopic->isUpdating()) {
     comboBoxTopicUpdateStarted();
@@ -111,6 +113,7 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       disconnect(config_, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       disconnect(config_, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       disconnect(config_, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      disconnect(config_, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
       disconnect(config_->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
     }
 
@@ -123,12 +126,14 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       connect(config, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       connect(config, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       connect(config, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      connect(config, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
       connect(config->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
 
       configTopicChanged(config->getTopic());
       configTypeChanged(config->getType());
       configFieldTypeChanged(config->getFieldType());
       configFieldChanged(config->getField());
+      configUnitConversionChanged(config->getUnitConversion());
       configScaleConfigChanged();
     } else {
       ui_->widgetScale->setConfig(nullptr);
@@ -323,6 +328,13 @@ void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
   const bool syntheticField =
       (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) || (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
   ui_->widgetField->setEnabled(!syntheticField);
+  updateUnitConversionWidgetsEnabled();
+}
+
+void CurveAxisConfigWidget::updateUnitConversionWidgetsEnabled() {
+  const bool enabled = (config_ != nullptr) && !isSyntheticFieldType() && !config_->isTimeSource();
+  ui_->checkBoxRadiansToDegrees->setEnabled(enabled);
+  ui_->checkBoxDegreesToRadians->setEnabled(enabled);
 }
 
 void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType) {
@@ -343,12 +355,38 @@ void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::Fi
   }
 
   if (checked) {
+    config_->setUnitConversion(CurveAxisConfig::None);
     config_->setFieldType(fieldType);
     return;
   }
 
   if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked) {
     config_->setFieldType(CurveAxisConfig::MessageData);
+  }
+}
+
+void CurveAxisConfigWidget::setUnitConversionCheckbox(int state, CurveAxisConfig::UnitConversion unitConversion) {
+  const bool checked = (state == Qt::Checked);
+  if (checked && unitConversion == CurveAxisConfig::RadiansToDegrees) {
+    const QSignalBlocker degToRadBlocker(ui_->checkBoxDegreesToRadians);
+    ui_->checkBoxDegreesToRadians->setCheckState(Qt::Unchecked);
+  }
+  if (checked && unitConversion == CurveAxisConfig::DegreesToRadians) {
+    const QSignalBlocker radToDegBlocker(ui_->checkBoxRadiansToDegrees);
+    ui_->checkBoxRadiansToDegrees->setCheckState(Qt::Unchecked);
+  }
+
+  if (config_ == nullptr) {
+    return;
+  }
+
+  if (checked) {
+    config_->setUnitConversion(unitConversion);
+    return;
+  }
+
+  if (ui_->checkBoxRadiansToDegrees->checkState() != Qt::Checked && ui_->checkBoxDegreesToRadians->checkState() != Qt::Checked) {
+    config_->setUnitConversion(CurveAxisConfig::None);
   }
 }
 
@@ -400,10 +438,19 @@ void CurveAxisConfigWidget::configFieldTypeChanged(int fieldType) {
   validateType();
 }
 
+void CurveAxisConfigWidget::configUnitConversionChanged(int unitConversion) {
+  const QSignalBlocker radToDegBlocker(ui_->checkBoxRadiansToDegrees);
+  const QSignalBlocker degToRadBlocker(ui_->checkBoxDegreesToRadians);
+  ui_->checkBoxRadiansToDegrees->setCheckState((unitConversion == CurveAxisConfig::RadiansToDegrees) ? Qt::Checked : Qt::Unchecked);
+  ui_->checkBoxDegreesToRadians->setCheckState((unitConversion == CurveAxisConfig::DegreesToRadians) ? Qt::Checked : Qt::Unchecked);
+  updateUnitConversionWidgetsEnabled();
+}
+
 void CurveAxisConfigWidget::configFieldChanged(const QString& field) {
   ui_->widgetField->setCurrentField(field);
 
   syncLabelFromZero();
+  updateUnitConversionWidgetsEnabled();
   validateField();
 }
 
@@ -528,6 +575,14 @@ void CurveAxisConfigWidget::checkBoxFieldArrayIndexStateChanged(int state) {
   setSyntheticFieldType(state, CurveAxisConfig::ArrayIndex);
   syncLabelFromZero();
   validateField();
+}
+
+void CurveAxisConfigWidget::checkBoxRadiansToDegreesStateChanged(int state) {
+  setUnitConversionCheckbox(state, CurveAxisConfig::RadiansToDegrees);
+}
+
+void CurveAxisConfigWidget::checkBoxDegreesToRadiansStateChanged(int state) {
+  setUnitConversionCheckbox(state, CurveAxisConfig::DegreesToRadians);
 }
 
 }  // namespace rqt_multiplot

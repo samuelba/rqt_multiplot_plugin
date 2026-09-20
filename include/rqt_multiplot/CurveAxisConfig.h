@@ -29,6 +29,7 @@ class CurveAxisConfig : public Config {
   Q_OBJECT
  public:
   enum FieldType { MessageData, MessageReceiptTime, ArrayIndex };
+  enum UnitConversion { None, RadiansToDegrees, DegreesToRadians };
 
   explicit CurveAxisConfig(QObject* parent = nullptr, QString topic = QString(), QString type = QString(),
                            FieldType fieldType = MessageData, QString field = QString(), bool labelFromZero = false);
@@ -44,6 +45,10 @@ class CurveAxisConfig : public Config {
   const QString& getField() const;
   void setLabelFromZero(bool labelFromZero);
   bool isLabelFromZero() const;
+  void setUnitConversion(UnitConversion unitConversion);
+  UnitConversion getUnitConversion() const;
+  double convertValue(double value) const;
+  static double conversionFactor(UnitConversion unitConversion);
   bool usesTimeScale() const;
   bool isTimeSource() const;
   bool hasConfiguredSource() const;
@@ -66,6 +71,7 @@ class CurveAxisConfig : public Config {
   void fieldTypeChanged(int fieldType);
   void fieldChanged(const QString& field);
   void labelFromZeroChanged(bool labelFromZero);
+  void unitConversionChanged(int unitConversion);
 
  private:
   QString topic_;
@@ -73,6 +79,7 @@ class CurveAxisConfig : public Config {
   FieldType fieldType_;
   QString field_;
   bool labelFromZero_;
+  UnitConversion unitConversion_;
 
   CurveAxisScaleConfig* scaleConfig_;
 
