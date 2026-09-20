@@ -89,7 +89,7 @@ class PlotCursor : public QwtPlotPicker {
   void drawTrackedPoints(QPainter* painter) const;
   void drawTrackedPointReadout(QPainter* painter) const;
   QString formatCoordinate(double value, bool isX) const;
-  QStringList trackedReadoutLines() const;
+  QVector<TrackedReadoutRow> trackedReadoutRows() const;
   QRect trackedReadoutRect(const QFont& font) const;
 
  private:
