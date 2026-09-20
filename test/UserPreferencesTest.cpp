@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/PlotTitleStyle.h>
 #include <rqt_multiplot/UserPreferences.h>
 
 namespace {
@@ -30,6 +31,7 @@ TEST_F(UserPreferencesTest, factoryReturnsLocalLightOpenGLDisabled) {
   EXPECT_EQ(prefs.timeZoneId, QStringLiteral("local"));
   EXPECT_EQ(prefs.themeId, QStringLiteral("light"));
   EXPECT_FALSE(prefs.openGLCanvasEnabled);
+  EXPECT_EQ(prefs.plotTitleStyle, rqt_multiplot::PlotTitleStyle::factory());
 }
 
 TEST_F(UserPreferencesTest, loadReturnsFactoryWhenFileMissing) {
@@ -45,6 +47,10 @@ TEST_F(UserPreferencesTest, saveAndLoadRoundTrip) {
   prefs.timeZoneId = QStringLiteral("utc");
   prefs.themeId = QStringLiteral("dark");
   prefs.openGLCanvasEnabled = true;
+  prefs.plotTitleStyle.fontSize = 14;
+  prefs.plotTitleStyle.bold = true;
+  prefs.plotTitleStyle.autoColor = false;
+  prefs.plotTitleStyle.customColor = QColor(0x12, 0x34, 0x56);
   prefs.save();
 
   const UserPreferences loaded = UserPreferences::load();
@@ -52,6 +58,24 @@ TEST_F(UserPreferencesTest, saveAndLoadRoundTrip) {
   EXPECT_EQ(loaded.timeZoneId, QStringLiteral("utc"));
   EXPECT_EQ(loaded.themeId, QStringLiteral("dark"));
   EXPECT_TRUE(loaded.openGLCanvasEnabled);
+  EXPECT_EQ(loaded.plotTitleStyle.fontSize, 14);
+  EXPECT_TRUE(loaded.plotTitleStyle.bold);
+  EXPECT_FALSE(loaded.plotTitleStyle.autoColor);
+  EXPECT_EQ(loaded.plotTitleStyle.customColor, QColor(0x12, 0x34, 0x56));
+}
+
+TEST_F(UserPreferencesTest, missingPlotTitleKeysUseFactoryDefaults) {
+  {
+    QSettings settings(settingsPath_, QSettings::IniFormat);
+    settings.setValue(QStringLiteral("time_zone"), QStringLiteral("utc"));
+    settings.setValue(QStringLiteral("theme"), QStringLiteral("dark"));
+    settings.setValue(QStringLiteral("opengl_canvas"), true);
+    settings.sync();
+  }
+
+  const UserPreferences loaded = UserPreferences::load();
+
+  EXPECT_EQ(loaded.plotTitleStyle, rqt_multiplot::PlotTitleStyle::factory());
 }
 
 TEST_F(UserPreferencesTest, usesTestSettingsFile) {

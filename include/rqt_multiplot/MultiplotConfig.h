@@ -25,6 +25,7 @@
 
 #include <rqt_multiplot/Config.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/PlotTitleStyle.h>
 
 namespace rqt_multiplot {
 class MultiplotConfig : public Config {
@@ -47,6 +48,8 @@ class MultiplotConfig : public Config {
   QString getThemeId() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  void setPlotTitleStyle(const PlotTitleStyle& style);
+  PlotTitleStyle plotTitleStyle() const;
   bool isPreferencesOverridden() const;
   void setPreferencesOverridden(bool overridden);
   void applyUserDefaults();
@@ -69,6 +72,7 @@ class MultiplotConfig : public Config {
   void timezoneChanged(const QString& timeZoneId);
   void themeChanged(const QString& themeId);
   void openGLCanvasChanged(bool enabled);
+  void plotTitleStyleChanged(const PlotTitleStyle& style);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
@@ -76,6 +80,7 @@ class MultiplotConfig : public Config {
   QString timeZoneId_;
   QString themeId_;
   bool openGLCanvasEnabled_;
+  PlotTitleStyle plotTitleStyle_;
   bool preferencesOverridden_;
 
   PlotTableConfig* createTab(const QString& title);

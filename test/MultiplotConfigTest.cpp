@@ -12,6 +12,7 @@
 #include <rqt_multiplot/MultiplotConfig.h>
 #include <rqt_multiplot/PlotConfig.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/PlotTitleStyle.h>
 #include <rqt_multiplot/UserPreferences.h>
 #include <rqt_multiplot/XmlSettings.h>
 
@@ -21,6 +22,7 @@ using rqt_multiplot::CurveConfig;
 using rqt_multiplot::MultiplotConfig;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotTableConfig;
+using rqt_multiplot::PlotTitleStyle;
 using rqt_multiplot::UserPreferences;
 using rqt_multiplot::XmlSettings;
 
@@ -759,7 +761,128 @@ TEST(MultiplotConfig, saveOmitsPreferenceKeysWhenNotOverridden) {
   EXPECT_FALSE(settings.contains(QStringLiteral("time_zone")));
   EXPECT_FALSE(settings.contains(QStringLiteral("theme")));
   EXPECT_FALSE(settings.contains(QStringLiteral("opengl_canvas")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("plot_title_font_size")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("plot_title_bold")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("plot_title_auto_color")));
+  EXPECT_FALSE(settings.contains(QStringLiteral("plot_title_color")));
   settings.endGroup();
+}
+
+TEST(MultiplotConfig, savesAndLoadsPlotTitleStyle) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "plot-title-style.xml");
+
+  PlotTitleStyle style = PlotTitleStyle::factory();
+  style.fontSize = 16;
+  style.bold = true;
+  style.autoColor = false;
+  style.customColor = QColor(0x22, 0x33, 0x44);
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
+    config.setPlotTitleStyle(style);
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+    ASSERT_EQ(settings.status(), QSettings::NoError);
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_TRUE(loaded.isPreferencesOverridden());
+  EXPECT_EQ(loaded.plotTitleStyle(), style);
+}
+
+TEST(MultiplotConfig, missingPlotTitleKeysUseFactoryDefaults) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "plot-title-defaults.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setPreferencesOverridden(true);
+    config.setPlotTitleStyle(PlotTitleStyle::factory());
+
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.remove(QStringLiteral("plot_title_font_size"));
+    settings.remove(QStringLiteral("plot_title_bold"));
+    settings.remove(QStringLiteral("plot_title_auto_color"));
+    settings.remove(QStringLiteral("plot_title_color"));
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.plotTitleStyle(), PlotTitleStyle::factory());
+}
+
+TEST(MultiplotConfig, roundTripsPlotTitleStyleThroughDataStream) {
+  PlotTitleStyle style = PlotTitleStyle::factory();
+  style.fontSize = 20;
+  style.bold = true;
+  style.autoColor = false;
+  style.customColor = QColor(0xaa, 0xbb, 0xcc);
+
+  MultiplotConfig source(nullptr);
+  source.setPreferencesOverridden(true);
+  source.setPlotTitleStyle(style);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.plotTitleStyle(), style);
+}
+
+TEST(MultiplotConfig, legacyDataStreamWithoutPlotTitleStyleKeepsFactory) {
+  MultiplotConfig source(nullptr);
+  source.getTableConfig(0)->setTitle("Legacy");
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << static_cast<quint32>(0x52544D31);
+  out << static_cast<quint64>(1);
+  out << static_cast<quint64>(0);
+  source.getTableConfig(0)->write(out);
+  out << QStringLiteral("__rtp_prefs_v2__");
+  out << true;
+  out << QStringLiteral("utc");
+  out << QStringLiteral("dark");
+  out << true;
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  PlotTitleStyle customStyle = PlotTitleStyle::factory();
+  customStyle.fontSize = 20;
+  loaded.setPlotTitleStyle(customStyle);
+  loaded.read(in);
+
+  EXPECT_EQ(loaded.plotTitleStyle(), PlotTitleStyle::factory());
+  EXPECT_TRUE(loaded.isOpenGLCanvasEnabled());
 }
 
 TEST(MultiplotConfig, loadUsesUserDefaultsWhenPreferenceKeysMissing) {
@@ -847,6 +970,10 @@ TEST(MultiplotConfig, saveOmitsPreferenceKeysAfterClearingOverride) {
   EXPECT_FALSE(verify.contains(QStringLiteral("time_zone")));
   EXPECT_FALSE(verify.contains(QStringLiteral("theme")));
   EXPECT_FALSE(verify.contains(QStringLiteral("opengl_canvas")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("plot_title_font_size")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("plot_title_bold")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("plot_title_auto_color")));
+  EXPECT_FALSE(verify.contains(QStringLiteral("plot_title_color")));
   verify.endGroup();
 }
 

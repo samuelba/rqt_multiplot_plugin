@@ -7,15 +7,20 @@
 #include <QDialogButtonBox>
 #include <QLabel>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QTabWidget>
 
 #include <gtest/gtest.h>
 
+#include <rqt_multiplot/PlotTitleStyle.h>
 #include <rqt_multiplot/PreferencesDialog.h>
+#include <rqt_multiplot/Theme.h>
 
 namespace {
 
+using rqt_multiplot::PlotTitleStyle;
 using rqt_multiplot::PreferencesDialog;
+using rqt_multiplot::Theme;
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -127,6 +132,77 @@ TEST(PreferencesDialog, showsOverrideStatusAndPersistButtons) {
   dialog.setOverrideActive(true);
   EXPECT_EQ(status->text(), QStringLiteral("This configuration overrides user defaults"));
   EXPECT_TRUE(clearOverride->isEnabled());
+}
+
+TEST(PreferencesDialog, plotTitleControlsExistWithDefaults) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  auto* spin = dialog.findChild<QSpinBox*>(QStringLiteral("spinPlotTitleFontSize"));
+  auto* weight = dialog.findChild<QComboBox*>(QStringLiteral("comboPlotTitleWeight"));
+  auto* autoColor = dialog.findChild<QCheckBox*>(QStringLiteral("checkPlotTitleAutoColor"));
+  auto* preview = dialog.findChild<QLabel*>(QStringLiteral("labelPlotTitlePreview"));
+  ASSERT_NE(spin, nullptr);
+  ASSERT_NE(weight, nullptr);
+  ASSERT_NE(autoColor, nullptr);
+  ASSERT_NE(preview, nullptr);
+
+  EXPECT_EQ(spin->value(), 11);
+  EXPECT_EQ(weight->currentIndex(), 1);
+  EXPECT_TRUE(autoColor->isChecked());
+  EXPECT_EQ(preview->text(), QStringLiteral("Untitled Plot"));
+}
+
+TEST(PreferencesDialog, okWritesPlotTitleStyle) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  PlotTitleStyle style = PlotTitleStyle::factory();
+  style.fontSize = 18;
+  style.bold = true;
+  style.autoColor = false;
+  style.customColor = QColor(0x33, 0x44, 0x55);
+  dialog.setPlotTitleStyle(style);
+
+  auto* buttons = dialog.findChild<QDialogButtonBox*>();
+  ASSERT_NE(buttons, nullptr);
+  buttons->button(QDialogButtonBox::Ok)->click();
+
+  const PlotTitleStyle saved = dialog.plotTitleStyle();
+  EXPECT_EQ(saved.fontSize, 18);
+  EXPECT_TRUE(saved.bold);
+  EXPECT_FALSE(saved.autoColor);
+  EXPECT_EQ(saved.customColor, QColor(0x33, 0x44, 0x55));
+}
+
+TEST(PreferencesDialog, autoColorDisablesSwatch) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  auto* autoColor = dialog.findChild<QCheckBox*>(QStringLiteral("checkPlotTitleAutoColor"));
+  auto* swatch = dialog.findChild<QLabel*>(QStringLiteral("labelPlotTitleColorSwatch"));
+  ASSERT_NE(autoColor, nullptr);
+  ASSERT_NE(swatch, nullptr);
+
+  EXPECT_FALSE(swatch->isEnabled());
+  autoColor->setChecked(false);
+  EXPECT_TRUE(swatch->isEnabled());
+  autoColor->setChecked(true);
+  EXPECT_FALSE(swatch->isEnabled());
+}
+
+TEST(PreferencesDialog, previewUsesSelectedThemeWhenAutoColor) {
+  ensureApplication();
+
+  PreferencesDialog dialog;
+  dialog.setThemeId(QStringLiteral("dark"));
+  PlotTitleStyle style = PlotTitleStyle::factory();
+  style.autoColor = true;
+  dialog.setPlotTitleStyle(style);
+
+  auto* preview = dialog.findChild<QLabel*>(QStringLiteral("labelPlotTitlePreview"));
+  ASSERT_NE(preview, nullptr);
+  EXPECT_EQ(preview->palette().color(QPalette::WindowText), Theme::plotForeground(Theme::Id::Dark));
 }
 
 TEST(PreferencesDialog, okWritesOpenGLCanvasEnabled) {

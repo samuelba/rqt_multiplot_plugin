@@ -336,18 +336,21 @@ void MultiplotWidget::openPreferences() {
   const QString snapshotTimeZoneId = config_->getTimeZoneId();
   const QString snapshotThemeId = config_->getThemeId();
   const bool snapshotOpenGLCanvasEnabled = config_->isOpenGLCanvasEnabled();
+  const PlotTitleStyle snapshotPlotTitleStyle = config_->plotTitleStyle();
   const bool snapshotPreferencesOverridden = config_->isPreferencesOverridden();
 
   PreferencesDialog dialog(this);
   dialog.setTimeZoneId(snapshotTimeZoneId);
   dialog.setThemeId(snapshotThemeId);
   dialog.setOpenGLCanvasEnabled(snapshotOpenGLCanvasEnabled);
+  dialog.setPlotTitleStyle(snapshotPlotTitleStyle);
   dialog.setOverrideActive(snapshotPreferencesOverridden);
 
   const auto applyFromDialog = [&dialog, this]() {
     config_->setTimeZoneId(dialog.timeZoneId());
     config_->setThemeId(dialog.themeId());
     config_->setOpenGLCanvasEnabled(dialog.isOpenGLCanvasEnabled());
+    config_->setPlotTitleStyle(dialog.plotTitleStyle());
   };
 
   connect(&dialog, &PreferencesDialog::saveAsDefaultsRequested, [&dialog, this, applyFromDialog]() {
@@ -355,6 +358,7 @@ void MultiplotWidget::openPreferences() {
     prefs.timeZoneId = dialog.timeZoneId();
     prefs.themeId = dialog.themeId();
     prefs.openGLCanvasEnabled = dialog.isOpenGLCanvasEnabled();
+    prefs.plotTitleStyle = dialog.plotTitleStyle();
     prefs.save();
     config_->setPreferencesOverridden(false);
     applyFromDialog();
@@ -373,6 +377,7 @@ void MultiplotWidget::openPreferences() {
     dialog.setTimeZoneId(config_->getTimeZoneId());
     dialog.setThemeId(config_->getThemeId());
     dialog.setOpenGLCanvasEnabled(config_->isOpenGLCanvasEnabled());
+    dialog.setPlotTitleStyle(config_->plotTitleStyle());
     dialog.setOverrideActive(false);
   });
 
@@ -382,6 +387,7 @@ void MultiplotWidget::openPreferences() {
     dialog.setTimeZoneId(factory.timeZoneId);
     dialog.setThemeId(factory.themeId);
     dialog.setOpenGLCanvasEnabled(factory.openGLCanvasEnabled);
+    dialog.setPlotTitleStyle(factory.plotTitleStyle);
     if (!config_->isPreferencesOverridden()) {
       applyFromDialog();
       ui_->configWidget->setCurrentConfigModified(false);
@@ -400,6 +406,7 @@ void MultiplotWidget::openPreferences() {
   config_->setTimeZoneId(snapshotTimeZoneId);
   config_->setThemeId(snapshotThemeId);
   config_->setOpenGLCanvasEnabled(snapshotOpenGLCanvasEnabled);
+  config_->setPlotTitleStyle(snapshotPlotTitleStyle);
 }
 
 void MultiplotWidget::configThemeChanged(const QString& themeId) {

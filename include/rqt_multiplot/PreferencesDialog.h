@@ -9,6 +9,8 @@
 #include <QDialog>
 #include <QString>
 
+#include <rqt_multiplot/PlotTitleStyle.h>
+
 namespace Ui {
 class PreferencesDialog;
 }
@@ -27,6 +29,8 @@ class PreferencesDialog : public QDialog {
   QString themeId() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  void setPlotTitleStyle(const PlotTitleStyle& style);
+  PlotTitleStyle plotTitleStyle() const;
   void setOverrideActive(bool active);
   bool isOverrideActive() const;
 
@@ -36,11 +40,15 @@ class PreferencesDialog : public QDialog {
   void clearConfigurationOverrideRequested();
   void restoreFactoryDefaultsRequested();
 
+ protected:
+  bool eventFilter(QObject* object, QEvent* event) override;
+
  private:
   Ui::PreferencesDialog* ui_;
   QString timeZoneId_;
   QString themeId_;
   bool openGLCanvasEnabled_;
+  PlotTitleStyle plotTitleStyle_;
   bool overrideActive_;
 
   void populateTimeZoneCombo();
@@ -51,9 +59,13 @@ class PreferencesDialog : public QDialog {
   QString selectedThemeId() const;
   void updateStatus();
   void syncFromWidgets();
+  void updatePlotTitleColorSwatch();
+  void updatePlotTitlePreview();
+  PlotTitleStyle selectedPlotTitleStyle() const;
 
  private slots:
   void acceptDialog();
+  void plotTitleSettingsChanged();
 };
 
 }  // namespace rqt_multiplot

@@ -31,6 +31,7 @@
 #include <rqt_multiplot/BoundingRectangle.h>
 #include <rqt_multiplot/MessageSubscriberRegistry.h>
 #include <rqt_multiplot/PlotTableConfig.h>
+#include <rqt_multiplot/PlotTitleStyle.h>
 
 class QResizeEvent;
 class QShowEvent;
@@ -53,6 +54,8 @@ class PlotTableWidget : public QWidget {
   const QTimeZone& getTimeZone() const;
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
+  void setPlotTitleStyle(const PlotTitleStyle& style);
+  PlotTitleStyle plotTitleStyle() const;
   size_t getNumRows() const;
   size_t getNumColumns() const;
   size_t getNumPlots() const;
@@ -103,6 +106,7 @@ class PlotTableWidget : public QWidget {
   PlotTableConfig* config_;
   QTimeZone timeZone_;
   bool openGLCanvasEnabled_;
+  PlotTitleStyle plotTitleStyle_;
 
   MessageSubscriberRegistry* registry_;
   BagReader* bagReader_;
