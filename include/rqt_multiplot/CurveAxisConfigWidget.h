@@ -64,7 +64,9 @@ class CurveAxisConfigWidget : public QWidget {
   bool isSyntheticFieldType() const;
   void syncLabelFromZero();
   void updateFieldWidgetEnabled();
+  void updateUnitConversionWidgetsEnabled();
   void setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType);
+  void setUnitConversionCheckbox(int state, CurveAxisConfig::UnitConversion unitConversion);
 
  private slots:
   void configTopicChanged(const QString& topic);
@@ -72,6 +74,7 @@ class CurveAxisConfigWidget : public QWidget {
   void configFieldTypeChanged(int fieldType);
   void configFieldChanged(const QString& field);
   void configScaleConfigChanged();
+  void configUnitConversionChanged(int unitConversion);
 
   void comboBoxTopicUpdateStarted();
   void comboBoxTopicUpdateFinished();
@@ -91,6 +94,8 @@ class CurveAxisConfigWidget : public QWidget {
 
   void checkBoxFieldReceiptTimeStateChanged(int state);
   void checkBoxFieldArrayIndexStateChanged(int state);
+  void checkBoxRadiansToDegreesStateChanged(int state);
+  void checkBoxDegreesToRadiansStateChanged(int state);
 };
 }  // namespace rqt_multiplot
 

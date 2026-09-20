@@ -42,6 +42,18 @@ void SnapshotHistory::clear() {
   frames_.clear();
 }
 
+void SnapshotHistory::rescaleAxis(int axis, double factor) {
+  for (auto& frame : frames_) {
+    for (auto& point : frame) {
+      if (axis == 0) {
+        point.setX(point.x() * factor);
+      } else {
+        point.setY(point.y() * factor);
+      }
+    }
+  }
+}
+
 const QVector<QVector<QPointF>>& SnapshotHistory::frames() const {
   return frames_;
 }

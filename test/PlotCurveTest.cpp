@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdlib>
 #include <optional>
 
@@ -169,6 +170,25 @@ TEST(PlotCurve, hiddenLegendDataUsesStrikeoutAndDisabledColor) {
   ASSERT_FALSE(hiddenData.isEmpty());
   EXPECT_TRUE(hiddenData.front().title().font().strikeOut());
   EXPECT_EQ(hiddenData.front().title().color(), QApplication::palette().color(QPalette::Disabled, QPalette::WindowText));
+}
+
+TEST(PlotCurve, togglingUnitConversionRescalesStoredYValues) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::Y)->setField("linear/x");
+
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.getData()->appendPoint(QPointF(1.0, M_PI));
+  curve.getData()->appendPoint(QPointF(2.0, 2.0 * M_PI));
+
+  config.getAxisConfig(CurveConfig::Y)->setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+
+  EXPECT_DOUBLE_EQ(curve.getData()->getPoint(0).x(), 1.0);
+  EXPECT_DOUBLE_EQ(curve.getData()->getPoint(1).x(), 2.0);
+  EXPECT_NEAR(curve.getData()->getPoint(0).y(), 180.0, 1e-9);
+  EXPECT_NEAR(curve.getData()->getPoint(1).y(), 360.0, 1e-9);
 }
 
 TEST(PlotCurve, hiddenCurveReportsEmptyPreferredScale) {

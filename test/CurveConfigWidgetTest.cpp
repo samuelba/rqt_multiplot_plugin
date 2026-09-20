@@ -150,4 +150,57 @@ TEST(CurveConfigWidget, curveAxisHasNoStartTimeFromZeroCheckbox) {
   EXPECT_TRUE(widget.findChildren<QCheckBox*>("checkBoxLabelFromZero").isEmpty());
 }
 
+TEST(CurveConfigWidget, axisWidgetsExposeUnitConversionCheckboxes) {
+  ensureApplication();
+
+  CurveConfigWidget widget;
+
+  for (const auto axis : {CurveConfig::X, CurveConfig::Y}) {
+    const auto* axisWidget = widget.getAxisConfigWidget(axis);
+    ASSERT_NE(axisWidget, nullptr);
+    EXPECT_NE(axisWidget->findChild<QCheckBox*>("checkBoxRadiansToDegrees"), nullptr);
+    EXPECT_NE(axisWidget->findChild<QCheckBox*>("checkBoxDegreesToRadians"), nullptr);
+  }
+}
+
+TEST(CurveConfigWidget, unitConversionCheckboxesAreExclusive) {
+  ensureApplication();
+
+  CurveConfigWidget widget;
+
+  auto* radToDeg = widget.getAxisConfigWidget(CurveConfig::Y)->findChild<QCheckBox*>("checkBoxRadiansToDegrees");
+  auto* degToRad = widget.getAxisConfigWidget(CurveConfig::Y)->findChild<QCheckBox*>("checkBoxDegreesToRadians");
+  ASSERT_NE(radToDeg, nullptr);
+  ASSERT_NE(degToRad, nullptr);
+
+  radToDeg->setCheckState(Qt::Checked);
+  EXPECT_EQ(radToDeg->checkState(), Qt::Checked);
+  EXPECT_EQ(degToRad->checkState(), Qt::Unchecked);
+  EXPECT_EQ(widget.getConfig().getAxisConfig(CurveConfig::Y)->getUnitConversion(), CurveAxisConfig::RadiansToDegrees);
+
+  degToRad->setCheckState(Qt::Checked);
+  EXPECT_EQ(degToRad->checkState(), Qt::Checked);
+  EXPECT_EQ(radToDeg->checkState(), Qt::Unchecked);
+  EXPECT_EQ(widget.getConfig().getAxisConfig(CurveConfig::Y)->getUnitConversion(), CurveAxisConfig::DegreesToRadians);
+}
+
+TEST(CurveConfigWidget, unitConversionCheckboxesDisabledForSyntheticFields) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureUnpairedArrayIndex(config);
+
+  CurveConfigWidget widget;
+  widget.setConfig(config);
+
+  const auto* xWidget = widget.getAxisConfigWidget(CurveConfig::X);
+  auto* radToDeg = xWidget->findChild<QCheckBox*>("checkBoxRadiansToDegrees");
+  auto* degToRad = xWidget->findChild<QCheckBox*>("checkBoxDegreesToRadians");
+  ASSERT_NE(radToDeg, nullptr);
+  ASSERT_NE(degToRad, nullptr);
+
+  EXPECT_FALSE(radToDeg->isEnabled());
+  EXPECT_FALSE(degToRad->isEnabled());
+}
+
 }  // namespace

@@ -81,8 +81,11 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   bool paused_;
   bool snapshotDataBackend_;
   std::optional<int> plotTimeWindowLength_;
+  CurveAxisConfig::UnitConversion appliedUnitConversion_[2];
 
   void createDataBackend();
+  void rescaleStoredAxis(CurveConfig::Axis axis, double factor);
+  void syncAppliedUnitConversions();
   void updateSnapshotHistoryCapacity();
   void syncGhosts();
   void restyleGhosts();

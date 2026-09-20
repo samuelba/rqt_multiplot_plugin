@@ -217,6 +217,27 @@
        </property>
       </widget>
      </item>
+     <item row="4" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayoutUnitConversion">
+       <property name="spacing">
+        <number>5</number>
+       </property>
+       <item>
+        <widget class="QCheckBox" name="checkBoxRadiansToDegrees">
+         <property name="text">
+          <string>rad → deg</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="checkBoxDegreesToRadians">
+         <property name="text">
+          <string>deg → rad</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
     </layout>
    </item>
    <item row="10" column="1" rowspan="2">

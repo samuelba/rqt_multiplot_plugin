@@ -19,6 +19,7 @@ class SnapshotHistory {
   size_t getCapacity() const;
   void push(const QVector<QPointF>& snapshot);
   void clear();
+  void rescaleAxis(int axis, double factor);
   const QVector<QVector<QPointF>>& frames() const;
 
  private:
