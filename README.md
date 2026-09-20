@@ -2,9 +2,9 @@
 
 [![CI](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml?query=branch%3Amain)
 
-rqt plugin for ROS 2 that plots numeric message fields in tiled 2D plots ([Qwt](https://qwt.sourceforge.io)).
+Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourceforge.io)). Nested splits and tabs give a layout that is not a strict grid. Subscribe to live topics or import a rosbag2, then inspect values with a linked cursor and a curve-values sidebar. Runs as its own window or as an rqt plugin.
 
-**Author(s):** Ralf Kaestner, Samuel Bachmann
+**Authors:** Ralf Kaestner, Samuel Bachmann
 
 **Maintainer:** Samuel Bachmann
 
@@ -14,18 +14,30 @@ rqt plugin for ROS 2 that plots numeric message fields in tiled 2D plots ([Qwt](
 
 ## Features
 
-- **Multiple plots and curves** — split any plot horizontally or vertically; each plot can hold many curves
-- **Tabs** — multiple named plot layouts in one window; each tab has its own layout, colors, and link/track settings
+- **Nested plot layout** — split any plot left/right or top/bottom and nest splits (two on the left, one on the right). Drag splitter handles; reset the active tab to even sizes. Ratios are stored in the XML
+- **Tabs** — multiple named layouts in one window; each tab has its own plots, colors, grid, and link/track settings
 - **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
-- **Linked plots** — shared scale and cursor; optional point tracking under the pointer
+- **Linked plots** — shared scale and cursor; optional point tracking under the pointer; click a legend item to hide a curve
 - **Curve values** — collapsible per-tab list of each curve's latest X and Y, grouped by plot
-- **Export** — PNG, SVG, PDF images; TXT or CSV curve data
-- **Reusable layouts** — save and load XML configurations (`file://`, `home://`, `package://`); older row×column files still load
+- **Time axes** — message receipt time, start from zero, date-time labels, or raw stamps. Time zone in **File → Preferences** (local, UTC, or IANA). Optional plot-level **Time window** (last *N* seconds)
+- **Light and dark** — theme and plot-title size, weight, and color under **File → Preferences**. Changes apply to the open plots
+- **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import a bag; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 
-Also: run / pause / clear, message receipt time, start time from 0, circular and time-frame buffers, and drag-and-drop of curves between plot legends.
+Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
 
-![Overview](images/overview.png)
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/overview_light.png" alt="Multiplot light theme" />
+      <br/>Light
+    </td>
+    <td align="center" width="50%">
+      <img src="images/overview_dark.png" alt="Multiplot dark theme" />
+      <br/>Dark
+    </td>
+  </tr>
+</table>
 
 ## Installation
 
@@ -54,19 +66,23 @@ source install/setup.bash
 
 ## Usage
 
-Standalone plugin:
+Standalone window (no rqt):
+
+```shell
+ros2 run rqt_multiplot multiplot
+```
+
+rqt plugin, either in its own rqt window or inside rqt (**Plugins → Visualization → Multiplot**):
 
 ```shell
 ros2 run rqt_multiplot rqt_multiplot
 ```
 
-Or start rqt and load **Plugins → Visualization → Multiplot**:
-
 ```shell
 rqt --force-discover
 ```
 
-If the plugin list or layout is broken:
+If the rqt plugin list or layout is broken:
 
 ```shell
 rqt --clear-config
@@ -75,11 +91,13 @@ rqt --clear-config
 Load a configuration, a bag, and start plotting:
 
 ```shell
-ros2 run rqt_multiplot rqt_multiplot -- \
+ros2 run rqt_multiplot multiplot \
   --multiplot-config file:///path/to/layout.xml \
   --multiplot-bag /path/to/bag \
   --multiplot-run-all
 ```
+
+The rqt launcher needs `--` before those flags.
 
 | Option | Meaning |
 | --- | --- |
@@ -99,11 +117,17 @@ ros2 run rqt_multiplot rqt_multiplot -- \
 | Click a legend item | Toggle that curve's visibility |
 | Drag a legend item onto another plot | Copy that curve |
 
-Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. Older row×column files still load.
+Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. The even-distribution button on the main toolbar resets splitter sizes in the active tab. Older row×column files still load.
 
-**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y. The side-panel button (between Track Points and the time toggles) shows or hides **Curve values** for the active tab.
+**Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y. The side-panel button (between Track Points and the time toggles) shows or hides **Curve values** for the active tab. The grid button turns plot grids on or off for the active tab.
 
 The timer and calendar toggles set the X-axis time labels for the active tab: start from zero (default), date and time (`HH:mm:ss.z` / `yyyy MMM dd`), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged. Set the date-time zone in **File → Preferences** (local system zone by default, UTC, or a named IANA zone). The choice is stored in the plot XML.
+
+**File** — new / open / save / save as XML; import a bag file or directory; export image or text; preferences. Closing with unsaved layout changes asks to save.
+
+### Preferences
+
+**File → Preferences** has **General** (time zone) and **Appearance** (light/dark theme, plot-title font size, regular/bold, color). Title changes apply to the open plots so they can be checked before saving. Save as user defaults, or store them in the XML layout.
 
 ### Configure a plot
 
@@ -120,6 +144,7 @@ Pick topic, message type, and field for each axis. X and Y can come from differe
 Useful curve options:
 
 - **Message receipt time** — plot against the time the message arrived
+- **rad → deg** / **deg → rad** — convert the selected axis
 - **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
 
 Whole-array fields use a different curve mode. See [Array curves](#array-curves).
