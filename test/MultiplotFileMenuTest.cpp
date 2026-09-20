@@ -2,6 +2,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QDockWidget>
 #include <QFrame>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -285,4 +286,31 @@ TEST(MultiplotFileMenu, perPlotExportButtonRemains) {
 
   PlotWidget plotWidget;
   EXPECT_NE(plotWidget.findChild<QPushButton*>("pushButtonImportExport"), nullptr);
+}
+
+TEST(MultiplotFileMenu, hasQuitActionWhenTopLevelWindow) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  widget.show();
+  QApplication::processEvents();
+
+  const auto* menuBar = widget.findChild<QMenuBar*>("menuBar");
+  ASSERT_NE(menuBar, nullptr);
+  EXPECT_TRUE(fileMenuActionTexts(*menuBar).contains(QStringLiteral("Quit")));
+}
+
+TEST(MultiplotFileMenu, noQuitActionWhenDocked) {
+  ensureApplication();
+
+  QDockWidget dock;
+  MultiplotWidget widget;
+  dock.setWidget(&widget);
+  dock.show();
+  widget.show();
+  QApplication::processEvents();
+
+  const auto* menuBar = widget.findChild<QMenuBar*>("menuBar");
+  ASSERT_NE(menuBar, nullptr);
+  EXPECT_FALSE(fileMenuActionTexts(*menuBar).contains(QStringLiteral("Quit")));
 }

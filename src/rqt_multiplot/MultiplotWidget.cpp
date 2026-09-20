@@ -74,7 +74,8 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       guardedDock_(nullptr),
       guardedCloseButton_(nullptr),
       closePromptCompleted_(false),
-      closePromptOpen_(false) {
+      closePromptOpen_(false),
+      standaloneMenuInstalled_(false) {
   ui_->setupUi(this);
 
   ui_->menuBar->setNativeMenuBar(false);
@@ -250,7 +251,29 @@ void MultiplotWidget::closeEvent(QCloseEvent* event) {
 void MultiplotWidget::showEvent(QShowEvent* event) {
   closePromptCompleted_ = false;
   installCloseGuard();
+  installStandaloneMenu();
   QWidget::showEvent(event);
+}
+
+void MultiplotWidget::installStandaloneMenu() {
+  if (standaloneMenuInstalled_ || window() != this) {
+    return;
+  }
+
+  QMenu* fileMenu = nullptr;
+  if (!ui_->menuBar->actions().isEmpty()) {
+    fileMenu = ui_->menuBar->actions().first()->menu();
+  }
+  if (fileMenu == nullptr) {
+    return;
+  }
+
+  standaloneMenuInstalled_ = true;
+  fileMenu->addSeparator();
+  QAction* quitAction = fileMenu->addAction(tr("Quit"));
+  quitAction->setShortcut(QKeySequence::Quit);
+  quitAction->setMenuRole(QAction::QuitRole);
+  connect(quitAction, &QAction::triggered, this, &QWidget::close);
 }
 
 void MultiplotWidget::installCloseGuard() {
