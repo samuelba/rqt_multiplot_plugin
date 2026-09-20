@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <QFont>
 #include <QPointF>
 #include <QRect>
 #include <QSize>
@@ -16,6 +17,9 @@ using rqt_multiplot::nearestPointByX;
 using rqt_multiplot::trackedPointLabel;
 using rqt_multiplot::trackedPointLabels;
 using rqt_multiplot::trackedPointsReadoutRect;
+using rqt_multiplot::trackedReadoutLayout;
+using rqt_multiplot::TrackedReadoutRow;
+using rqt_multiplot::trackedReadoutSize;
 using rqt_multiplot::trackPointSnapDistance;
 
 TEST(PlotCursorLabel, snapDistanceScalesUnitsPerPixel) {
@@ -39,6 +43,21 @@ TEST(PlotCursorLabel, prefixesCurveTitle) {
 
 TEST(PlotCursorLabel, joinsOneLinePerCurve) {
   EXPECT_EQ(trackedPointLabels({QStringLiteral("Pan: 1, 2"), QStringLiteral("Tilt: 1, 3")}), QStringLiteral("Pan: 1, 2\nTilt: 1, 3"));
+}
+
+TEST(PlotCursorLabel, sizesColumnsFromLongestValueInEachColumn) {
+  const QFont font;
+  const QVector<TrackedReadoutRow> rows{{QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")},
+                                        {QStringLiteral("VeryLongName"), QStringLiteral("12.34"), QStringLiteral("-0.5")}};
+  const auto layout = trackedReadoutLayout(rows, font);
+
+  EXPECT_GT(layout.titleWidth, 0);
+  EXPECT_GT(layout.xWidth, 0);
+  EXPECT_GT(layout.yWidth, 0);
+  EXPECT_EQ(layout.rowHeight, QFontMetrics(font).height());
+  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).width(),
+            layout.titleWidth + layout.columnGap + layout.xWidth + layout.columnGap + layout.yWidth);
+  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).height(), layout.rowHeight * rows.size());
 }
 
 TEST(PlotCursorLabel, placesReadoutAboveRightOfCursor) {

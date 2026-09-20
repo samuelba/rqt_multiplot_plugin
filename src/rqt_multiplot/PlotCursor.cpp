@@ -202,26 +202,27 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
   return AxisTimeFormat::coordinate(value, offset, span, mode, timeZone_);
 }
 
-QStringList PlotCursor::trackedReadoutLines() const {
-  QStringList lines;
+QVector<TrackedReadoutRow> PlotCursor::trackedReadoutRows() const {
+  QVector<TrackedReadoutRow> rows;
   for (const auto& tracked : trackedPoints_) {
-    lines.append(
-        trackedPointLabel(tracked.title, formatCoordinate(tracked.position.x(), true), formatCoordinate(tracked.position.y(), false)));
+    TrackedReadoutRow row;
+    row.title = tracked.title;
+    row.x = formatCoordinate(tracked.position.x(), true);
+    row.y = formatCoordinate(tracked.position.y(), false);
+    rows.append(row);
   }
-  return lines;
+  return rows;
 }
 
 QRect PlotCursor::trackedReadoutRect(const QFont& font) const {
-  const QStringList lines = trackedReadoutLines();
-  if (lines.isEmpty()) {
+  const QVector<TrackedReadoutRow> rows = trackedReadoutRows();
+  if (rows.isEmpty()) {
     return {};
   }
 
   constexpr int kPadding = 4;
-  QwtText text(trackedPointLabels(lines));
-  text.setRenderFlags(Qt::AlignLeft | Qt::AlignTop);
-  const QSizeF textSize = text.textSize(font);
-  const QSize size(qCeil(textSize.width()), qCeil(textSize.height()));
+  const TrackedReadoutLayout layout = trackedReadoutLayout(rows, font);
+  const QSize size = trackedReadoutSize(layout, static_cast<int>(rows.size()));
   const QRect canvas(0, 0, plot()->canvas()->width(), plot()->canvas()->height());
   return trackedPointsReadoutRect(transform(currentPosition_), size, canvas).adjusted(-kPadding, -kPadding, kPadding, kPadding);
 }
@@ -393,6 +394,7 @@ void PlotCursor::drawTrackedPoints(QPainter* painter) const {
 }
 
 void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
+  const QVector<TrackedReadoutRow> rows = trackedReadoutRows();
   const QRect background = trackedReadoutRect(painter->font());
   if (background.isEmpty()) {
     return;
@@ -405,10 +407,20 @@ void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
   painter->setPen(border);
   painter->drawRect(background.adjusted(0, 0, -1, -1));
 
-  QwtText text(trackedPointLabels(trackedReadoutLines()));
-  text.setColor(trackerTextColor());
-  text.setRenderFlags(Qt::AlignLeft | Qt::AlignTop);
-  text.draw(painter, background.adjusted(4, 4, -4, -4));
+  const QRect content = background.adjusted(4, 4, -4, -4);
+  const TrackedReadoutLayout layout = trackedReadoutLayout(rows, painter->font());
+  const QColor textColor = trackerTextColor();
+  const int xColumn = content.left() + layout.titleWidth + layout.columnGap;
+  const int yColumn = xColumn + layout.xWidth + layout.columnGap;
+  int y = content.top();
+
+  painter->setPen(textColor);
+  for (const TrackedReadoutRow& row : rows) {
+    painter->drawText(content.left(), y, layout.titleWidth, layout.rowHeight, Qt::AlignLeft | Qt::AlignVCenter, row.title);
+    painter->drawText(xColumn, y, layout.xWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.x);
+    painter->drawText(yColumn, y, layout.yWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.y);
+    y += layout.rowHeight;
+  }
   painter->restore();
 }
 
