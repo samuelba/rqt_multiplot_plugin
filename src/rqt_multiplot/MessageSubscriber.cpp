@@ -16,12 +16,43 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <chrono>
+#include <utility>
+
 #include <QApplication>
 
 #include <rqt_multiplot/MessageEvent.h>
 #include <rqt_multiplot/RosContext.h>
 
 #include "rqt_multiplot/MessageSubscriber.h"
+
+namespace {
+
+// Rolling passes the callback group through SubscriptionOptions. Older releases still take it as its own argument.
+template <typename Callback>
+auto createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node, const std::string& topic, const rclcpp::QoS& qos,
+                             Callback&& callback, std::chrono::nanoseconds timeout,
+                             int /*preferNewApi*/) -> decltype(fish.create_subscription(node, topic, qos, std::forward<Callback>(callback),
+                                                                                        rclcpp::SubscriptionOptions{}, timeout)) {
+  return fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{}, timeout);
+}
+
+template <typename Callback>
+ros_babel_fish::BabelFishSubscription::SharedPtr createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
+                                                                         const std::string& topic, const rclcpp::QoS& qos,
+                                                                         Callback&& callback, std::chrono::nanoseconds timeout,
+                                                                         long /*preferLegacyApi*/) {
+  return fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), nullptr, {}, timeout);
+}
+
+template <typename Callback>
+ros_babel_fish::BabelFishSubscription::SharedPtr createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
+                                                                         const std::string& topic, const rclcpp::QoS& qos,
+                                                                         Callback&& callback, std::chrono::nanoseconds timeout) {
+  return createTopicSubscription(fish, node, topic, qos, std::forward<Callback>(callback), timeout, 0);
+}
+
+}  // namespace
 
 namespace rqt_multiplot {
 
@@ -87,9 +118,9 @@ void MessageSubscriber::subscribe() {
     return;
   }
 
-  subscriber_ = RosContext::fish().create_subscription(
-      *node, topic_.toStdString(), static_cast<int>(queueSize_),
-      [this](const ros_babel_fish::CompoundMessage& compound) { callback(compound); }, nullptr, {}, std::chrono::nanoseconds(0));
+  subscriber_ = createTopicSubscription(
+      RosContext::fish(), *node, topic_.toStdString(), rclcpp::QoS(queueSize_),
+      [this](const ros_babel_fish::CompoundMessage& compound) { callback(compound); }, std::chrono::nanoseconds(0));
 
   if (subscriber_) {
     emit subscribed(topic_);

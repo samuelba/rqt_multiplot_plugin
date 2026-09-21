@@ -5,21 +5,30 @@
 
 #include <atomic>
 #include <chrono>
+#include <csignal>
 #include <memory>
 #include <thread>
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QTimer>
 
 #include <rclcpp/executors/single_threaded_executor.hpp>
 #include <rclcpp/rclcpp.hpp>
 
 #include <rqt_multiplot/LaunchOptions.h>
+#include <rqt_multiplot/MessageTopicRegistry.h>
 #include <rqt_multiplot/MultiplotWidget.h>
 #include <rqt_multiplot/RosContext.h>
 #include <rqt_multiplot/StandaloneWindowSettings.h>
 
 namespace {
+
+volatile std::sig_atomic_t interrupted = 0;
+
+void handleInterrupt(int /*unused*/) {
+  interrupted = 1;
+}
 
 void configureQtLogging() {
   const QString rule = QStringLiteral("qt.accessibility.atspi.warning=false");
@@ -54,7 +63,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  rclcpp::init(argc, argv);
+  std::signal(SIGINT, handleInterrupt);
+  std::signal(SIGTERM, handleInterrupt);
+
+  rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::None);
   auto node = std::make_shared<rclcpp::Node>("multiplot");
   rqt_multiplot::RosContext::setNode(node);
 
@@ -96,6 +108,15 @@ int main(int argc, char** argv) {
     widget.runPlots();
   }
 
+  QTimer interruptTimer;
+  interruptTimer.setInterval(100);
+  QObject::connect(&interruptTimer, &QTimer::timeout, []() {
+    if (interrupted != 0) {
+      QApplication::quit();
+    }
+  });
+  interruptTimer.start();
+
   const int exitCode = QApplication::exec();
 
   widget.pausePlots();
@@ -104,7 +125,9 @@ int main(int argc, char** argv) {
   if (spinThread.joinable()) {
     spinThread.join();
   }
+  rqt_multiplot::MessageTopicRegistry::wait();
   executor.remove_node(node);
+  rqt_multiplot::RosContext::setNode(nullptr);
   rclcpp::shutdown();
 
   rqt_multiplot::StandaloneWindowSettings::save(widget, widget.getMaxConfigHistoryLength(), widget.getConfigHistory());
