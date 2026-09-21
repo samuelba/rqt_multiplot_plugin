@@ -23,9 +23,11 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr auto kTimeZoneLocal = "local";
 constexpr auto kTimeZoneUtc = "utc";
 constexpr auto kTimeZoneRole = Qt::UserRole;
+
 }  // namespace
 
 PreferencesDialog::PreferencesDialog(QWidget* parent, Qt::WindowFlags flags)

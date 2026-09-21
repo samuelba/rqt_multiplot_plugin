@@ -12,9 +12,11 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr int kMinFontSize = 6;
 constexpr int kMaxFontSize = 72;
 constexpr int kDefaultFontSize = 11;
+
 }  // namespace
 
 PlotTitleStyle PlotTitleStyle::factory() {

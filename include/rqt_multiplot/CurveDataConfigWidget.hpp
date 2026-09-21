@@ -23,7 +23,9 @@
 #include "rqt_multiplot/CurveDataConfig.hpp"
 
 namespace Ui {
+
 class CurveDataConfigWidget;
+
 }
 
 namespace rqt_multiplot {

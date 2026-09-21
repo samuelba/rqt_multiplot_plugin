@@ -23,7 +23,9 @@
 #include "rqt_multiplot/PlotLegendConfig.hpp"
 
 namespace Ui {
+
 class PlotLegendConfigWidget;
+
 }
 
 namespace rqt_multiplot {

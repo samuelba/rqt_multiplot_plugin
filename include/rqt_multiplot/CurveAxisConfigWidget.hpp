@@ -25,7 +25,9 @@
 #include "rqt_multiplot/StatusWidget.hpp"
 
 namespace Ui {
+
 class CurveAxisConfigWidget;
+
 }
 
 namespace rqt_multiplot {

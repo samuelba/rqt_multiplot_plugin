@@ -11,7 +11,9 @@
 #include "rqt_multiplot/PlotTitleStyle.hpp"
 
 namespace Ui {
+
 class PreferencesDialog;
+
 }
 
 namespace rqt_multiplot {

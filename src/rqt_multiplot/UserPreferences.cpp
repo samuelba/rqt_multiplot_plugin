@@ -12,6 +12,7 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr auto kOrganization = "rqt_multiplot";
 constexpr auto kApplication = "preferences";
 constexpr auto kTimeZoneKey = "time_zone";
@@ -49,6 +50,7 @@ bool hasAnyPreferenceKey(const QSettings& settings) {
          settings.contains(QString::fromLatin1(kPlotTitleBoldKey)) || settings.contains(QString::fromLatin1(kPlotTitleAutoColorKey)) ||
          settings.contains(QString::fromLatin1(kPlotTitleColorKey));
 }
+
 }  // namespace
 
 QString UserPreferences::testSettingsFile_;

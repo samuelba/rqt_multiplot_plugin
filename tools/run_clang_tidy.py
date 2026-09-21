@@ -116,12 +116,12 @@ def write_compile_commands(directory: Path, entries: Sequence[dict]) -> Path:
 
 
 def find_run_clang_tidy() -> Optional[str]:
-    pinned_version = os.environ.get('CLANG_TIDY_VERSION', '18')
+    pinned_version = os.environ.get('CLANG_TIDY_VERSION', '23')
     names = []
     if pinned_version:
         names.append(f'run-clang-tidy-{pinned_version}')
     names.append('run-clang-tidy')
-    names.extend(f'run-clang-tidy-{version}' for version in range(21, 13, -1) if f'run-clang-tidy-{version}' not in names)
+    names.extend(f'run-clang-tidy-{version}' for version in range(23, 13, -1) if f'run-clang-tidy-{version}' not in names)
     for name in names:
         found = shutil.which(name)
         if found:

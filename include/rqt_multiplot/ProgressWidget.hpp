@@ -21,7 +21,9 @@
 #include <QWidget>
 
 namespace Ui {
+
 class ProgressWidget;
+
 }
 
 namespace rqt_multiplot {

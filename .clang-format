@@ -13,3 +13,5 @@ PointerAlignment: Left
 AllowShortFunctionsOnASingleLine: Inline
 # Sort each include block separately.
 IncludeBlocks: Preserve
+# Add empty lines inside namespace bodies.
+WrapNamespaceBodyWithEmptyLines: Always

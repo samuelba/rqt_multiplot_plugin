@@ -28,6 +28,7 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr quint32 kLayoutStreamMagic = 0x52544C31;  // "RTL1"
 
 QString timeAxisFormatName(PlotTableConfig::TimeAxisFormat format) {
@@ -63,6 +64,7 @@ PlotTableConfig::TimeAxisFormat timeAxisFormatFromInt(quint32 value) {
       return PlotTableConfig::Timestamp;
   }
 }
+
 }  // namespace
 
 PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor foregroundColor, size_t numRows, size_t numColumns,

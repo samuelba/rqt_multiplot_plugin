@@ -21,7 +21,9 @@
 #include <QDialog>
 
 namespace Ui {
+
 class PlotConfigDialog;
+
 }
 
 namespace rqt_multiplot {

@@ -28,7 +28,9 @@
 class QMessageBox;
 
 namespace Ui {
+
 class MultiplotConfigWidget;
+
 }
 
 namespace rqt_multiplot {

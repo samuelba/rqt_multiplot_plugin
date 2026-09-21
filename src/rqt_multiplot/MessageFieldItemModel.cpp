@@ -23,7 +23,9 @@ namespace rqt_multiplot {
 MessageFieldItemModel::MessageFieldItemModel(QObject* parent) : QAbstractItemModel(parent), rootItem_(nullptr) {}
 
 MessageFieldItemModel::~MessageFieldItemModel() {
-  { delete rootItem_; }
+  {
+    delete rootItem_;
+  }
 }
 
 void MessageFieldItemModel::setMessageDataType(const MessageFieldType& dataType) {

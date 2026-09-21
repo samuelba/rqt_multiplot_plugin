@@ -31,9 +31,8 @@ namespace {
 // Rolling passes the callback group through SubscriptionOptions. Older releases still take it as its own argument.
 template <typename Callback>
 auto createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node, const std::string& topic, const rclcpp::QoS& qos,
-                             Callback&& callback, std::chrono::nanoseconds timeout,
-                             int /*preferNewApi*/) -> decltype(fish.create_subscription(node, topic, qos, std::forward<Callback>(callback),
-                                                                                        rclcpp::SubscriptionOptions{}, timeout)) {
+                             Callback&& callback, std::chrono::nanoseconds timeout, int /*preferNewApi*/)
+    -> decltype(fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{}, timeout)) {
   return fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{}, timeout);
 }
 

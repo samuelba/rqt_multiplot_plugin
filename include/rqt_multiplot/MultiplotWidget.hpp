@@ -31,7 +31,9 @@
 #include "rqt_multiplot/PackageRegistry.hpp"
 
 namespace Ui {
+
 class MultiplotWidget;
+
 }
 
 namespace rqt_multiplot {
