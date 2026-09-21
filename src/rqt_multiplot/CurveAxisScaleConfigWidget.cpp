@@ -20,13 +20,9 @@
 
 #include <ui_CurveAxisScaleConfigWidget.h>
 
-#include "rqt_multiplot/CurveAxisScaleConfigWidget.h"
+#include "rqt_multiplot/CurveAxisScaleConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveAxisScaleConfigWidget::CurveAxisScaleConfigWidget(QWidget* parent)
     : QWidget(parent), ui_(new Ui::CurveAxisScaleConfigWidget()), config_(nullptr) {
@@ -55,10 +51,6 @@ CurveAxisScaleConfigWidget::CurveAxisScaleConfigWidget(QWidget* parent)
 CurveAxisScaleConfigWidget::~CurveAxisScaleConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveAxisScaleConfigWidget::setConfig(CurveAxisScaleConfig* config) {
   if (config != config_) {
@@ -91,10 +83,6 @@ void CurveAxisScaleConfigWidget::setConfig(CurveAxisScaleConfig* config) {
 CurveAxisScaleConfig* CurveAxisScaleConfigWidget::getConfig() const {
   return config_;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveAxisScaleConfigWidget::configTypeChanged(int type) {
   if (type == CurveAxisScaleConfig::Absolute) {

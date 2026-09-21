@@ -16,12 +16,12 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/ConfigComboBox.h>
-#include <rqt_multiplot/MultiplotConfigWidget.h>
-#include <rqt_multiplot/MultiplotWidget.h>
-#include <rqt_multiplot/PlotTableConfigWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
-#include <rqt_multiplot/ProgressWidget.h>
+#include "rqt_multiplot/ConfigComboBox.hpp"
+#include "rqt_multiplot/MultiplotConfigWidget.hpp"
+#include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PlotTableConfigWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/ProgressWidget.hpp"
 
 namespace {
 

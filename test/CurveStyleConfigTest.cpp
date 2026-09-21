@@ -6,8 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveDataConfig.h>
-#include <rqt_multiplot/CurveStyleConfig.h>
+#include "rqt_multiplot/CurveDataConfig.hpp"
+#include "rqt_multiplot/CurveStyleConfig.hpp"
 
 namespace {
 

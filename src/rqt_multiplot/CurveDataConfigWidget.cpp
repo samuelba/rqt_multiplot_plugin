@@ -20,13 +20,9 @@
 
 #include <ui_CurveDataConfigWidget.h>
 
-#include "rqt_multiplot/CurveDataConfigWidget.h"
+#include "rqt_multiplot/CurveDataConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataConfigWidget::CurveDataConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveDataConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -46,10 +42,6 @@ CurveDataConfigWidget::CurveDataConfigWidget(QWidget* parent) : QWidget(parent),
 CurveDataConfigWidget::~CurveDataConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveDataConfigWidget::setConfig(CurveDataConfig* config) {
   if (config != config_) {
@@ -76,10 +68,6 @@ void CurveDataConfigWidget::setConfig(CurveDataConfig* config) {
 CurveDataConfig* CurveDataConfigWidget::getConfig() const {
   return config_;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveDataConfigWidget::configTypeChanged(int type) {
   if (type == CurveDataConfig::List) {

@@ -16,29 +16,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/MessageEvent.h"
+#include "rqt_multiplot/MessageEvent.hpp"
 
 #include <utility>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static initializations                                                    */
-/*****************************************************************************/
-
 const QEvent::Type MessageEvent::Type = static_cast<QEvent::Type>(QEvent::registerEventType());
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageEvent::MessageEvent(QString topic, const Message& message) : QEvent(Type), topic_(std::move(topic)), message_(message) {}
 
 MessageEvent::~MessageEvent() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 const QString& MessageEvent::getTopic() const {
   return topic_;

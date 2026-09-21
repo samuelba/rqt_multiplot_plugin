@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/Config.h"
+#include "rqt_multiplot/Config.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 Config::Config(QObject* parent) : QObject(parent) {}
 
 Config::~Config() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 QDataStream& operator<<(QDataStream& stream, const Config& config) {
   config.write(stream);

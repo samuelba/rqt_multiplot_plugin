@@ -21,26 +21,18 @@
 
 #include <QDebug>
 
-#include <rqt_multiplot/MessageFieldAccess.h>
-#include <rqt_multiplot/MessageSubscriber.h>
+#include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/MessageSubscriber.hpp"
 
-#include "rqt_multiplot/CurveDataSequencer.h"
+#include "rqt_multiplot/CurveDataSequencer.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataSequencer::CurveDataSequencer(QObject* parent) : QObject(parent), config_(nullptr), broker_(nullptr) {}
 
 CurveDataSequencer::~CurveDataSequencer() {
   unsubscribe();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveDataSequencer::setConfig(CurveConfig* config) {
   if (config != config_) {
@@ -95,10 +87,6 @@ MessageBroker* CurveDataSequencer::getBroker() const {
 bool CurveDataSequencer::isSubscribed() const {
   return !subscribedTopics_.isEmpty();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveDataSequencer::subscribe() {
   if (isSubscribed()) {
@@ -418,10 +406,6 @@ void CurveDataSequencer::interpolate() {
     }
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveDataSequencer::configAxisConfigChanged() {
   if (isSubscribed()) {

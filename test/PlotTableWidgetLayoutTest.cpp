@@ -10,12 +10,12 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveValuesWidget.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotLayoutConfig.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/CurveValuesWidget.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotLayoutConfig.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
 

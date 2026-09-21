@@ -16,15 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <rqt_multiplot/AmentIndex.h>
+#include "rqt_multiplot/AmentIndex.hpp"
 
-#include "rqt_multiplot/PackageScheme.h"
+#include "rqt_multiplot/PackageScheme.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PackageScheme::PackageScheme(QObject* /*parent*/, const QString& prefix, QDir::Filters filter)
     : UrlScheme(prefix),
@@ -47,10 +43,6 @@ PackageScheme::PackageScheme(QObject* /*parent*/, const QString& prefix, QDir::F
 }
 
 PackageScheme::~PackageScheme() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PackageScheme::setFilter(QDir::Filters filter) {
   fileSystemModel_->setFilter(filter);
@@ -172,10 +164,6 @@ QString PackageScheme::getFilePath(const QString& host, const QString& path) con
 
   return QString();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PackageScheme::registryUpdateStarted() {
   emit resetStarted();

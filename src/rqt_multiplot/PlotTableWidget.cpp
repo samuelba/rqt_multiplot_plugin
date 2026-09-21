@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotTableWidget.h"
+#include "rqt_multiplot/PlotTableWidget.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -31,20 +31,16 @@
 #include <QTextStream>
 #include <QTimer>
 
-#include <rqt_multiplot/CurveValuesWidget.h>
-#include <rqt_multiplot/PlotCursor.h>
-#include <rqt_multiplot/PlotExport.h>
-#include <rqt_multiplot/PlotLayoutConfig.h>
-#include <rqt_multiplot/PlotMouseBindings.h>
-#include <rqt_multiplot/PlotSplitter.h>
-#include <rqt_multiplot/PlotWidget.h>
-#include <rqt_multiplot/TimeZoneUtil.h>
+#include "rqt_multiplot/CurveValuesWidget.hpp"
+#include "rqt_multiplot/PlotCursor.hpp"
+#include "rqt_multiplot/PlotExport.hpp"
+#include "rqt_multiplot/PlotLayoutConfig.hpp"
+#include "rqt_multiplot/PlotMouseBindings.hpp"
+#include "rqt_multiplot/PlotSplitter.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/TimeZoneUtil.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotTableWidget::PlotTableWidget(QWidget* parent)
     : QWidget(parent),
@@ -88,10 +84,6 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
 }
 
 PlotTableWidget::~PlotTableWidget() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotTableWidget::setConfig(PlotTableConfig* config) {
   if (config != config_) {
@@ -216,10 +208,6 @@ MessageSubscriberRegistry* PlotTableWidget::getRegistry() const {
 BagReader* PlotTableWidget::getBagReader() const {
   return bagReader_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotTableWidget::runPlots() {
   for (PlotWidget* plot : plotWidgets_) {
@@ -596,10 +584,6 @@ void PlotTableWidget::resizeEvent(QResizeEvent* event) {
   QWidget::resizeEvent(event);
   applyAllStretch();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotTableWidget::configBackgroundColorChanged(const QColor& color) {
   QPalette currentPalette = palette();

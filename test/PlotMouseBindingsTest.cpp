@@ -4,7 +4,7 @@
 #include <QPoint>
 #include <Qt>
 
-#include <rqt_multiplot/PlotMouseBindings.h>
+#include "rqt_multiplot/PlotMouseBindings.hpp"
 
 namespace {
 

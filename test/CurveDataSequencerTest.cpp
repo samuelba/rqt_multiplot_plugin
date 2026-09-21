@@ -5,10 +5,10 @@
 #include <gtest/gtest.h>
 #include <ros_babel_fish/messages/array_message.hpp>
 
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/CurveDataSequencer.h>
-#include <rqt_multiplot/Message.h>
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveDataSequencer.hpp"
+#include "rqt_multiplot/Message.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
 namespace {
 

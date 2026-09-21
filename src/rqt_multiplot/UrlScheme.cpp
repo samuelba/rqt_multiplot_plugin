@@ -16,23 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/UrlScheme.h"
+#include "rqt_multiplot/UrlScheme.hpp"
 
 #include <utility>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 UrlScheme::UrlScheme(QString prefix, QObject* /*parent*/) : prefix_(std::move(prefix)) {}
 
 UrlScheme::~UrlScheme() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 const QString& UrlScheme::getPrefix() const {
   return prefix_;

@@ -22,21 +22,21 @@
 #include <qwt/qwt_scale_div.h>
 #include <qwt/qwt_scale_widget.h>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/MultiplotConfig.h>
-#include <rqt_multiplot/OffsetScaleDraw.h>
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotLayoutConfig.h>
-#include <rqt_multiplot/PlotTabWidget.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableConfigWidget.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
-#include <rqt_multiplot/ProgressWidget.h>
-#include <rqt_multiplot/XmlSettings.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/MultiplotConfig.hpp"
+#include "rqt_multiplot/OffsetScaleDraw.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotLayoutConfig.hpp"
+#include "rqt_multiplot/PlotTabWidget.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableConfigWidget.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/ProgressWidget.hpp"
+#include "rqt_multiplot/XmlSettings.hpp"
 
 namespace {
 

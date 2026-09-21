@@ -25,16 +25,12 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_scale_div.h>
 
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotMouseBindings.h>
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotMouseBindings.hpp"
 
-#include "rqt_multiplot/PlotPanner.h"
+#include "rqt_multiplot/PlotPanner.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotPanner::PlotPanner(QWidget* canvas) : QObject(canvas), canvas_(canvas), panning_(false) {
   refreshCursor();
@@ -56,10 +52,6 @@ QwtPlot* PlotPanner::plot() const {
 void PlotPanner::refreshCursor() {
   cursor_ = QCursor(packagePixmap(QStringLiteral("resource/move.svg"), QSize(23, 23)), 11, 11);
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool PlotPanner::eventFilter(QObject* object, QEvent* event) {
   if (object == canvas_) {

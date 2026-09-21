@@ -3,7 +3,7 @@
 #include <QDir>
 #include <QString>
 
-#include <rqt_multiplot/AmentIndex.h>
+#include "rqt_multiplot/AmentIndex.hpp"
 
 namespace {
 

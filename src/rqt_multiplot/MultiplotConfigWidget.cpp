@@ -30,20 +30,16 @@
 #include <QSettings>
 #include <QTimer>
 
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
-#include <rqt_multiplot/XmlSettings.h>
+#include "rqt_multiplot/XmlSettings.hpp"
 
 #include <ui_MultiplotConfigWidget.h>
 
-#include "rqt_multiplot/MultiplotConfigWidget.h"
+#include "rqt_multiplot/MultiplotConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryLength)
     : QWidget(parent),
@@ -93,10 +89,6 @@ MultiplotConfigWidget::MultiplotConfigWidget(QWidget* parent, size_t maxHistoryL
 MultiplotConfigWidget::~MultiplotConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MultiplotConfigWidget::setConfig(MultiplotConfig* config) {
   if (config != config_) {
@@ -222,10 +214,6 @@ bool MultiplotConfigWidget::isFile(const QString& url) const {
 
   return false;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool MultiplotConfigWidget::loadConfig(const QString& url) {
   if (config_ != nullptr) {
@@ -437,10 +425,6 @@ void MultiplotConfigWidget::clearConfigUrlHistory() {
 
   actionClearHistory_->setEnabled(false);
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MultiplotConfigWidget::configChanged() {
   if (suppressDirtyTracking_) {

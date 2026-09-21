@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/TimeZoneUtil.h"
+#include "rqt_multiplot/TimeZoneUtil.hpp"
 
 #include <QFileInfo>
 #include <QRegularExpression>

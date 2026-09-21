@@ -15,10 +15,10 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/MultiplotConfig.h>
-#include <rqt_multiplot/MultiplotWidget.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/XmlSettings.h>
+#include "rqt_multiplot/MultiplotConfig.hpp"
+#include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/XmlSettings.hpp"
 
 namespace {
 

@@ -9,18 +9,18 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/BoundingRectangle.h>
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveColorConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/CurveValuesWidget.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotCurve.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/BoundingRectangle.hpp"
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveColorConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/CurveValuesWidget.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
 

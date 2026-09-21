@@ -20,30 +20,22 @@
 
 #include <pluginlib/class_list_macros.hpp>
 
-#include <rqt_multiplot/LaunchOptions.h>
-#include <rqt_multiplot/MessageTopicRegistry.h>
-#include <rqt_multiplot/MultiplotWidget.h>
-#include <rqt_multiplot/RosContext.h>
+#include "rqt_multiplot/LaunchOptions.hpp"
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
+#include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/RosContext.hpp"
 
-#include "rqt_multiplot/MultiplotPlugin.h"
+#include "rqt_multiplot/MultiplotPlugin.hpp"
 
 PLUGINLIB_EXPORT_CLASS(rqt_multiplot::MultiplotPlugin, rqt_gui_cpp::Plugin)
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MultiplotPlugin::MultiplotPlugin() : widget_(nullptr), runAllPlotsOnStart_(false) {
   setObjectName("MultiplotPlugin");
 }
 
 MultiplotPlugin::~MultiplotPlugin() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MultiplotPlugin::initPlugin(qt_gui_cpp::PluginContext& context) {
   RosContext::setNode(node_);

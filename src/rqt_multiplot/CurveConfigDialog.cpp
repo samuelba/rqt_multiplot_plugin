@@ -18,14 +18,10 @@
 
 #include <ui_CurveConfigDialog.h>
 
-#include "rqt_multiplot/CurveConfigDialog.h"
-#include "rqt_multiplot/Theme.h"
+#include "rqt_multiplot/CurveConfigDialog.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveConfigDialog::CurveConfigDialog(QWidget* parent, Qt::WindowFlags flags) : QDialog(parent, flags), ui_(new Ui::CurveConfigDialog()) {
   ui_->setupUi(this);
@@ -35,10 +31,6 @@ CurveConfigDialog::CurveConfigDialog(QWidget* parent, Qt::WindowFlags flags) : Q
 CurveConfigDialog::~CurveConfigDialog() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 CurveConfigWidget* CurveConfigDialog::getWidget() const {
   return ui_->widgetCurveConfig;

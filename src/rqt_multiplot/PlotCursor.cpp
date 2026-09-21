@@ -35,18 +35,14 @@
 #include <qwt/qwt_scale_widget.h>
 #include <qwt/qwt_text.h>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/PlotCursorLabel.h>
-#include <rqt_multiplot/PlotCursorMachine.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/PlotCursorLabel.hpp"
+#include "rqt_multiplot/PlotCursorMachine.hpp"
 
-#include "rqt_multiplot/PlotCursor.h"
+#include "rqt_multiplot/PlotCursor.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotCursor::PlotCursor(QWidget* canvas)
     : QwtPlotPicker(canvas),
@@ -68,10 +64,6 @@ PlotCursor::PlotCursor(QWidget* canvas)
 }
 
 PlotCursor::~PlotCursor() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotCursor::setActive(bool active, const QPointF& position) {
   if (mouseControl_) {
@@ -238,10 +230,6 @@ QwtText PlotCursor::trackerTextF(const QPointF& point) const {
   text.setPaintAttribute(QwtText::PaintBackground, true);
   return text;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotCursor::drawRubberBand(QPainter* painter) const {
   QwtPlotPicker::drawRubberBand(painter);
@@ -423,10 +411,6 @@ void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
   }
   painter->restore();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotCursor::plotXAxisScaleDivChanged() {
   if (isActive()) {

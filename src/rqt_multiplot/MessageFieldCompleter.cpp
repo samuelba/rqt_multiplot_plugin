@@ -18,23 +18,15 @@
 
 #include <QStringList>
 
-#include "rqt_multiplot/MessageFieldCompleter.h"
+#include "rqt_multiplot/MessageFieldCompleter.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageFieldCompleter::MessageFieldCompleter(QObject* parent) : QCompleter(parent) {}
 
 MessageFieldCompleter::MessageFieldCompleter(MessageFieldItemModel* model, QObject* parent) : QCompleter(model, parent) {}
 
 MessageFieldCompleter::~MessageFieldCompleter() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 QStringList MessageFieldCompleter::splitPath(const QString& path) const {
   auto* messageFieldItemModel = qobject_cast<MessageFieldItemModel*>(model());

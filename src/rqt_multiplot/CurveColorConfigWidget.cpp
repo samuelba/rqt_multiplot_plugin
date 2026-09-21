@@ -20,15 +20,11 @@
 
 #include <ui_CurveColorConfigWidget.h>
 
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/Theme.hpp"
 
-#include "rqt_multiplot/CurveColorConfigWidget.h"
+#include "rqt_multiplot/CurveColorConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveColorConfigWidget::CurveColorConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveColorConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -43,10 +39,6 @@ CurveColorConfigWidget::CurveColorConfigWidget(QWidget* parent) : QWidget(parent
 CurveColorConfigWidget::~CurveColorConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveColorConfigWidget::setConfig(CurveColorConfig* config) {
   if (config_ != config) {
@@ -67,10 +59,6 @@ void CurveColorConfigWidget::setConfig(CurveColorConfig* config) {
   }
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 bool CurveColorConfigWidget::eventFilter(QObject* object, QEvent* event) {
   if ((object == ui_->labelColor) && (ui_->labelColor->isEnabled()) && (config_ != nullptr) &&
       (event->type() == QEvent::MouseButtonPress)) {
@@ -86,10 +74,6 @@ bool CurveColorConfigWidget::eventFilter(QObject* object, QEvent* event) {
 
   return false;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveColorConfigWidget::configTypeChanged(int type) {
   ui_->checkBoxAuto->setCheckState((type == CurveColorConfig::Auto) ? Qt::Checked : Qt::Unchecked);

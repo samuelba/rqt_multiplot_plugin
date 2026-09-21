@@ -5,8 +5,8 @@
 #include <qwt/qwt_scale_div.h>
 #include <qwt/qwt_scale_draw.h>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/OffsetScaleDraw.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/OffsetScaleDraw.hpp"
 
 namespace {
 

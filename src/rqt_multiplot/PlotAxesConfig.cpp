@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotAxesConfig.h"
+#include "rqt_multiplot/PlotAxesConfig.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotAxesConfig::PlotAxesConfig(QObject* parent) : Config(parent) {
   axisConfig_[X] = new PlotAxisConfig(this);
@@ -34,10 +30,6 @@ PlotAxesConfig::PlotAxesConfig(QObject* parent) : Config(parent) {
 
 PlotAxesConfig::~PlotAxesConfig() = default;
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 PlotAxisConfig* PlotAxesConfig::getAxisConfig(Axis axis) const {
   QMap<Axis, PlotAxisConfig*>::const_iterator it = axisConfig_.find(axis);
 
@@ -47,10 +39,6 @@ PlotAxisConfig* PlotAxesConfig::getAxisConfig(Axis axis) const {
     return nullptr;
   }
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotAxesConfig::save(QSettings& settings) const {
   settings.beginGroup("axes");
@@ -89,20 +77,12 @@ void PlotAxesConfig::read(QDataStream& stream) {
   axisConfig_[Y]->read(stream);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 PlotAxesConfig& PlotAxesConfig::operator=(const PlotAxesConfig& src) {
   *axisConfig_[X] = *src.axisConfig_[X];
   *axisConfig_[Y] = *src.axisConfig_[Y];
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotAxesConfig::axisConfigChanged() {
   emit changed();

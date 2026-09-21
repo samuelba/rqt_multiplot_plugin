@@ -18,14 +18,10 @@
 
 #include <ui_PlotConfigDialog.h>
 
-#include "rqt_multiplot/PlotConfigDialog.h"
-#include "rqt_multiplot/Theme.h"
+#include "rqt_multiplot/PlotConfigDialog.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotConfigDialog::PlotConfigDialog(QWidget* parent, Qt::WindowFlags flags) : QDialog(parent, flags), ui_(new Ui::PlotConfigDialog()) {
   ui_->setupUi(this);
@@ -35,10 +31,6 @@ PlotConfigDialog::PlotConfigDialog(QWidget* parent, Qt::WindowFlags flags) : QDi
 PlotConfigDialog::~PlotConfigDialog() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 PlotConfigWidget* PlotConfigDialog::getWidget() const {
   return ui_->widgetPlotConfig;

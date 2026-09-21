@@ -18,7 +18,7 @@
 
 #include <QMetaType>
 
-#include "rqt_multiplot/MessageSubscriberRegistry.h"
+#include "rqt_multiplot/MessageSubscriberRegistry.hpp"
 
 namespace rqt_multiplot {
 

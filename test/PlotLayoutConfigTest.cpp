@@ -6,7 +6,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotLayoutConfig.h>
+#include "rqt_multiplot/PlotLayoutConfig.hpp"
 
 namespace {
 

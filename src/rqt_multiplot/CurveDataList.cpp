@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveDataList.h"
+#include "rqt_multiplot/CurveDataList.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataList::CurveDataList() = default;
 
 CurveDataList::~CurveDataList() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t CurveDataList::getNumPoints() const {
   return points_.count();
@@ -43,10 +35,6 @@ QPointF CurveDataList::getPoint(size_t index) const {
 BoundingRectangle CurveDataList::getBounds() const {
   return bounds_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveDataList::appendPoint(const QPointF& point) {
   bounds_ += point;

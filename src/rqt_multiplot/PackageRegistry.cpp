@@ -21,21 +21,13 @@
 
 #include <ament_index_cpp/get_packages_with_prefixes.hpp>
 
-#include <rqt_multiplot/AmentIndex.h>
+#include "rqt_multiplot/AmentIndex.hpp"
 
-#include "rqt_multiplot/PackageRegistry.h"
+#include "rqt_multiplot/PackageRegistry.hpp"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static Initializations                                                    */
-/*****************************************************************************/
-
 PackageRegistry::Impl PackageRegistry::impl_;
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PackageRegistry::PackageRegistry(QObject* parent) : QObject(parent) {
   connect(&impl_, SIGNAL(started()), this, SLOT(threadStarted()));
@@ -50,10 +42,6 @@ PackageRegistry::Impl::~Impl() {
   terminate();
   wait();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 QMap<QString, QString> PackageRegistry::getPackages() {
   QMutexLocker lock(&impl_.mutex_);
@@ -70,10 +58,6 @@ bool PackageRegistry::isEmpty() {
 
   return impl_.packages_.isEmpty();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PackageRegistry::update() {
   impl_.start();
@@ -101,10 +85,6 @@ void PackageRegistry::Impl::run() {
     }
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PackageRegistry::threadStarted() {
   emit updateStarted();

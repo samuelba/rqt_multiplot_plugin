@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <qwt/qwt_plot.h>
 
-#include <rqt_multiplot/QwtPlotCustom.h>
+#include "rqt_multiplot/QwtPlotCustom.hpp"
 
 namespace {
 

@@ -20,13 +20,9 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 
-#include "rqt_multiplot/MatchFilterComboBox.h"
+#include "rqt_multiplot/MatchFilterComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MatchFilterComboBox::MatchFilterComboBox(QWidget* parent)
     : QComboBox(parent), matchFilterCompleter_(new MatchFilterCompleter(this, Qt::MatchContains)) {
@@ -34,10 +30,6 @@ MatchFilterComboBox::MatchFilterComboBox(QWidget* parent)
 }
 
 MatchFilterComboBox::~MatchFilterComboBox() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MatchFilterComboBox::setEditable(bool editable) {
   if (editable != QComboBox::isEditable()) {
@@ -57,10 +49,6 @@ void MatchFilterComboBox::setEditable(bool editable) {
 MatchFilterCompleter* MatchFilterComboBox::getMatchFilterCompleter() const {
   return matchFilterCompleter_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MatchFilterComboBox::keyPressEvent(QKeyEvent* event) {
   bool doComplete = (count() >= 0);
@@ -102,10 +90,6 @@ void MatchFilterComboBox::keyPressEvent(QKeyEvent* event) {
     matchFilterCompleter_->popup()->setCurrentIndex(QModelIndex());
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MatchFilterComboBox::matchFilterCompleterActivated(const QString& text) {
   setEditText(text);

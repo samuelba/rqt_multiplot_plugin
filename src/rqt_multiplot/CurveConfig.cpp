@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveConfig.h"
+#include "rqt_multiplot/CurveConfig.hpp"
 
 #include <utility>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static initializations                                                    */
-/*****************************************************************************/
-
 const QString CurveConfig::MimeType = "application/rqt-multiplot-curve-config";
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveConfig::CurveConfig(QObject* parent, QString title, size_t subscriberQueueSize)
     : Config(parent),
@@ -52,10 +44,6 @@ CurveConfig::CurveConfig(QObject* parent, QString title, size_t subscriberQueueS
 }
 
 CurveConfig::~CurveConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveConfig::setTitle(const QString& title) {
   if (title != title_) {
@@ -104,10 +92,6 @@ void CurveConfig::setSubscriberQueueSize(size_t queueSize) {
 size_t CurveConfig::getSubscriberQueueSize() const {
   return subscriberQueueSize_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveConfig::save(QSettings& settings) const {
   settings.setValue("title", title_);
@@ -210,10 +194,6 @@ void CurveConfig::read(QDataStream& stream) {
   setSubscriberQueueSize(subscriberQueueSize);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 CurveConfig& CurveConfig::operator=(const CurveConfig& src) {
   if (this == &src) {
     return *this;
@@ -233,10 +213,6 @@ CurveConfig& CurveConfig::operator=(const CurveConfig& src) {
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveConfig::axisConfigChanged() {
   emit changed();

@@ -16,24 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveDataConfig.h"
+#include "rqt_multiplot/CurveDataConfig.hpp"
 
 #include <cmath>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 CurveDataConfig::CurveDataConfig(QObject* parent, Type type, size_t circularBufferCapacity, double timeFrameLength)
     : Config(parent), type_(type), circularBufferCapacity_(circularBufferCapacity), timeFrameLength_(timeFrameLength) {}
 
 CurveDataConfig::~CurveDataConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveDataConfig::setType(Type type) {
   if (type != type_) {
@@ -74,10 +66,6 @@ double CurveDataConfig::getTimeFrameLength() const {
   return timeFrameLength_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void CurveDataConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
   settings.setValue("circular_buffer_capacity", QVariant::fromValue<qulonglong>(circularBufferCapacity_));
@@ -114,10 +102,6 @@ void CurveDataConfig::read(QDataStream& stream) {
   stream >> timeFrameLength;
   setTimeFrameLength(timeFrameLength);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 CurveDataConfig& CurveDataConfig::operator=(const CurveDataConfig& src) {
   setType(src.type_);

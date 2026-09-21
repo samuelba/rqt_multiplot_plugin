@@ -16,24 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotAxisConfig.h"
+#include "rqt_multiplot/PlotAxisConfig.hpp"
 
 #include <utility>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 PlotAxisConfig::PlotAxisConfig(QObject* parent, TitleType titleType, QString customTitle, bool titleVisible)
     : Config(parent), titleType_(titleType), customTitle_(std::move(customTitle)), titleVisible_(titleVisible) {}
 
 PlotAxisConfig::~PlotAxisConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotAxisConfig::setTitleType(TitleType type) {
   if (type != titleType_) {
@@ -74,10 +66,6 @@ bool PlotAxisConfig::isTitleVisible() const {
   return titleVisible_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void PlotAxisConfig::save(QSettings& settings) const {
   settings.setValue("title_type", titleType_);
   settings.setValue("custom_title", customTitle_);
@@ -114,10 +102,6 @@ void PlotAxisConfig::read(QDataStream& stream) {
   stream >> titleVisible;
   setTitleVisible(titleVisible);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 PlotAxisConfig& PlotAxisConfig::operator=(const PlotAxisConfig& src) {
   setTitleType(src.titleType_);

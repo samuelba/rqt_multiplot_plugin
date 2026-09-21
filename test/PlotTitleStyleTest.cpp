@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotTitleStyle.h>
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/PlotTitleStyle.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace {
 

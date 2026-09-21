@@ -7,7 +7,7 @@
  * (at your option) any later version.                                        *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotOpenGLCanvas.h"
+#include "rqt_multiplot/PlotOpenGLCanvas.hpp"
 
 #include <QPainter>
 #include <QPalette>
@@ -15,7 +15,7 @@
 
 #include <qwt/qwt_plot.h>
 
-#include <rqt_multiplot/PlotCanvasPolicy.h>
+#include "rqt_multiplot/PlotCanvasPolicy.hpp"
 
 namespace rqt_multiplot {
 

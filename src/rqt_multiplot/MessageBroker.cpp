@@ -18,13 +18,9 @@
 
 #include <QMetaType>
 
-#include "rqt_multiplot/MessageBroker.h"
+#include "rqt_multiplot/MessageBroker.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageBroker::MessageBroker(QObject* parent) : QObject(parent) {
   qRegisterMetaType<Message>("Message");

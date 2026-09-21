@@ -20,22 +20,18 @@
 #include <QFileDialog>
 #include <QSignalBlocker>
 
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotExport.h>
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotExport.hpp"
 
-#include <rqt_multiplot/PlotTabWidget.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/PlotTabWidget.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 #include <ui_PlotTableConfigWidget.h>
 
-#include "rqt_multiplot/PlotTableConfigWidget.h"
+#include "rqt_multiplot/PlotTableConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
     : QWidget(parent),
@@ -98,10 +94,6 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
 PlotTableConfigWidget::~PlotTableConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotTableConfigWidget::setConfig(PlotTableConfig* config) {
   if (config != config_) {
@@ -238,14 +230,6 @@ void PlotTableConfigWidget::bindPlaybackSignals() {
     plotTablePlotPausedChanged();
   }
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotTableConfigWidget::configLinkScaleChanged(bool link) {
   ui_->checkBoxLinkScale->setCheckState(link ? Qt::Checked : Qt::Unchecked);

@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/Message.h"
+#include "rqt_multiplot/Message.hpp"
 
 namespace rqt_multiplot {
 

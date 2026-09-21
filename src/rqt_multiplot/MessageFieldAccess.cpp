@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/MessageFieldAccess.h"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -20,7 +20,7 @@
 #include <ros_babel_fish/messages/array_message.hpp>
 #include <ros_babel_fish/messages/message_types.hpp>
 
-#include "rqt_multiplot/RosContext.h"
+#include "rqt_multiplot/RosContext.hpp"
 
 namespace rqt_multiplot {
 namespace {

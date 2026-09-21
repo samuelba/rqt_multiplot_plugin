@@ -19,20 +19,16 @@
 #include <QPixmap>
 #include <QSignalBlocker>
 
-#include <rqt_multiplot/MessageFieldAccess.h>
-#include <rqt_multiplot/MessageTopicComboBox.h>
-#include <rqt_multiplot/MessageTypeComboBox.h>
-#include <rqt_multiplot/PackageResource.h>
+#include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/MessageTopicComboBox.hpp"
+#include "rqt_multiplot/MessageTypeComboBox.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
 
 #include <ui_CurveAxisConfigWidget.h>
 
-#include "rqt_multiplot/CurveAxisConfigWidget.h"
+#include "rqt_multiplot/CurveAxisConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -102,10 +98,6 @@ CurveAxisConfigWidget::~CurveAxisConfigWidget() {
   delete ui_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
   if (config_ != config) {
     if (config_ != nullptr) {
@@ -170,10 +162,6 @@ QStringList CurveAxisConfigWidget::currentErrors() const {
   appendError(ui_->statusWidgetScale);
   return errors;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveAxisConfigWidget::updateTopics() {
   MessageTopicComboBox::updateTopics();
@@ -410,10 +398,6 @@ void CurveAxisConfigWidget::syncLabelFromZero() {
     config_->setLabelFromZero(fieldType.isTime);
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveAxisConfigWidget::configTopicChanged(const QString& topic) {
   ui_->comboBoxTopic->setCurrentTopic(topic);

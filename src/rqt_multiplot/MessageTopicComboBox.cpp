@@ -20,13 +20,9 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 
-#include "rqt_multiplot/MessageTopicComboBox.h"
+#include "rqt_multiplot/MessageTopicComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageTopicComboBox::MessageTopicComboBox(QWidget* parent)
     : MatchFilterComboBox(parent), registry_(new MessageTopicRegistry(this)), isUpdating_(false) {
@@ -45,10 +41,6 @@ MessageTopicComboBox::MessageTopicComboBox(QWidget* parent)
 }
 
 MessageTopicComboBox::~MessageTopicComboBox() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MessageTopicComboBox::setEditable(bool editable) {
   if (editable != QComboBox::isEditable()) {
@@ -110,17 +102,9 @@ bool MessageTopicComboBox::isCurrentTopicRegistered() const {
   return (findText(currentTopic_) >= 0);
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void MessageTopicComboBox::updateTopics() {
   rqt_multiplot::MessageTopicRegistry::update();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageTopicComboBox::registryUpdateStarted() {
   setEnabled(false);

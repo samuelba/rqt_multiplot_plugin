@@ -18,13 +18,9 @@
 
 #include <ui_PlotLegendConfigWidget.h>
 
-#include "rqt_multiplot/PlotLegendConfigWidget.h"
+#include "rqt_multiplot/PlotLegendConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotLegendConfigWidget::PlotLegendConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotLegendConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -35,10 +31,6 @@ PlotLegendConfigWidget::PlotLegendConfigWidget(QWidget* parent) : QWidget(parent
 PlotLegendConfigWidget::~PlotLegendConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotLegendConfigWidget::setConfig(PlotLegendConfig* config) {
   if (config != config_) {
@@ -59,10 +51,6 @@ void PlotLegendConfigWidget::setConfig(PlotLegendConfig* config) {
 PlotLegendConfig* PlotLegendConfigWidget::getConfig() const {
   return config_;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotLegendConfigWidget::configVisibleChanged(bool visible) {
   ui_->checkBoxVisible->setCheckState(visible ? Qt::Checked : Qt::Unchecked);

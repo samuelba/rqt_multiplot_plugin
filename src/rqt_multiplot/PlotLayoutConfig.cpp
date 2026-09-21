@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotLayoutConfig.h"
+#include "rqt_multiplot/PlotLayoutConfig.hpp"
 
 #include <algorithm>
 #include <numeric>
@@ -33,19 +33,11 @@ int gcdOf(int lhs, int rhs) {
 
 }  // namespace
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 PlotLayoutConfig::PlotLayoutConfig(QObject* parent, PlotConfig* plotConfig) : Config(parent), type_(Plot), plotConfig_(nullptr) {
   adoptPlotConfig(plotConfig != nullptr ? plotConfig : new PlotConfig(this));
 }
 
 PlotLayoutConfig::~PlotLayoutConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 PlotLayoutConfig::Type PlotLayoutConfig::getType() const {
   return type_;
@@ -104,10 +96,6 @@ size_t PlotLayoutConfig::getNumColumns() const {
 
   return static_cast<size_t>(grid[0].count());
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 PlotConfig* PlotLayoutConfig::splitPlot(PlotConfig* plot, Qt::Orientation orientation, bool insertBefore) {
   PlotLayoutConfig* leaf = findLeaf(plot);
@@ -366,10 +354,6 @@ void PlotLayoutConfig::read(QDataStream& stream) {
   emit changed();
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 PlotLayoutConfig& PlotLayoutConfig::operator=(const PlotLayoutConfig& src) {
   if (this == &src) {
     return *this;
@@ -399,10 +383,6 @@ PlotLayoutConfig& PlotLayoutConfig::operator=(const PlotLayoutConfig& src) {
   emit changed();
   return *this;
 }
-
-/*****************************************************************************/
-/* Private methods                                                           */
-/*****************************************************************************/
 
 PlotLayoutConfig* PlotLayoutConfig::parentLayout() const {
   return qobject_cast<PlotLayoutConfig*>(parent());
@@ -748,10 +728,6 @@ PlotLayoutConfig::Type PlotLayoutConfig::typeFromName(const QString& name) {
   }
   return Plot;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotLayoutConfig::childConfigChanged() {
   emit changed();

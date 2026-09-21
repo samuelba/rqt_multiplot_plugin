@@ -21,10 +21,10 @@
 
 #include <QApplication>
 
-#include <rqt_multiplot/MessageEvent.h>
-#include <rqt_multiplot/RosContext.h>
+#include "rqt_multiplot/MessageEvent.hpp"
+#include "rqt_multiplot/RosContext.hpp"
 
-#include "rqt_multiplot/MessageSubscriber.h"
+#include "rqt_multiplot/MessageSubscriber.hpp"
 
 namespace {
 

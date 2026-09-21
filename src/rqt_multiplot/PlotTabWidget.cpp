@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotTabWidget.h"
+#include "rqt_multiplot/PlotTabWidget.hpp"
 
 #include <QCursor>
 #include <QInputDialog>
@@ -28,15 +28,11 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotTabWidget::PlotTabWidget(QWidget* parent)
     : QWidget(parent), tabWidget_(new QTabWidget(this)), addButton_(new QToolButton(this)), config_(nullptr) {
@@ -59,10 +55,6 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
 }
 
 PlotTabWidget::~PlotTabWidget() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotTabWidget::setConfig(MultiplotConfig* config) {
   if (config == config_) {
@@ -142,10 +134,6 @@ void PlotTabWidget::clearPlots() {
 void PlotTabWidget::loadFromBagFile(const QString& fileName) {
   forEachPlotTable(&PlotTableWidget::loadFromBagFile, fileName);
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotTabWidget::rebuildTabs() {
   clearPlotTables();
@@ -287,10 +275,6 @@ void PlotTabWidget::forEachPlotTable(void (PlotTableWidget::*method)(const QStri
     }
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotTabWidget::configTabAdded(size_t index) {
   if (config_ == nullptr) {

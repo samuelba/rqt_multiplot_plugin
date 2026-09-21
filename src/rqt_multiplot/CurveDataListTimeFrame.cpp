@@ -18,21 +18,13 @@
 
 #include <cmath>
 
-#include "rqt_multiplot/CurveDataListTimeFrame.h"
+#include "rqt_multiplot/CurveDataListTimeFrame.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataListTimeFrame::CurveDataListTimeFrame(double length) : timeFrameLength_(length) {}
 
 CurveDataListTimeFrame::~CurveDataListTimeFrame() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t CurveDataListTimeFrame::getNumPoints() const {
   return points_.size();
@@ -45,10 +37,6 @@ QPointF CurveDataListTimeFrame::getPoint(size_t index) const {
 BoundingRectangle CurveDataListTimeFrame::getBounds() const {
   return bounds_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveDataListTimeFrame::dropExpiredPoints(double timeCutoff) {
   while (!points_.empty() && points_.front().x() < timeCutoff) {

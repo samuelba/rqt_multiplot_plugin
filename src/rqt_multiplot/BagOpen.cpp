@@ -10,7 +10,7 @@
 
 #include <rosbag2_cpp/reader.hpp>
 
-#include "rqt_multiplot/BagOpen.h"
+#include "rqt_multiplot/BagOpen.hpp"
 
 namespace rqt_multiplot {
 namespace {

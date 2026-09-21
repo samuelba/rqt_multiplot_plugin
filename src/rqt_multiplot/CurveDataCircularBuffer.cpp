@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveDataCircularBuffer.h"
+#include "rqt_multiplot/CurveDataCircularBuffer.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataCircularBuffer::CurveDataCircularBuffer(size_t capacity) : points_(capacity) {
   xMin_.reserve(capacity);
@@ -32,10 +28,6 @@ CurveDataCircularBuffer::CurveDataCircularBuffer(size_t capacity) : points_(capa
 }
 
 CurveDataCircularBuffer::~CurveDataCircularBuffer() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t CurveDataCircularBuffer::getCapacity() const {
   return points_.capacity();
@@ -84,10 +76,6 @@ BoundingRectangle CurveDataCircularBuffer::getBounds() const {
 
   return BoundingRectangle();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveDataCircularBuffer::appendPoint(const QPointF& point) {
   if (points_.full()) {

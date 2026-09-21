@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/LaunchOptions.h>
+#include "rqt_multiplot/LaunchOptions.hpp"
 
 namespace {
 

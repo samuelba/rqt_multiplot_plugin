@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/AxisTimeFormat.h"
+#include "rqt_multiplot/AxisTimeFormat.hpp"
 
 #include <algorithm>
 #include <cmath>

@@ -16,17 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotConfig.h"
+#include "rqt_multiplot/PlotConfig.hpp"
 
 #include <utility>
 
 #include <cmath>
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotConfig::PlotConfig(QObject* parent, QString title, double plotRate)
     : Config(parent),
@@ -45,10 +41,6 @@ PlotConfig::~PlotConfig() {
     disconnect(curveConfig, nullptr, this, nullptr);
   }
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotConfig::setTitle(const QString& title) {
   if (title != title_) {
@@ -145,10 +137,6 @@ bool PlotConfig::canApplyTimeWindow() const {
 
   return true;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 CurveConfig* PlotConfig::addCurve() {
   auto* curveConfig = new CurveConfig(this);
@@ -348,10 +336,6 @@ void PlotConfig::read(QDataStream& stream) {
   setTimeWindowLength(timeWindowLength);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
   if (this == &src) {
     return *this;
@@ -379,10 +363,6 @@ PlotConfig& PlotConfig::operator=(const PlotConfig& src) {
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotConfig::curveConfigChanged() {
   for (int index = 0; index < curveConfig_.count(); ++index) {

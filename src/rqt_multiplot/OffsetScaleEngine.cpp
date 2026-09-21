@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/OffsetScaleEngine.h"
+#include "rqt_multiplot/OffsetScaleEngine.hpp"
 
 #include <QList>
 

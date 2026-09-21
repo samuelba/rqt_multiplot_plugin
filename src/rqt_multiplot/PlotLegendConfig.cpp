@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotLegendConfig.h"
+#include "rqt_multiplot/PlotLegendConfig.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotLegendConfig::PlotLegendConfig(QObject* parent, bool visible) : Config(parent), visible_(visible) {}
 
 PlotLegendConfig::~PlotLegendConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotLegendConfig::setVisible(bool visible) {
   if (visible != visible_) {
@@ -44,10 +36,6 @@ void PlotLegendConfig::setVisible(bool visible) {
 bool PlotLegendConfig::isVisible() const {
   return visible_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotLegendConfig::save(QSettings& settings) const {
   settings.setValue("visible", visible_);
@@ -71,10 +59,6 @@ void PlotLegendConfig::read(QDataStream& stream) {
   stream >> visible;
   setVisible(visible);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 PlotLegendConfig& PlotLegendConfig::operator=(const PlotLegendConfig& src) {
   setVisible(src.visible_);

@@ -24,15 +24,11 @@
 
 #include <qwt/qwt_plot.h>
 
-#include <rqt_multiplot/PlotMouseBindings.h>
+#include "rqt_multiplot/PlotMouseBindings.hpp"
 
-#include "rqt_multiplot/PlotZoomer.h"
+#include "rqt_multiplot/PlotZoomer.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotZoomer::PlotZoomer(QWidget* canvas, bool doReplot) : QwtPlotZoomer(canvas, doReplot) {
   setMousePattern(MouseSelect1, Qt::LeftButton, Qt::ControlModifier);
@@ -41,10 +37,6 @@ PlotZoomer::PlotZoomer(QWidget* canvas, bool doReplot) : QwtPlotZoomer(canvas, d
 }
 
 PlotZoomer::~PlotZoomer() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotZoomer::updateOverlayPens() {
   QColor color = Qt::black;

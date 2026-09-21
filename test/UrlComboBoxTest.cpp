@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/UrlComboBox.h>
+#include "rqt_multiplot/UrlComboBox.hpp"
 
 namespace {
 

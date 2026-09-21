@@ -18,13 +18,9 @@
 
 #include <QCompleter>
 
-#include "rqt_multiplot/MessageFieldLineEdit.h"
+#include "rqt_multiplot/MessageFieldLineEdit.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageFieldLineEdit::MessageFieldLineEdit(QWidget* parent)
     : QLineEdit(parent), completer_(new MessageFieldCompleter(this)), completerModel_(new MessageFieldItemModel(this)) {
@@ -35,10 +31,6 @@ MessageFieldLineEdit::MessageFieldLineEdit(QWidget* parent)
 }
 
 MessageFieldLineEdit::~MessageFieldLineEdit() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MessageFieldLineEdit::setMessageDataType(const MessageFieldType& dataType) {
   completerModel_->setMessageDataType(dataType);
@@ -69,10 +61,6 @@ MessageFieldType MessageFieldLineEdit::getCurrentFieldDataType() const {
 bool MessageFieldLineEdit::isCurrentFieldDefined() const {
   return getCurrentFieldDataType().isValid();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageFieldLineEdit::editingFinished() {
   setCurrentField(text());

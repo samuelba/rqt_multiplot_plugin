@@ -18,21 +18,13 @@
 
 #include <QKeyEvent>
 
-#include "rqt_multiplot/CurveListWidget.h"
+#include "rqt_multiplot/CurveListWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveListWidget::CurveListWidget(QWidget* parent) : QListWidget(parent) {}
 
 CurveListWidget::~CurveListWidget() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t CurveListWidget::getNumCurves() const {
   return count();
@@ -47,10 +39,6 @@ CurveItemWidget* CurveListWidget::getCurveItem(size_t index) const {
     return nullptr;
   }
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveListWidget::addCurve(CurveConfig* config) {
   auto* itemWidget = new CurveItemWidget(this);

@@ -15,15 +15,15 @@
 #include <qwt/qwt_plot_item.h>
 #include <qwt/qwt_text.h>
 
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/CurveDataCircularBuffer.h>
-#include <rqt_multiplot/CurveDataConfig.h>
-#include <rqt_multiplot/CurveDataListTimeFrame.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotCurve.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/CurveDataCircularBuffer.hpp"
+#include "rqt_multiplot/CurveDataConfig.hpp"
+#include "rqt_multiplot/CurveDataListTimeFrame.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
 

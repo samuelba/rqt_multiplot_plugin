@@ -428,7 +428,7 @@
   <customwidget>
    <class>rqt_multiplot::ProgressWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/ProgressWidget.h</header>
+   <header location="global">rqt_multiplot/ProgressWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

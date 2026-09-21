@@ -18,15 +18,11 @@
 
 #include <ui_MessageFieldWidget.h>
 
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
-#include "rqt_multiplot/MessageFieldWidget.h"
+#include "rqt_multiplot/MessageFieldWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageFieldWidget::MessageFieldWidget(QWidget* parent)
     : QWidget(parent),
@@ -51,10 +47,6 @@ MessageFieldWidget::MessageFieldWidget(QWidget* parent)
 }
 
 MessageFieldWidget::~MessageFieldWidget() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 QString MessageFieldWidget::getCurrentMessageType() const {
   return loader_->getType();
@@ -94,10 +86,6 @@ bool MessageFieldWidget::isConnecting() const {
 bool MessageFieldWidget::isCurrentFieldDefined() const {
   return getCurrentFieldDataType().isValid();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MessageFieldWidget::loadFields(const QString& type) {
   if (isConnecting_) {
@@ -144,10 +132,6 @@ void MessageFieldWidget::disconnect() {
   subscribedTopic_.clear();
   connectionTimer_->stop();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageFieldWidget::loaderLoadingStarted() {
   setEnabled(false);

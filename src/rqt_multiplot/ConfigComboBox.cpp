@@ -18,13 +18,9 @@
 
 #include <QDir>
 
-#include "rqt_multiplot/ConfigComboBox.h"
+#include "rqt_multiplot/ConfigComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 ConfigComboBox::ConfigComboBox(QWidget* parent)
     : UrlComboBox(parent),

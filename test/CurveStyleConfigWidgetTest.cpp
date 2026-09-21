@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveStyleConfigWidget.h>
+#include "rqt_multiplot/CurveStyleConfigWidget.hpp"
 
 namespace {
 

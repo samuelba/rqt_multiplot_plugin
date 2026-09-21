@@ -18,13 +18,9 @@
 
 #include <QStringList>
 
-#include "rqt_multiplot/UrlCompleter.h"
+#include "rqt_multiplot/UrlCompleter.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 UrlCompleter::UrlCompleter(QObject* parent) : QCompleter(parent), model_(new UrlItemModel(this)) {
   setModel(model_);
@@ -34,17 +30,9 @@ UrlCompleter::UrlCompleter(QObject* parent) : QCompleter(parent), model_(new Url
 
 UrlCompleter::~UrlCompleter() = default;
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 UrlItemModel* UrlCompleter::getModel() const {
   return model_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 QStringList UrlCompleter::splitPath(const QString& url) const {
   QString scheme;
@@ -77,10 +65,6 @@ QStringList UrlCompleter::splitPath(const QString& url) const {
 QString UrlCompleter::pathFromIndex(const QModelIndex& index) const {
   return rqt_multiplot::UrlItemModel::getUrl(index);
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void UrlCompleter::modelUrlLoaded(const QString& url) {
   QString prefix = completionPrefix();

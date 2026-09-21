@@ -9,10 +9,10 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotCanvasPolicy.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/PlotCanvasPolicy.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
 

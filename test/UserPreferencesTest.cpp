@@ -3,8 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotTitleStyle.h>
-#include <rqt_multiplot/UserPreferences.h>
+#include "rqt_multiplot/PlotTitleStyle.hpp"
+#include "rqt_multiplot/UserPreferences.hpp"
 
 namespace {
 

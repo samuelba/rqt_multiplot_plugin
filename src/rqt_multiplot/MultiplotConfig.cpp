@@ -16,13 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/MultiplotConfig.h"
+#include "rqt_multiplot/MultiplotConfig.hpp"
 
 #include <algorithm>
 
-#include "rqt_multiplot/Theme.h"
-#include "rqt_multiplot/TimeZoneUtil.h"
-#include "rqt_multiplot/UserPreferences.h"
+#include "rqt_multiplot/Theme.hpp"
+#include "rqt_multiplot/TimeZoneUtil.hpp"
+#include "rqt_multiplot/UserPreferences.hpp"
 
 #include <QBuffer>
 #include <QByteArray>
@@ -57,10 +57,6 @@ QString normalizeTimeZoneId(const QString& timeZoneId) {
 }
 }  // namespace
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 MultiplotConfig::MultiplotConfig(QObject* parent)
     : Config(parent),
       currentTabIndex_(0),
@@ -74,10 +70,6 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
 }
 
 MultiplotConfig::~MultiplotConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t MultiplotConfig::getNumTabs() const {
   return static_cast<size_t>(tableConfigs_.count());
@@ -253,10 +245,6 @@ void MultiplotConfig::applyUserDefaults() {
   setOpenGLCanvasEnabled(prefs.openGLCanvasEnabled);
   setPlotTitleStyle(prefs.plotTitleStyle);
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MultiplotConfig::save(QSettings& settings) const {
   if (preferencesOverridden_) {
@@ -456,10 +444,6 @@ void MultiplotConfig::read(QDataStream& stream) {
   replaceWithLegacyTableStream(legacy);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   if (this == &src) {
     return *this;
@@ -496,10 +480,6 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Private methods                                                           */
-/*****************************************************************************/
 
 PlotTableConfig* MultiplotConfig::createTab(const QString& title) {
   auto* table = new PlotTableConfig(this);
@@ -666,10 +646,6 @@ void MultiplotConfig::replaceWithLegacyTableStream(QDataStream& stream) {
   deleteTabs(previous);
   emit changed();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MultiplotConfig::tableConfigChanged() {
   emit changed();

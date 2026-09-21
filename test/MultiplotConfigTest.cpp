@@ -8,13 +8,13 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/MultiplotConfig.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTitleStyle.h>
-#include <rqt_multiplot/UserPreferences.h>
-#include <rqt_multiplot/XmlSettings.h>
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/MultiplotConfig.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTitleStyle.hpp"
+#include "rqt_multiplot/UserPreferences.hpp"
+#include "rqt_multiplot/XmlSettings.hpp"
 
 namespace {
 

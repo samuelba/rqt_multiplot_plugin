@@ -2,3 +2,4 @@
 .pydevproject
 __pycache__/
 .qtcreator/
+CMakeLists.txt.user

@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/DataTypeRegistry.h"
+#include "rqt_multiplot/DataTypeRegistry.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Static Initializations                                                    */
-/*****************************************************************************/
 
 QMutex DataTypeRegistry::mutex_;
 

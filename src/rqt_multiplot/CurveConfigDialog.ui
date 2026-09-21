@@ -43,7 +43,7 @@
   <customwidget>
    <class>rqt_multiplot::CurveConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/CurveConfigWidget.h</header>
+   <header location="global">rqt_multiplot/CurveConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

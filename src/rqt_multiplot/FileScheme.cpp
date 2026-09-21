@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/FileScheme.h"
+#include "rqt_multiplot/FileScheme.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 FileScheme::FileScheme(QObject* /*parent*/, const QString& prefix, const QString& rootPath, QDir::Filters filter)
     : UrlScheme(prefix), model_(new QFileSystemModel(this)) {
@@ -33,10 +29,6 @@ FileScheme::FileScheme(QObject* /*parent*/, const QString& prefix, const QString
 }
 
 FileScheme::~FileScheme() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void FileScheme::setRootPath(const QString& rootPath) {
   model_->setRootPath(rootPath);
@@ -119,10 +111,6 @@ QString FileScheme::getFilePath(const QModelIndex& /*hostIndex*/, const QModelIn
 QString FileScheme::getFilePath(const QString& /*host*/, const QString& path) const {
   return model_->rootDirectory().absoluteFilePath(path);
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void FileScheme::modelDirectoryLoaded(const QString& path) {
   emit pathLoaded(QString(), model_->rootDirectory().relativeFilePath(path));

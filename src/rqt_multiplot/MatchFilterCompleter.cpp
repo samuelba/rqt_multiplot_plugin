@@ -18,13 +18,9 @@
 
 #include <QStringList>
 
-#include "rqt_multiplot/MatchFilterCompleter.h"
+#include "rqt_multiplot/MatchFilterCompleter.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MatchFilterCompleter::MatchFilterCompleter(QObject* parent, Qt::MatchFlags filterMatchFlags)
     : QCompleter(parent), proxyModel_(new MatchFilterCompleterModel(this, filterMatchFlags)) {
@@ -32,10 +28,6 @@ MatchFilterCompleter::MatchFilterCompleter(QObject* parent, Qt::MatchFlags filte
 }
 
 MatchFilterCompleter::~MatchFilterCompleter() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MatchFilterCompleter::setFilterMatchFlags(Qt::MatchFlags flags) {
   proxyModel_->setFilterMatchFlags(flags);
@@ -52,10 +44,6 @@ void MatchFilterCompleter::setFilterCaseSensitivity(Qt::CaseSensitivity caseSens
 Qt::CaseSensitivity MatchFilterCompleter::getFilterCaseSensitivity() const {
   return proxyModel_->filterCaseSensitivity();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 QStringList MatchFilterCompleter::splitPath(const QString& path) const {
   QAbstractItemModel* sourceModel = model();

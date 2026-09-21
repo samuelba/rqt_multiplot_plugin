@@ -526,25 +526,25 @@
   <customwidget>
    <class>rqt_multiplot::CurveAxisConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/CurveAxisConfigWidget.h</header>
+   <header location="global">rqt_multiplot/CurveAxisConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::CurveColorConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/CurveColorConfigWidget.h</header>
+   <header location="global">rqt_multiplot/CurveColorConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::CurveStyleConfigWidget</class>
    <extends>QWidget</extends>
-   <header>rqt_multiplot/CurveStyleConfigWidget.h</header>
+   <header>rqt_multiplot/CurveStyleConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::CurveDataConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/CurveDataConfigWidget.h</header>
+   <header location="global">rqt_multiplot/CurveDataConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

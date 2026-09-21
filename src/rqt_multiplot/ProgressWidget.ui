@@ -58,7 +58,7 @@
   <customwidget>
    <class>rqt_multiplot::StatusWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/StatusWidget.h</header>
+   <header location="global">rqt_multiplot/StatusWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

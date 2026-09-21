@@ -8,11 +8,11 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/CurveConfigWidget.h>
-#include <rqt_multiplot/MessageFieldWidget.h>
-#include <rqt_multiplot/StatusWidget.h>
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveConfigWidget.hpp"
+#include "rqt_multiplot/MessageFieldWidget.hpp"
+#include "rqt_multiplot/StatusWidget.hpp"
 
 namespace {
 

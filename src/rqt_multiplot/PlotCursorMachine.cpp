@@ -18,21 +18,13 @@
 
 #include <QEvent>
 
-#include "rqt_multiplot/PlotCursorMachine.h"
+#include "rqt_multiplot/PlotCursorMachine.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotCursorMachine::PlotCursorMachine() = default;
 
 PlotCursorMachine::~PlotCursorMachine() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 QList<QwtPickerMachine::Command> PlotCursorMachine::transition(const QwtEventPattern& pattern, const QEvent* event) {
   QList<QwtPickerMachine::Command> commands = QwtPickerTrackerMachine::transition(pattern, event);

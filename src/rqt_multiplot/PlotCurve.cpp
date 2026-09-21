@@ -18,26 +18,22 @@
 
 #include <algorithm>
 
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/CurveDataCircularBuffer.h>
-#include <rqt_multiplot/CurveDataList.h>
-#include <rqt_multiplot/CurveDataListTimeFrame.h>
-#include <rqt_multiplot/CurveDataSequencer.h>
-#include <rqt_multiplot/CurveDataVector.h>
-#include <rqt_multiplot/PlotLegendStyle.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/CurveDataCircularBuffer.hpp"
+#include "rqt_multiplot/CurveDataList.hpp"
+#include "rqt_multiplot/CurveDataListTimeFrame.hpp"
+#include "rqt_multiplot/CurveDataSequencer.hpp"
+#include "rqt_multiplot/CurveDataVector.hpp"
+#include "rqt_multiplot/PlotLegendStyle.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 #include <qwt/qwt_legend_data.h>
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_text.h>
 
-#include "rqt_multiplot/PlotCurve.h"
+#include "rqt_multiplot/PlotCurve.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotCurve::PlotCurve(QObject* parent)
     : QObject(parent),
@@ -63,10 +59,6 @@ PlotCurve::~PlotCurve() {
   detach();
   clearGhosts();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotCurve::setConfig(CurveConfig* config) {
   if (config != config_) {
@@ -212,10 +204,6 @@ QList<QwtLegendData> PlotCurve::legendData() const {
   }
   return list;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotCurve::attach(QwtPlot* plot) {
   if (plot != nullptr) {
@@ -372,10 +360,6 @@ void PlotCurve::syncGhosts() {
     ghosts_[i]->setSamples(frames[i]);
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotCurve::configTitleChanged(const QString& title) {
   setTitle(title);

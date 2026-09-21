@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <QVector>
 
-#include <rqt_multiplot/PlotCursorLabel.h>
+#include "rqt_multiplot/PlotCursorLabel.hpp"
 
 namespace {
 

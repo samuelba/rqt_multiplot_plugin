@@ -4,7 +4,7 @@
 #include <QTemporaryDir>
 #include <QWidget>
 
-#include <rqt_multiplot/StandaloneWindowSettings.h>
+#include "rqt_multiplot/StandaloneWindowSettings.hpp"
 
 namespace {
 

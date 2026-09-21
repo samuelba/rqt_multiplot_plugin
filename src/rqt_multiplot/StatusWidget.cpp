@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/StatusWidget.h"
+#include "rqt_multiplot/StatusWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 StatusWidget::StatusWidget(QWidget* parent, Role role)
     : QWidget(parent),
@@ -48,10 +44,6 @@ StatusWidget::StatusWidget(QWidget* parent, Role role)
 }
 
 StatusWidget::~StatusWidget() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void StatusWidget::setIcon(Role role, const QPixmap& icon) {
   setFrames(role, icon, 1, 0.0);
@@ -146,10 +138,6 @@ StatusWidget::Role StatusWidget::getCurrentRole() const {
   return currentRole_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void StatusWidget::pushCurrentRole() {
   roleStack_.append(currentRole_);
   toolTipStack_.append(toolTip());
@@ -201,10 +189,6 @@ void StatusWidget::stop() {
     timer_->stop();
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void StatusWidget::timerTimeout() {
   step();

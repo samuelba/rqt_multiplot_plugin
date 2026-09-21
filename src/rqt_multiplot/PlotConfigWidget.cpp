@@ -22,21 +22,17 @@
 #include <QLayout>
 #include <QMimeData>
 
-#include <rqt_multiplot/PackageResource.h>
+#include "rqt_multiplot/PackageResource.hpp"
 
-#include <rqt_multiplot/CurveConfigDialog.h>
-#include <rqt_multiplot/CurveConfigWidget.h>
-#include <rqt_multiplot/CurveItemWidget.h>
+#include "rqt_multiplot/CurveConfigDialog.hpp"
+#include "rqt_multiplot/CurveConfigWidget.hpp"
+#include "rqt_multiplot/CurveItemWidget.hpp"
 
 #include <ui_PlotConfigWidget.h>
 
-#include "rqt_multiplot/PlotConfigWidget.h"
+#include "rqt_multiplot/PlotConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotConfigWidget()), config_(new PlotConfig(this)) {
   ui_->setupUi(this);
@@ -99,10 +95,6 @@ PlotConfigWidget::~PlotConfigWidget() {
   delete ui_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void PlotConfigWidget::setConfig(const PlotConfig& config) {
   ui_->curveListWidget->clear();
 
@@ -120,10 +112,6 @@ void PlotConfigWidget::setConfig(const PlotConfig& config) {
 const PlotConfig& PlotConfigWidget::getConfig() const {
   return *config_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotConfigWidget::copySelectedCurves() {
   QList<QListWidgetItem*> items = ui_->curveListWidget->selectedItems();
@@ -187,10 +175,6 @@ bool PlotConfigWidget::eventFilter(QObject* object, QEvent* event) {
 
   return false;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotConfigWidget::configTitleChanged(const QString& title) {
   ui_->lineEditTitle->setText(title);

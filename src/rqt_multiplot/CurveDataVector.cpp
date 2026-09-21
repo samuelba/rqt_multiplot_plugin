@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveDataVector.h"
+#include "rqt_multiplot/CurveDataVector.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveDataVector::CurveDataVector() = default;
 
 CurveDataVector::~CurveDataVector() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 size_t CurveDataVector::getNumPoints() const {
   return points_.count();
@@ -60,10 +52,6 @@ QVector<size_t> CurveDataVector::getPointsInDistance(double x, double maxDistanc
 BoundingRectangle CurveDataVector::getBounds() const {
   return bounds_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveDataVector::appendPoint(const QPointF& point) {
   bounds_ += point;

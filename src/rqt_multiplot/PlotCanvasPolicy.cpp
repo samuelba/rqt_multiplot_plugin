@@ -7,7 +7,7 @@
  * (at your option) any later version.                                        *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotCanvasPolicy.h"
+#include "rqt_multiplot/PlotCanvasPolicy.hpp"
 
 #include <QCoreApplication>
 #include <QFrame>
@@ -20,7 +20,7 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 
-#include <rqt_multiplot/PlotOpenGLCanvas.h>
+#include "rqt_multiplot/PlotOpenGLCanvas.hpp"
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && !defined(QWT_NO_OPENGL)
 #if __has_include(<qwt/qwt_plot_opengl_canvas.h>)

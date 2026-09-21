@@ -18,18 +18,14 @@
 
 #include <QStringList>
 
-#include <rqt_multiplot/CurveDataSequencer.h>
-#include <rqt_multiplot/PackageResource.h>
+#include "rqt_multiplot/CurveDataSequencer.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
 
 #include <ui_CurveConfigWidget.h>
 
-#include "rqt_multiplot/CurveConfigWidget.h"
+#include "rqt_multiplot/CurveConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveConfigWidget::CurveConfigWidget(QWidget* parent)
     : QWidget(parent),
@@ -88,10 +84,6 @@ CurveConfigWidget::~CurveConfigWidget() {
   delete ui_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void CurveConfigWidget::setConfig(const CurveConfig& config) {
   *config_ = config;
   updateFadeHistoryApplicable();
@@ -116,10 +108,6 @@ QString CurveConfigWidget::validationErrorText() const {
 bool CurveConfigWidget::isValidationErrorVisible() const {
   return !ui_->widgetValidationError->isHidden();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveConfigWidget::configTitleChanged(const QString& title) {
   ui_->lineEditTitle->setText(title);
