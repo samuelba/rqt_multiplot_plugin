@@ -25,7 +25,9 @@
 #include "rqt_multiplot/MessageTopicRegistry.hpp"
 
 namespace Ui {
+
 class CurveConfigWidget;
+
 }
 
 namespace rqt_multiplot {

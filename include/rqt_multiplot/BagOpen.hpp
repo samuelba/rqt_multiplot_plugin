@@ -10,7 +10,9 @@
 #include <rosbag2_storage/storage_options.hpp>
 
 namespace rosbag2_cpp {
+
 class Reader;
+
 }
 
 namespace rqt_multiplot {

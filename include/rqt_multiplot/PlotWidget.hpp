@@ -42,7 +42,9 @@
 #include "rqt_multiplot/PlotTitleStyle.hpp"
 
 namespace Ui {
+
 class PlotWidget;
+
 }
 
 namespace rqt_multiplot {

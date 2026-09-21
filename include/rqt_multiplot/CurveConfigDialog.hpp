@@ -21,7 +21,9 @@
 #include <QDialog>
 
 namespace Ui {
+
 class CurveConfigDialog;
+
 }
 
 namespace rqt_multiplot {

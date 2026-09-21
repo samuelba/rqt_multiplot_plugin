@@ -23,7 +23,9 @@
 #include "rqt_multiplot/PlotAxisConfig.hpp"
 
 namespace Ui {
+
 class PlotAxisConfigWidget;
+
 }
 
 namespace rqt_multiplot {

@@ -29,7 +29,9 @@
 #include "rqt_multiplot/MessageSubscriberRegistry.hpp"
 
 namespace Ui {
+
 class MessageFieldWidget;
+
 }
 
 namespace rqt_multiplot {

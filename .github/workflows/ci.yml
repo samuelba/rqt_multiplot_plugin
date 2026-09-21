@@ -87,7 +87,7 @@ jobs:
     env:
       DEBIAN_FRONTEND: noninteractive
       ROS_DISTRO: ${{ matrix.ros_distro }}
-      CLANG_TIDY_VERSION: '18'
+      CLANG_TIDY_VERSION: '23'
     steps:
       - name: Install git
         run: |
@@ -120,19 +120,12 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends \
             wget gnupg ca-certificates software-properties-common
-          case "${ROS_DISTRO}" in
-            lyrical|rolling)
-              apt-get install -y --no-install-recommends clang-format-18 clang-tidy-18
-              ;;
-            *)
-              wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
-              chmod +x /tmp/llvm.sh
-              /tmp/llvm.sh 18
-              apt-get install -y --no-install-recommends clang-format-18 clang-tidy-18
-              ;;
-          esac
-          clang-format-18 --version
-          clang-tidy-18 --version
+          wget -q https://apt.llvm.org/llvm.sh -O /tmp/llvm.sh
+          chmod +x /tmp/llvm.sh
+          /tmp/llvm.sh 23
+          apt-get install -y --no-install-recommends clang-format-23 clang-tidy-23
+          clang-format-23 --version
+          clang-tidy-23 --version
 
       - name: clang-format
         run: |

@@ -33,6 +33,7 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr quint32 kTabsStreamMagic = 0x52544D31;
 constexpr auto kPreferencesStreamMarker = "__rtp_prefs_v2__";
 constexpr quint64 kMaxStreamTabs = 256;
@@ -55,6 +56,7 @@ QString normalizeTimeZoneId(const QString& timeZoneId) {
 
   return QString::fromLatin1(kTimeZoneLocal);
 }
+
 }  // namespace
 
 MultiplotConfig::MultiplotConfig(QObject* parent)

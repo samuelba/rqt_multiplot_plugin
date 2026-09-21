@@ -41,6 +41,7 @@
 namespace rqt_multiplot {
 
 namespace {
+
 QAbstractButton* findDockCloseButton(QWidget* titleBar) {
   if (titleBar == nullptr) {
     return nullptr;
@@ -59,6 +60,7 @@ QAbstractButton* findDockCloseButton(QWidget* titleBar) {
 
   return nullptr;
 }
+
 }  // namespace
 
 MultiplotWidget::MultiplotWidget(QWidget* parent)

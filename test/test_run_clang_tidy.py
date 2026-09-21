@@ -172,15 +172,15 @@ class JobCountTest(unittest.TestCase):
 
 class FindRunClangTidyTest(unittest.TestCase):
     def test_prefers_pinned_version(self):
-        with patch.dict(os.environ, {'CLANG_TIDY_VERSION': '18'}, clear=False):
-            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-18' else None):
-                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-18')
+        with patch.dict(os.environ, {'CLANG_TIDY_VERSION': '23'}, clear=False):
+            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-23' else None):
+                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-23')
 
-    def test_defaults_to_clang_tidy_18(self):
+    def test_defaults_to_clang_tidy_23(self):
         env = {key: value for key, value in os.environ.items() if key != 'CLANG_TIDY_VERSION'}
         with patch.dict(os.environ, env, clear=True):
-            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-18' else None):
-                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-18')
+            with patch('run_clang_tidy.shutil.which', side_effect=lambda name: f'/usr/bin/{name}' if name == 'run-clang-tidy-23' else None):
+                self.assertEqual(rct.find_run_clang_tidy(), '/usr/bin/run-clang-tidy-23')
 
 
 class HeaderFilterTest(unittest.TestCase):

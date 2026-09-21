@@ -11,11 +11,13 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr auto kOrganization = "rqt_multiplot";
 constexpr auto kApplication = "multiplot";
 constexpr auto kGeometryKey = "geometry";
 constexpr auto kHistoryMaxLengthKey = "history/max_length";
 constexpr auto kHistoryCountKey = "history/count";
+
 }  // namespace
 
 QString StandaloneWindowSettings::testSettingsFile_;

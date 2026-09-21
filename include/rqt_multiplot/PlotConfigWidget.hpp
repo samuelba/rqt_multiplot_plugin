@@ -24,7 +24,9 @@
 #include "rqt_multiplot/PlotConfig.hpp"
 
 namespace Ui {
+
 class PlotConfigWidget;
+
 }
 
 namespace rqt_multiplot {

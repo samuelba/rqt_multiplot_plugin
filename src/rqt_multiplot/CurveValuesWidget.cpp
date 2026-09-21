@@ -48,6 +48,7 @@
 namespace rqt_multiplot {
 
 namespace {
+
 constexpr int kSwatchSize = 10;
 constexpr int kGroupGapPx = 10;
 constexpr int kHeadingMarginPx = 8;
@@ -56,6 +57,7 @@ constexpr int kHeadingSpacingPx = 6;
 constexpr int kRefreshIntervalMs = 100;
 constexpr double kLiveReadoutMaxSpan = 0.1;
 constexpr Qt::Alignment kValueAlignment = Qt::AlignRight | Qt::AlignVCenter;
+
 }  // namespace
 
 CurveValuesWidget::CurveValuesWidget(QWidget* parent)

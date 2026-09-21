@@ -23,7 +23,9 @@
 #include "rqt_multiplot/CurveAxisScaleConfig.hpp"
 
 namespace Ui {
+
 class CurveAxisScaleConfigWidget;
+
 }
 
 namespace rqt_multiplot {
