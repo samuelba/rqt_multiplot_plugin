@@ -37,6 +37,7 @@ class MessageTopicRegistry : public QObject {
   static bool isEmpty();
 
   static void update();
+  static void wait();
 
  signals:
   void updateStarted();

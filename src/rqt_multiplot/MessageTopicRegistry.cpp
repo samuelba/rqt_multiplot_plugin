@@ -16,7 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <exception>
+
 #include <QMutexLocker>
+#include <QtGlobal>
 
 #include <rqt_multiplot/RosContext.h>
 
@@ -36,7 +39,6 @@ MessageTopicRegistry::~MessageTopicRegistry() = default;
 MessageTopicRegistry::Impl::Impl(QObject* parent) : QThread(parent) {}
 
 MessageTopicRegistry::Impl::~Impl() {
-  terminate();
   wait();
 }
 
@@ -60,22 +62,34 @@ void MessageTopicRegistry::update() {
   impl_.start();
 }
 
-void MessageTopicRegistry::Impl::run() {
-  mutex_.lock();
-  topics_.clear();
-  mutex_.unlock();
+void MessageTopicRegistry::wait() {
+  impl_.wait();
+}
 
+void MessageTopicRegistry::Impl::run() {
   auto node = RosContext::node();
-  if (!node) {
+  if (!node || !rclcpp::ok()) {
     return;
   }
 
-  const auto topics = node->get_topic_names_and_types();
-  QMutexLocker lock(&mutex_);
-  for (const auto& [name, types] : topics) {
-    if (!types.empty()) {
-      topics_[QString::fromStdString(name)] = QString::fromStdString(types.front());
+  const auto context = node->get_node_base_interface()->get_context();
+  if (!context || !context->is_valid()) {
+    return;
+  }
+
+  try {
+    const auto topics = node->get_topic_names_and_types();
+    QMutexLocker lock(&mutex_);
+    topics_.clear();
+    for (const auto& [name, types] : topics) {
+      if (!types.empty()) {
+        topics_[QString::fromStdString(name)] = QString::fromStdString(types.front());
+      }
     }
+  } catch (const std::exception& ex) {
+    qWarning("MessageTopicRegistry: failed to list topics: %s", ex.what());
+  } catch (...) {
+    qWarning("MessageTopicRegistry: failed to list topics: unknown exception");
   }
 }
 

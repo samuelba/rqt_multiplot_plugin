@@ -21,6 +21,7 @@
 #include <pluginlib/class_list_macros.hpp>
 
 #include <rqt_multiplot/LaunchOptions.h>
+#include <rqt_multiplot/MessageTopicRegistry.h>
 #include <rqt_multiplot/MultiplotWidget.h>
 #include <rqt_multiplot/RosContext.h>
 
@@ -59,6 +60,7 @@ void MultiplotPlugin::shutdownPlugin() {
     widget_->confirmClose();
     widget_->pausePlots();
   }
+  MessageTopicRegistry::wait();
 }
 
 void MultiplotPlugin::saveSettings(qt_gui_cpp::Settings& /*pluginSettings*/, qt_gui_cpp::Settings& instanceSettings) const {

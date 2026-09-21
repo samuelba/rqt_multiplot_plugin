@@ -425,6 +425,7 @@ if(BUILD_TESTING)
     test/CurveDataVectorTest.cpp
     test/CurveValuesWidgetTest.cpp
     test/MessageFieldAccessTest.cpp
+    test/MessageTopicRegistryTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/LaunchOptionsTest.cpp
     test/MultiplotConfigTest.cpp
