@@ -16,26 +16,18 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <rqt_multiplot/ColorOperations.h>
+#include "rqt_multiplot/ColorOperations.hpp"
 
 #include <utility>
 
-#include "rqt_multiplot/CurveColorConfig.h"
+#include "rqt_multiplot/CurveColorConfig.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveColorConfig::CurveColorConfig(QObject* parent, Type type, unsigned char autoColorIndex, QColor customColor)
     : Config(parent), type_(type), autoColorIndex_(autoColorIndex), customColor_(std::move(customColor)) {}
 
 CurveColorConfig::~CurveColorConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveColorConfig::setType(Type type) {
   if (type != type_) {
@@ -89,10 +81,6 @@ QColor CurveColorConfig::getCurrentColor() const {
   }
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void CurveColorConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
   settings.setValue("custom_color", QVariant::fromValue<QColor>(customColor_));
@@ -122,10 +110,6 @@ void CurveColorConfig::read(QDataStream& stream) {
   stream >> customColor;
   setCustomColor(customColor);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 CurveColorConfig& CurveColorConfig::operator=(const CurveColorConfig& src) {
   setType(src.type_);

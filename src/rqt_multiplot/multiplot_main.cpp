@@ -16,11 +16,11 @@
 #include <rclcpp/executors/single_threaded_executor.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-#include <rqt_multiplot/LaunchOptions.h>
-#include <rqt_multiplot/MessageTopicRegistry.h>
-#include <rqt_multiplot/MultiplotWidget.h>
-#include <rqt_multiplot/RosContext.h>
-#include <rqt_multiplot/StandaloneWindowSettings.h>
+#include "rqt_multiplot/LaunchOptions.hpp"
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
+#include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/RosContext.hpp"
+#include "rqt_multiplot/StandaloneWindowSettings.hpp"
 
 namespace {
 

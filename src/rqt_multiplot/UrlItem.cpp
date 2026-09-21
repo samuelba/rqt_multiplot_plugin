@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/UrlItem.h"
+#include "rqt_multiplot/UrlItem.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 UrlItem::UrlItem(UrlScheme* scheme, Type type, const QModelIndex& index, UrlItem* parent)
     : parent_(parent), scheme_(scheme), type_(type), index_(index) {}
@@ -32,10 +28,6 @@ UrlItem::~UrlItem() {
     delete it.value();
   }
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 UrlItem* UrlItem::getParent() const {
   return parent_;
@@ -104,10 +96,6 @@ QModelIndex UrlItem::getIndex(Type type) const {
 
   return QModelIndex();
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 UrlItem* UrlItem::addChild(size_t row, Type type, const QModelIndex& index) {
   QMap<size_t, UrlItem*>::iterator it = children_.find(row);

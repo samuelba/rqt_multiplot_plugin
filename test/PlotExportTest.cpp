@@ -4,7 +4,7 @@
 #include <QStringList>
 #include <QTextStream>
 
-#include <rqt_multiplot/PlotExport.h>
+#include "rqt_multiplot/PlotExport.hpp"
 
 namespace {
 

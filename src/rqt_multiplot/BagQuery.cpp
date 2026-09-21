@@ -18,10 +18,10 @@
 
 #include <QApplication>
 
-#include <rqt_multiplot/MessageEvent.h>
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/MessageEvent.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
-#include "rqt_multiplot/BagQuery.h"
+#include "rqt_multiplot/BagQuery.hpp"
 
 namespace rqt_multiplot {
 

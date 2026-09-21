@@ -18,13 +18,9 @@
 
 #include <climits>
 
-#include "rqt_multiplot/BitOperations.h"
+#include "rqt_multiplot/BitOperations.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 unsigned int BitOperations::revertInt(unsigned int val) {
   unsigned int reverse = val;

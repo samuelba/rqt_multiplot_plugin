@@ -6,8 +6,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotWidget.h>
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace {
 

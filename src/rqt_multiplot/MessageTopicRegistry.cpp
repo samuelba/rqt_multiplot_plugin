@@ -21,9 +21,9 @@
 #include <QMutexLocker>
 #include <QtGlobal>
 
-#include <rqt_multiplot/RosContext.h>
+#include "rqt_multiplot/RosContext.hpp"
 
-#include "rqt_multiplot/MessageTopicRegistry.h"
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
 
 namespace rqt_multiplot {
 

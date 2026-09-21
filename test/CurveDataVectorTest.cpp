@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveDataVector.h>
+#include "rqt_multiplot/CurveDataVector.hpp"
 
 namespace {
 

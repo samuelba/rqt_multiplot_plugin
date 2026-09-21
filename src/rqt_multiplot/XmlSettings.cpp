@@ -23,19 +23,11 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
-#include "rqt_multiplot/XmlSettings.h"
+#include "rqt_multiplot/XmlSettings.hpp"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static Initializations                                                    */
-/*****************************************************************************/
-
 const QSettings::Format XmlSettings::format = QSettings::registerFormat("xml", XmlSettings::read, XmlSettings::write);
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool XmlSettings::read(QIODevice& device, QSettings::SettingsMap& map) {
   QXmlStreamReader xmlReader(&device);

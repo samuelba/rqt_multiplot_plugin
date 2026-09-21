@@ -46,12 +46,12 @@
   <customwidget>
    <class>rqt_multiplot::MessageFieldLineEdit</class>
    <extends>QLineEdit</extends>
-   <header location="global">rqt_multiplot/MessageFieldLineEdit.h</header>
+   <header location="global">rqt_multiplot/MessageFieldLineEdit.hpp</header>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::MessageFieldTreeWidget</class>
    <extends>QTreeWidget</extends>
-   <header location="global">rqt_multiplot/MessageFieldTreeWidget.h</header>
+   <header location="global">rqt_multiplot/MessageFieldTreeWidget.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

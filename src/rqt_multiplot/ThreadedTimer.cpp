@@ -19,13 +19,9 @@
 #include <QApplication>
 #include <QTimerEvent>
 
-#include "rqt_multiplot/ThreadedTimer.h"
+#include "rqt_multiplot/ThreadedTimer.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 ThreadedTimer::ThreadedTimer(QObject* parent) : QThread(parent), timer_(new QTimer()) {
   timer_->moveToThread(this);
@@ -40,10 +36,6 @@ ThreadedTimer::~ThreadedTimer() {
   delete timer_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 int ThreadedTimer::getTimerId() const {
   return timer_->timerId();
 }
@@ -56,19 +48,11 @@ double ThreadedTimer::getRate() const {
   return 1e3 / timer_->interval();
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void ThreadedTimer::run() {
   timer_->start();
 
   QThread::exec();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void ThreadedTimer::timerTimeout() {
   if (parent() != nullptr) {

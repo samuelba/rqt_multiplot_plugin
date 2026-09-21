@@ -97,7 +97,7 @@
   <customwidget>
    <class>rqt_multiplot::PlotAxisConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotAxisConfigWidget.h</header>
+   <header location="global">rqt_multiplot/PlotAxisConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

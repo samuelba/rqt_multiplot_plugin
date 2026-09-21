@@ -18,13 +18,9 @@
 
 #include <ui_PlotAxisConfigWidget.h>
 
-#include "rqt_multiplot/PlotAxisConfigWidget.h"
+#include "rqt_multiplot/PlotAxisConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotAxisConfigWidget::PlotAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotAxisConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -37,10 +33,6 @@ PlotAxisConfigWidget::PlotAxisConfigWidget(QWidget* parent) : QWidget(parent), u
 PlotAxisConfigWidget::~PlotAxisConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotAxisConfigWidget::setConfig(PlotAxisConfig* config) {
   if (config != config_) {
@@ -67,10 +59,6 @@ void PlotAxisConfigWidget::setConfig(PlotAxisConfig* config) {
 PlotAxisConfig* PlotAxisConfigWidget::getConfig() const {
   return config_;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotAxisConfigWidget::configTitleTypeChanged(int type) {
   ui_->checkBoxTitleAuto->setCheckState((type == PlotAxisConfig::AutoTitle) ? Qt::Checked : Qt::Unchecked);

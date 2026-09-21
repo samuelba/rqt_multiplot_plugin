@@ -16,17 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <rqt_multiplot/PackageResource.h>
+#include "rqt_multiplot/PackageResource.hpp"
 
 #include <ui_ProgressWidget.h>
 
-#include "rqt_multiplot/ProgressWidget.h"
+#include "rqt_multiplot/ProgressWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 ProgressWidget::ProgressWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::ProgressWidget()), started_(false) {
   ui_->setupUi(this);
@@ -44,10 +40,6 @@ ProgressWidget::~ProgressWidget() {
   delete ui_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void ProgressWidget::setCurrentProgress(double progress) {
   if (started_) {
     ui_->progressBar->setValue(static_cast<int>(progress * 1e2));
@@ -64,10 +56,6 @@ double ProgressWidget::getCurrentProgress() const {
 bool ProgressWidget::isStarted() const {
   return started_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void ProgressWidget::start(const QString& toolTip) {
   if (!started_) {

@@ -18,13 +18,9 @@
 
 #include <QLineEdit>
 
-#include "rqt_multiplot/MessageTypeComboBox.h"
+#include "rqt_multiplot/MessageTypeComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageTypeComboBox::MessageTypeComboBox(QWidget* parent)
     : MatchFilterComboBox(parent), registry_(new MessageTypeRegistry(this)), isUpdating_(false) {
@@ -45,10 +41,6 @@ MessageTypeComboBox::MessageTypeComboBox(QWidget* parent)
 }
 
 MessageTypeComboBox::~MessageTypeComboBox() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MessageTypeComboBox::setEditable(bool editable) {
   if (editable != QComboBox::isEditable()) {
@@ -100,17 +92,9 @@ bool MessageTypeComboBox::isCurrentTypeRegistered() const {
   return (findText(currentType_) >= 0);
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void MessageTypeComboBox::updateTypes() {
   rqt_multiplot::MessageTypeRegistry::update();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MessageTypeComboBox::registryUpdateStarted() {
   setEnabled(false);

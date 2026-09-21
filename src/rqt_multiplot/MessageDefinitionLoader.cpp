@@ -18,10 +18,10 @@
 
 #include <QMutexLocker>
 
-#include <rqt_multiplot/DataTypeRegistry.h>
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/DataTypeRegistry.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
-#include "rqt_multiplot/MessageDefinitionLoader.h"
+#include "rqt_multiplot/MessageDefinitionLoader.hpp"
 
 namespace rqt_multiplot {
 

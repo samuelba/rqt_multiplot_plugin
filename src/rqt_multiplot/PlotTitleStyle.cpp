@@ -3,11 +3,11 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotTitleStyle.h"
+#include "rqt_multiplot/PlotTitleStyle.hpp"
 
 #include <algorithm>
 
-#include "rqt_multiplot/Theme.h"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
 

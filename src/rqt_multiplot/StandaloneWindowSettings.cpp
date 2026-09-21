@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/StandaloneWindowSettings.h"
+#include "rqt_multiplot/StandaloneWindowSettings.hpp"
 
 #include <QSettings>
 #include <QWidget>

@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotReplotPolicy.h>
+#include "rqt_multiplot/PlotReplotPolicy.hpp"
 
 namespace {
 

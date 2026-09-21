@@ -16,15 +16,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveAxisScaleConfig.h"
+#include "rqt_multiplot/CurveAxisScaleConfig.hpp"
 
 #include <cmath>
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveAxisScaleConfig::CurveAxisScaleConfig(QObject* parent, Type type, double absoluteMinimum, double absoluteMaximum,
                                            double relativeMinimum, double relativeMaximum)
@@ -36,10 +32,6 @@ CurveAxisScaleConfig::CurveAxisScaleConfig(QObject* parent, Type type, double ab
       relativeMaximum_(relativeMaximum) {}
 
 CurveAxisScaleConfig::~CurveAxisScaleConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveAxisScaleConfig::setType(Type type) {
   if (type != type_) {
@@ -117,10 +109,6 @@ bool CurveAxisScaleConfig::isValid() const {
   }
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void CurveAxisScaleConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
 
@@ -181,10 +169,6 @@ void CurveAxisScaleConfig::read(QDataStream& stream) {
   stream >> relativeMaximum;
   setRelativeMaximum(relativeMaximum);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 CurveAxisScaleConfig& CurveAxisScaleConfig::operator=(const CurveAxisScaleConfig& src) {
   setType(src.type_);

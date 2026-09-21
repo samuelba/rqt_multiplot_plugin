@@ -18,13 +18,9 @@
 
 #include <ui_PlotAxesConfigWidget.h>
 
-#include "rqt_multiplot/PlotAxesConfigWidget.h"
+#include "rqt_multiplot/PlotAxesConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotAxesConfigWidget::PlotAxesConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotAxesConfigWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -33,10 +29,6 @@ PlotAxesConfigWidget::PlotAxesConfigWidget(QWidget* parent) : QWidget(parent), u
 PlotAxesConfigWidget::~PlotAxesConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotAxesConfigWidget::setConfig(PlotAxesConfig* config) {
   if (config != config_) {

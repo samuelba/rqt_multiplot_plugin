@@ -18,13 +18,9 @@
 
 #include <QLineEdit>
 
-#include "rqt_multiplot/UrlComboBox.h"
+#include "rqt_multiplot/UrlComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 UrlComboBox::UrlComboBox(QWidget* parent) : QComboBox(parent), completer_(new UrlCompleter(this)) {
   connect(this, SIGNAL(activated(int)), this, SLOT(activated(int)));
@@ -32,10 +28,6 @@ UrlComboBox::UrlComboBox(QWidget* parent) : QComboBox(parent), completer_(new Ur
 }
 
 UrlComboBox::~UrlComboBox() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void UrlComboBox::setEditable(bool editable) {
   if (editable != QComboBox::isEditable()) {
@@ -71,10 +63,6 @@ QString UrlComboBox::getCurrentUrl() const {
 bool UrlComboBox::isCurrentUrlSelectable() const {
   return (findText(currentUrl_) >= 0);
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void UrlComboBox::activated(int index) {
   if (currentUrl_ != itemText(index)) {

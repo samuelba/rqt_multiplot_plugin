@@ -1,0 +1,40 @@
+/******************************************************************************
+ * Copyright (C) 2015 by Ralf Kaestner                                        *
+ * ralf.kaestner@gmail.com                                                    *
+ ******************************************************************************/
+
+#pragma once
+
+#include <memory>
+
+#include <QMetaType>
+#include <QPair>
+#include <QString>
+#include <QVector>
+
+namespace rqt_multiplot {
+
+class MessageFieldType {
+ public:
+  enum Kind { Invalid, Builtin, Compound, Array };
+
+  Kind kind = Invalid;
+  QString identifier;
+  bool isNumeric = false;
+  bool isTime = false;
+  bool isDynamicArray = false;
+  size_t arraySize = 0;
+  QVector<QPair<QString, MessageFieldType>> members;
+  std::shared_ptr<MessageFieldType> elementType;
+
+  bool isValid() const { return kind != Invalid; }
+  bool isBuiltin() const { return kind == Builtin; }
+  bool isMessage() const { return kind == Compound; }
+  bool isArray() const { return kind == Array; }
+  bool isNumericArray() const { return isArray() && elementType && elementType->isNumeric; }
+  bool isPlottable() const { return isNumeric || isNumericArray(); }
+};
+
+}  // namespace rqt_multiplot
+
+Q_DECLARE_METATYPE(rqt_multiplot::MessageFieldType)

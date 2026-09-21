@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/RosContext.h"
+#include "rqt_multiplot/RosContext.hpp"
 
 namespace rqt_multiplot {
 

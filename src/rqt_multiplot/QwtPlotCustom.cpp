@@ -8,7 +8,7 @@
  * (at your option) any later version.                                        *
  ******************************************************************************/
 
-#include "rqt_multiplot/QwtPlotCustom.h"
+#include "rqt_multiplot/QwtPlotCustom.hpp"
 
 #include <QApplication>
 #include <QEvent>
@@ -17,7 +17,7 @@
 #include <qwt/qwt_scale_draw.h>
 #include <qwt/qwt_text.h>
 
-#include <rqt_multiplot/PlotCanvasPolicy.h>
+#include "rqt_multiplot/PlotCanvasPolicy.hpp"
 
 namespace rqt_multiplot {
 namespace {

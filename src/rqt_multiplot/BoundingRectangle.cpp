@@ -16,13 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/BoundingRectangle.h"
+#include "rqt_multiplot/BoundingRectangle.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 BoundingRectangle::BoundingRectangle(const QPointF& minimum, const QPointF& maximum) : minimum_(minimum), maximum_(maximum) {}
 
@@ -32,10 +28,6 @@ BoundingRectangle::BoundingRectangle(const QRectF& rectangle)
 BoundingRectangle::BoundingRectangle(const BoundingRectangle& src) = default;
 
 BoundingRectangle::~BoundingRectangle() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void BoundingRectangle::setMinimum(const QPointF& minimum) {
   minimum_ = minimum;
@@ -77,10 +69,6 @@ bool BoundingRectangle::contains(const QPointF& point) const {
   return (point.x() >= minimum_.x()) && (point.y() >= minimum_.y()) && (point.x() <= maximum_.x()) && (point.y() <= maximum_.y());
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void BoundingRectangle::initialize(const QPointF& point) {
   minimum_ = point;
   maximum_ = point;
@@ -90,10 +78,6 @@ void BoundingRectangle::clear() {
   minimum_ = QPointF(0.0, 0.0);
   maximum_ = QPointF(-1.0, -1.0);
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 bool BoundingRectangle::operator==(const BoundingRectangle& rectangle) const {
   return (minimum_ == rectangle.minimum_) && (maximum_ == rectangle.maximum_);

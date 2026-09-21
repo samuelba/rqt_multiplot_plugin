@@ -135,19 +135,19 @@
   <customwidget>
    <class>rqt_multiplot::PlotTabWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotTabWidget.h</header>
+   <header location="global">rqt_multiplot/PlotTabWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::MultiplotConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/MultiplotConfigWidget.h</header>
+   <header location="global">rqt_multiplot/MultiplotConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::PlotTableConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotTableConfigWidget.h</header>
+   <header location="global">rqt_multiplot/PlotTableConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

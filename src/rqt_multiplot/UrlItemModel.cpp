@@ -18,13 +18,9 @@
 
 #include <QStringList>
 
-#include "rqt_multiplot/UrlItemModel.h"
+#include "rqt_multiplot/UrlItemModel.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 UrlItemModel::UrlItemModel(QObject* /*parent*/) {}
 
@@ -33,10 +29,6 @@ UrlItemModel::~UrlItemModel() {
     delete schemeItem;
   }
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 QString UrlItemModel::getUrl(const QModelIndex& index) {
   if (index.isValid()) {
@@ -113,10 +105,6 @@ UrlScheme* UrlItemModel::getScheme(const QModelIndex& index) {
 
   return nullptr;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void UrlItemModel::addScheme(UrlScheme* scheme) {
   schemes_.append(scheme);
@@ -223,10 +211,6 @@ QModelIndex UrlItemModel::parent(const QModelIndex& index) const {
 
   return QModelIndex();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void UrlItemModel::schemeResetStarted() {
   beginResetModel();

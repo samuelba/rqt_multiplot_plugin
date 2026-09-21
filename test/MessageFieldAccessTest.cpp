@@ -10,7 +10,7 @@
 #include <ros_babel_fish/babel_fish.hpp>
 #include <ros_babel_fish/messages/array_message.hpp>
 
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
 namespace {
 

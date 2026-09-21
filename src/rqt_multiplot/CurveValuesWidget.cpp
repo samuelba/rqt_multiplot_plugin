@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveValuesWidget.h"
+#include "rqt_multiplot/CurveValuesWidget.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -33,17 +33,17 @@
 #include <QTreeWidget>
 #include <QVBoxLayout>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/BoundingRectangle.h>
-#include <rqt_multiplot/CurveColorConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/PlotConfig.h>
-#include <rqt_multiplot/PlotCursor.h>
-#include <rqt_multiplot/PlotCurve.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/BoundingRectangle.hpp"
+#include "rqt_multiplot/CurveColorConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotCursor.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace rqt_multiplot {
 
@@ -57,10 +57,6 @@ constexpr int kRefreshIntervalMs = 100;
 constexpr double kLiveReadoutMaxSpan = 0.1;
 constexpr Qt::Alignment kValueAlignment = Qt::AlignRight | Qt::AlignVCenter;
 }  // namespace
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveValuesWidget::CurveValuesWidget(QWidget* parent)
     : QWidget(parent), tree_(new QTreeWidget(this)), plotTable_(nullptr), refreshTimer_(new QTimer(this)), rebuilding_(false) {
@@ -106,10 +102,6 @@ CurveValuesWidget::~CurveValuesWidget() {
   rows_.clear();
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void CurveValuesWidget::setPlotTable(PlotTableWidget* plotTable) {
   disconnectPlotTable();
   plotTable_ = plotTable;
@@ -144,10 +136,6 @@ bool CurveValuesWidget::hasLiveUpdates() const {
 void CurveValuesWidget::refresh() {
   rebuild();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void CurveValuesWidget::rebuild() {
   if (rebuilding_) {
@@ -326,10 +314,6 @@ QString CurveValuesWidget::formatAxisValue(PlotWidget* plot, const QPointF& poin
   const QTimeZone zone = (cursor != nullptr) ? cursor->timeZone() : plot->getTimeZone();
   return AxisTimeFormat::coordinate(value, offset, span, mode, zone);
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveValuesWidget::plotTableLayoutChanged() {
   rebuild();

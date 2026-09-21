@@ -16,24 +16,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/MatchFilterCompleterModel.h"
+#include "rqt_multiplot/MatchFilterCompleterModel.hpp"
 
 #include <utility>
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 MatchFilterCompleterModel::MatchFilterCompleterModel(QObject* parent, Qt::MatchFlags filterMatchFlags, QString filterKey)
     : QSortFilterProxyModel(parent), filterMatchFlags_(filterMatchFlags), filterKey_(std::move(filterKey)) {}
 
 MatchFilterCompleterModel::~MatchFilterCompleterModel() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MatchFilterCompleterModel::setFilterMatchFlags(Qt::MatchFlags flags) {
   if (flags != filterMatchFlags_) {
@@ -58,10 +50,6 @@ void MatchFilterCompleterModel::setFilterKey(const QString& key) {
 const QString& MatchFilterCompleterModel::getFilterKey() const {
   return filterKey_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MatchFilterCompleterModel::refreshFilter() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)

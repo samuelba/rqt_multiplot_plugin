@@ -10,11 +10,11 @@
 
 #include <QTemporaryDir>
 
-#include <rqt_multiplot/MultiplotConfig.h>
-#include <rqt_multiplot/MultiplotConfigWidget.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTitleStyle.h>
-#include <rqt_multiplot/UserPreferences.h>
+#include "rqt_multiplot/MultiplotConfig.hpp"
+#include "rqt_multiplot/MultiplotConfigWidget.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTitleStyle.hpp"
+#include "rqt_multiplot/UserPreferences.hpp"
 
 namespace {
 

@@ -26,10 +26,10 @@
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
 
-#include <rqt_multiplot/ProgressChangeEvent.h>
+#include "rqt_multiplot/ProgressChangeEvent.hpp"
 
-#include "rqt_multiplot/BagOpen.h"
-#include "rqt_multiplot/BagReader.h"
+#include "rqt_multiplot/BagOpen.hpp"
+#include "rqt_multiplot/BagReader.hpp"
 
 namespace rqt_multiplot {
 

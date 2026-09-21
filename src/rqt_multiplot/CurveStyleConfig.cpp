@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveStyleConfig.h"
+#include "rqt_multiplot/CurveStyleConfig.hpp"
 
 #include <cmath>
 
@@ -26,10 +26,6 @@ namespace {
 constexpr qint32 kStyleStreamMagic = 0x53544631;
 
 }  // namespace
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveStyleConfig::CurveStyleConfig(QObject* parent, Type type, bool linesInterpolate, Qt::Orientation sticksOrientation,
                                    double sticksBaseline, bool stepsInvert, size_t penWidth, Qt::PenStyle penStyle, bool renderAntialias,
@@ -46,10 +42,6 @@ CurveStyleConfig::CurveStyleConfig(QObject* parent, Type type, bool linesInterpo
       fadeHistory_(fadeHistory) {}
 
 CurveStyleConfig::~CurveStyleConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveStyleConfig::setType(Type type) {
   if (type != type_) {
@@ -168,10 +160,6 @@ size_t CurveStyleConfig::getFadeHistory() const {
   return fadeHistory_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void CurveStyleConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
 
@@ -273,10 +261,6 @@ void CurveStyleConfig::read(QDataStream& stream) {
     setFadeHistory(0);
   }
 }
-
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
 
 CurveStyleConfig& CurveStyleConfig::operator=(const CurveStyleConfig& src) {
   setType(src.type_);

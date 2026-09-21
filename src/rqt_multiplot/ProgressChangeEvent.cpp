@@ -16,27 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/ProgressChangeEvent.h"
+#include "rqt_multiplot/ProgressChangeEvent.hpp"
 
 namespace rqt_multiplot {
 
-/*****************************************************************************/
-/* Static initializations                                                    */
-/*****************************************************************************/
-
 const QEvent::Type ProgressChangeEvent::Type = static_cast<QEvent::Type>(QEvent::registerEventType());
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 ProgressChangeEvent::ProgressChangeEvent(double progress) : QEvent(Type), progress_(progress) {}
 
 ProgressChangeEvent::~ProgressChangeEvent() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 double ProgressChangeEvent::getProgress() const {
   return progress_;

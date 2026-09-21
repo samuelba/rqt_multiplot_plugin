@@ -26,7 +26,7 @@
 #include <QSize>
 #include <QSvgGenerator>
 
-#include "rqt_multiplot/PlotExport.h"
+#include "rqt_multiplot/PlotExport.hpp"
 
 namespace rqt_multiplot {
 

@@ -57,7 +57,7 @@
   <customwidget>
    <class>rqt_multiplot::ConfigComboBox</class>
    <extends>QComboBox</extends>
-   <header location="global">rqt_multiplot/ConfigComboBox.h</header>
+   <header location="global">rqt_multiplot/ConfigComboBox.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -16,12 +16,12 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveConfigWidget.h>
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotConfigWidget.h>
-#include <rqt_multiplot/PlotTabWidget.h>
-#include <rqt_multiplot/PlotTableConfigWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/CurveConfigWidget.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotConfigWidget.hpp"
+#include "rqt_multiplot/PlotTabWidget.hpp"
+#include "rqt_multiplot/PlotTableConfigWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
 

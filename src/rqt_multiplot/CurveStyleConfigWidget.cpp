@@ -20,13 +20,9 @@
 
 #include <ui_CurveStyleConfigWidget.h>
 
-#include "rqt_multiplot/CurveStyleConfigWidget.h"
+#include "rqt_multiplot/CurveStyleConfigWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveStyleConfigWidget::CurveStyleConfigWidget(QWidget* parent)
     : QWidget(parent), ui_(new Ui::CurveStyleConfigWidget()), buttonGroupSticksOrientation_(new QButtonGroup(this)), config_(nullptr) {
@@ -67,10 +63,6 @@ CurveStyleConfigWidget::CurveStyleConfigWidget(QWidget* parent)
 CurveStyleConfigWidget::~CurveStyleConfigWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveStyleConfigWidget::setConfig(CurveStyleConfig* config) {
   if (config != config_) {
@@ -130,10 +122,6 @@ void CurveStyleConfigWidget::setFadeHistoryApplicable(bool applicable) {
 bool CurveStyleConfigWidget::isFadeHistoryApplicable() const {
   return ui_->spinBoxFadeHistory->isEnabled();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveStyleConfigWidget::configTypeChanged(int type) {
   if (type == CurveStyleConfig::Sticks) {

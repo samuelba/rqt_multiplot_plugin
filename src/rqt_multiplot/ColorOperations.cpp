@@ -19,15 +19,11 @@
 #include <cmath>
 #include <limits>
 
-#include <rqt_multiplot/BitOperations.h>
+#include "rqt_multiplot/BitOperations.hpp"
 
-#include "rqt_multiplot/ColorOperations.h"
+#include "rqt_multiplot/ColorOperations.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 float ColorOperations::intToHue(unsigned char val) {
   return static_cast<float>(BitOperations::revertByte(val)) / static_cast<float>(std::numeric_limits<unsigned char>::max());

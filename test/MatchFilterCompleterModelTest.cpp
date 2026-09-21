@@ -2,7 +2,7 @@
 
 #include <QStringListModel>
 
-#include <rqt_multiplot/MatchFilterCompleterModel.h>
+#include "rqt_multiplot/MatchFilterCompleterModel.hpp"
 
 namespace {
 

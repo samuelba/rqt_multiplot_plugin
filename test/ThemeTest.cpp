@@ -19,13 +19,13 @@
 #include <gtest/gtest.h>
 #include <qwt/qwt_plot.h>
 
-#include <rqt_multiplot/MultiplotWidget.h>
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotCursor.h>
-#include <rqt_multiplot/PlotTableConfigWidget.h>
-#include <rqt_multiplot/PlotWidget.h>
-#include <rqt_multiplot/PlotZoomer.h>
-#include <rqt_multiplot/Theme.h>
+#include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotCursor.hpp"
+#include "rqt_multiplot/PlotTableConfigWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/PlotZoomer.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace {
 

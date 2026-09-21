@@ -47,31 +47,31 @@
 #include <qwt/qwt_scale_widget.h>
 #include <qwt/qwt_text.h>
 
-#include <rqt_multiplot/PackageResource.h>
-#include <rqt_multiplot/PlotExport.h>
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotExport.hpp"
 
-#include <rqt_multiplot/AxisTimeFormat.h>
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveData.h>
-#include <rqt_multiplot/OffsetScaleDraw.h>
-#include <rqt_multiplot/OffsetScaleEngine.h>
-#include <rqt_multiplot/PlotCanvasPolicy.h>
-#include <rqt_multiplot/PlotConfigDialog.h>
-#include <rqt_multiplot/PlotConfigWidget.h>
-#include <rqt_multiplot/PlotCursor.h>
-#include <rqt_multiplot/PlotCurve.h>
-#include <rqt_multiplot/PlotLegend.h>
-#include <rqt_multiplot/PlotMagnifier.h>
-#include <rqt_multiplot/PlotMouseBindings.h>
-#include <rqt_multiplot/PlotPanner.h>
-#include <rqt_multiplot/PlotReplotPolicy.h>
-#include <rqt_multiplot/PlotZoomer.h>
-#include <rqt_multiplot/Theme.h>
-#include <rqt_multiplot/TimeZoneUtil.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/OffsetScaleDraw.hpp"
+#include "rqt_multiplot/OffsetScaleEngine.hpp"
+#include "rqt_multiplot/PlotCanvasPolicy.hpp"
+#include "rqt_multiplot/PlotConfigDialog.hpp"
+#include "rqt_multiplot/PlotConfigWidget.hpp"
+#include "rqt_multiplot/PlotCursor.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotLegend.hpp"
+#include "rqt_multiplot/PlotMagnifier.hpp"
+#include "rqt_multiplot/PlotMouseBindings.hpp"
+#include "rqt_multiplot/PlotPanner.hpp"
+#include "rqt_multiplot/PlotReplotPolicy.hpp"
+#include "rqt_multiplot/PlotZoomer.hpp"
+#include "rqt_multiplot/Theme.hpp"
+#include "rqt_multiplot/TimeZoneUtil.hpp"
 
 #include <ui_PlotWidget.h>
 
-#include "rqt_multiplot/PlotWidget.h"
+#include "rqt_multiplot/PlotWidget.hpp"
 
 namespace rqt_multiplot {
 namespace {
@@ -107,10 +107,6 @@ class BoolGuard {
 };
 
 }  // namespace
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotWidget::PlotWidget(QWidget* parent)
     : QWidget(parent),
@@ -249,10 +245,6 @@ PlotWidget::~PlotWidget() {
   }
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotWidget::setConfig(PlotConfig* config) {
   if (config != config_) {
@@ -541,10 +533,6 @@ void PlotWidget::destroyCanvasPickers() {
   delete cursor_;
   cursor_ = nullptr;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotWidget::updateGridPen() {
   if (grid_ == nullptr) {
@@ -1032,10 +1020,6 @@ void PlotWidget::bindAxisOrigin(CurveConfig::Axis axis, double value) {
   origin = value;
   applyAxisTimeOffsets();
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotWidget::timerTimeout() {
   if (replot_) {

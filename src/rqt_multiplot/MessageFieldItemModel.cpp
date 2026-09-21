@@ -16,23 +16,15 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/MessageFieldItemModel.h"
+#include "rqt_multiplot/MessageFieldItemModel.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MessageFieldItemModel::MessageFieldItemModel(QObject* parent) : QAbstractItemModel(parent), rootItem_(nullptr) {}
 
 MessageFieldItemModel::~MessageFieldItemModel() {
   { delete rootItem_; }
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void MessageFieldItemModel::setMessageDataType(const MessageFieldType& dataType) {
   if (rootItem_ != nullptr) {
@@ -63,10 +55,6 @@ MessageFieldType MessageFieldItemModel::getFieldDataType(const QString& field) c
 
   return {};
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 int MessageFieldItemModel::rowCount(const QModelIndex& parent) const {
   if (parent.column() <= 0) {

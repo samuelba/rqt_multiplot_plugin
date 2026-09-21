@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/StatusWidget.h>
+#include "rqt_multiplot/StatusWidget.hpp"
 
 namespace {
 

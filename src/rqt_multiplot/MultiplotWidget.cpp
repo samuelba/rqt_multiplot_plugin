@@ -28,15 +28,15 @@
 #include <QShowEvent>
 #include <QTimer>
 
-#include <rqt_multiplot/PlotTabWidget.h>
-#include <rqt_multiplot/PlotTableWidget.h>
-#include <rqt_multiplot/PreferencesDialog.h>
-#include <rqt_multiplot/Theme.h>
-#include <rqt_multiplot/UserPreferences.h>
+#include "rqt_multiplot/PlotTabWidget.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PreferencesDialog.hpp"
+#include "rqt_multiplot/Theme.hpp"
+#include "rqt_multiplot/UserPreferences.hpp"
 
 #include <ui_MultiplotWidget.h>
 
-#include "rqt_multiplot/MultiplotWidget.h"
+#include "rqt_multiplot/MultiplotWidget.hpp"
 
 namespace rqt_multiplot {
 
@@ -60,10 +60,6 @@ QAbstractButton* findDockCloseButton(QWidget* titleBar) {
   return nullptr;
 }
 }  // namespace
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 MultiplotWidget::MultiplotWidget(QWidget* parent)
     : QWidget(parent),
@@ -128,10 +124,6 @@ MultiplotWidget::~MultiplotWidget() {
   delete ui_;
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 MultiplotConfig* MultiplotWidget::getConfig() const {
   return config_;
 }
@@ -176,10 +168,6 @@ void MultiplotWidget::runPlots() {
 void MultiplotWidget::pausePlots() {
   ui_->plotTabWidget->pausePlots();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void MultiplotWidget::loadConfig(const QString& url) {
   ui_->configWidget->loadConfig(url);
@@ -324,10 +312,6 @@ bool MultiplotWidget::isCloseButtonActivation(QObject* object, QEvent* event) co
 
   return false;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void MultiplotWidget::configWidgetCurrentConfigModifiedChanged(bool
                                                                /*modified*/) {

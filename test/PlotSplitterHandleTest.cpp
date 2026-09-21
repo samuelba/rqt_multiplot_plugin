@@ -12,9 +12,9 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/PlotSplitter.h>
-#include <rqt_multiplot/PlotTableConfig.h>
-#include <rqt_multiplot/PlotTableWidget.h>
+#include "rqt_multiplot/PlotSplitter.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
 
 namespace {
 

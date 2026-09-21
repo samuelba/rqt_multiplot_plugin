@@ -20,10 +20,10 @@
 #include <sstream>
 #include <string>
 
-#include <rqt_multiplot/AmentIndex.h>
+#include "rqt_multiplot/AmentIndex.hpp"
 
-#include "rqt_multiplot/MessageFieldAccess.h"
-#include "rqt_multiplot/MessageTypeRegistry.h"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/MessageTypeRegistry.hpp"
 
 namespace rqt_multiplot {
 

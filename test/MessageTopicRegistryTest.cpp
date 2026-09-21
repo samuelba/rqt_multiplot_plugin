@@ -4,8 +4,8 @@
 #include <gtest/gtest.h>
 #include <rclcpp/rclcpp.hpp>
 
-#include <rqt_multiplot/MessageTopicRegistry.h>
-#include <rqt_multiplot/RosContext.h>
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
+#include "rqt_multiplot/RosContext.hpp"
 
 namespace {
 

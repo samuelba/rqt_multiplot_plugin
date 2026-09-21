@@ -22,7 +22,7 @@
 #include <QMetaType>
 #include <QSpinBox>
 
-#include "rqt_multiplot/MessageFieldTreeWidget.h"
+#include "rqt_multiplot/MessageFieldTreeWidget.hpp"
 
 namespace rqt_multiplot {
 

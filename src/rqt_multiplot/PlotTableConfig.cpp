@@ -16,14 +16,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotTableConfig.h"
+#include "rqt_multiplot/PlotTableConfig.hpp"
 
 #include <algorithm>
 #include <utility>
 
 #include <QIODevice>
 
-#include <rqt_multiplot/CurveConfig.h>
+#include "rqt_multiplot/CurveConfig.hpp"
 
 namespace rqt_multiplot {
 
@@ -65,10 +65,6 @@ PlotTableConfig::TimeAxisFormat timeAxisFormatFromInt(quint32 value) {
 }
 }  // namespace
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor foregroundColor, size_t numRows, size_t numColumns,
                                  bool linkScale, bool linkCursor, bool trackPoints, QString title)
     : Config(parent),
@@ -92,10 +88,6 @@ PlotTableConfig::PlotTableConfig(QObject* parent, QColor backgroundColor, QColor
 }
 
 PlotTableConfig::~PlotTableConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void PlotTableConfig::setTitle(const QString& title) {
   if (title != title_) {
@@ -309,10 +301,6 @@ bool PlotTableConfig::isGridVisible() const {
   return gridVisible_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void PlotTableConfig::save(QSettings& settings) const {
   settings.setValue("title", title_);
   settings.setValue("background_color", QVariant::fromValue<QColor>(backgroundColor_));
@@ -496,10 +484,6 @@ void PlotTableConfig::read(QDataStream& stream) {
   readLegacyGridStream(stream);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
   if (this == &src) {
     return *this;
@@ -519,10 +503,6 @@ PlotTableConfig& PlotTableConfig::operator=(const PlotTableConfig& src) {
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Private methods                                                           */
-/*****************************************************************************/
 
 void PlotTableConfig::connectLayout() {
   connect(layout_, SIGNAL(changed()), this, SLOT(layoutConfigChanged()));
@@ -633,10 +613,6 @@ void PlotTableConfig::readLegacyGridStream(QDataStream& stream) {
     stream.resetStatus();
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PlotTableConfig::layoutConfigChanged() {
   emit changed();

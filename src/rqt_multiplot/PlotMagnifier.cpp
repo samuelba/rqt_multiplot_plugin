@@ -23,23 +23,15 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_scale_div.h>
 
-#include <rqt_multiplot/PlotMouseBindings.h>
+#include "rqt_multiplot/PlotMouseBindings.hpp"
 
-#include "rqt_multiplot/PlotMagnifier.h"
+#include "rqt_multiplot/PlotMagnifier.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotMagnifier::PlotMagnifier(QWidget* canvas) : QwtPlotMagnifier(canvas), magnifying_(false), dragStarted_(false) {}
 
 PlotMagnifier::~PlotMagnifier() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PlotMagnifier::rescale(double xFactor, double yFactor) {
   double fx = std::fabs(xFactor);

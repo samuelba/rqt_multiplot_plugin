@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveAxisConfig.h"
+#include "rqt_multiplot/CurveAxisConfig.hpp"
 
 #include <QtMath>
 
@@ -49,10 +49,6 @@ CurveAxisConfig::UnitConversion parseUnitConversion(int raw) {
 
 }  // namespace
 
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
-
 CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, FieldType fieldType, QString field, bool labelFromZero)
     : Config(parent),
       topic_(std::move(topic)),
@@ -66,10 +62,6 @@ CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, F
 }
 
 CurveAxisConfig::~CurveAxisConfig() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveAxisConfig::setTopic(const QString& topic) {
   if (topic != topic_) {
@@ -204,10 +196,6 @@ CurveAxisScaleConfig* CurveAxisConfig::getScaleConfig() const {
   return scaleConfig_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 void CurveAxisConfig::save(QSettings& settings) const {
   settings.setValue("topic", topic_);
   settings.setValue("type", type_);
@@ -281,10 +269,6 @@ void CurveAxisConfig::read(QDataStream& stream) {
   scaleConfig_->read(stream);
 }
 
-/*****************************************************************************/
-/* Operators                                                                 */
-/*****************************************************************************/
-
 CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
   if (this == &src) {
     return *this;
@@ -301,10 +285,6 @@ CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
 
   return *this;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveAxisConfig::scaleChanged() {
   emit changed();

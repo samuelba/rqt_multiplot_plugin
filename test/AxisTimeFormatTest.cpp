@@ -3,7 +3,7 @@
 #include <QDateTime>
 #include <QTimeZone>
 
-#include <rqt_multiplot/AxisTimeFormat.h>
+#include "rqt_multiplot/AxisTimeFormat.hpp"
 
 namespace {
 

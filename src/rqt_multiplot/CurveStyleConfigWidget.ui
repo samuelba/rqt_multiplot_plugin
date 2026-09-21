@@ -286,7 +286,7 @@
   <customwidget>
    <class>rqt_multiplot::PenStyleComboBox</class>
    <extends>QComboBox</extends>
-   <header location="global">rqt_multiplot/PenStyleComboBox.h</header>
+   <header location="global">rqt_multiplot/PenStyleComboBox.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -482,18 +482,18 @@
   <customwidget>
    <class>rqt_multiplot::CurveListWidget</class>
    <extends>QListWidget</extends>
-   <header location="global">rqt_multiplot/CurveListWidget.h</header>
+   <header location="global">rqt_multiplot/CurveListWidget.hpp</header>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::PlotLegendConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotLegendConfigWidget.h</header>
+   <header location="global">rqt_multiplot/PlotLegendConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::PlotAxesConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/PlotAxesConfigWidget.h</header>
+   <header location="global">rqt_multiplot/PlotAxesConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/Theme.h"
+#include "rqt_multiplot/Theme.hpp"
 
 #include <QAbstractButton>
 #include <QAbstractItemView>
@@ -21,7 +21,7 @@
 #include <QStyleOption>
 #include <QVariant>
 
-#include <rqt_multiplot/PackageResource.h>
+#include "rqt_multiplot/PackageResource.hpp"
 
 namespace rqt_multiplot {
 

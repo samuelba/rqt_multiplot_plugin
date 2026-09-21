@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/PlotSplitter.h"
+#include "rqt_multiplot/PlotSplitter.hpp"
 
 #include <algorithm>
 
@@ -26,10 +26,6 @@
 #include <QPainter>
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotSplitterHandle::PlotSplitterHandle(Qt::Orientation orientation, QSplitter* parent) : QSplitterHandle(orientation, parent) {
   setAttribute(Qt::WA_Hover, true);
@@ -41,10 +37,6 @@ PlotSplitter::PlotSplitter(Qt::Orientation orientation, QWidget* parent) : QSpli
   setOpaqueResize(true);
 }
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 bool PlotSplitterHandle::isHovered() const {
   return hovered_;
 }
@@ -52,10 +44,6 @@ bool PlotSplitterHandle::isHovered() const {
 bool PlotSplitterHandle::isLineFilled() const {
   return hovered_ || pressed_;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 bool PlotSplitterHandle::event(QEvent* event) {
   switch (event->type()) {

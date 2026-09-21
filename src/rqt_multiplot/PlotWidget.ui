@@ -318,7 +318,7 @@
   <customwidget>
    <class>rqt_multiplot::QwtPlotCustom</class>
    <extends>QwtPlot</extends>
-   <header>rqt_multiplot/QwtPlotCustom.h</header>
+   <header>rqt_multiplot/QwtPlotCustom.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -18,21 +18,13 @@
 
 #include <QPainter>
 
-#include "rqt_multiplot/PenStyleItemDelegate.h"
+#include "rqt_multiplot/PenStyleItemDelegate.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PenStyleItemDelegate::PenStyleItemDelegate(QWidget* parent) : QItemDelegate(parent) {}
 
 PenStyleItemDelegate::~PenStyleItemDelegate() = default;
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PenStyleItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const {
   QVariant data = index.model()->data(index, Qt::UserRole);

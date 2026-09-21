@@ -14,8 +14,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/BagOpen.h>
-#include <rqt_multiplot/MessageFieldAccess.h>
+#include "rqt_multiplot/BagOpen.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
 namespace {
 

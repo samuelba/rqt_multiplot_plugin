@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/OffsetScaleDraw.h"
+#include "rqt_multiplot/OffsetScaleDraw.hpp"
 
 #include <cmath>
 

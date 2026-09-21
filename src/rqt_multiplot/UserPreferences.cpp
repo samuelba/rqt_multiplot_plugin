@@ -3,9 +3,9 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/UserPreferences.h"
+#include "rqt_multiplot/UserPreferences.hpp"
 
-#include "rqt_multiplot/Theme.h"
+#include "rqt_multiplot/Theme.hpp"
 
 #include <QSettings>
 

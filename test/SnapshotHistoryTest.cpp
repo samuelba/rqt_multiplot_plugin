@@ -3,7 +3,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/SnapshotHistory.h>
+#include "rqt_multiplot/SnapshotHistory.hpp"
 
 namespace {
 

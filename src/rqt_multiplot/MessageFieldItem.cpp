@@ -20,7 +20,7 @@
 #include <QStringList>
 #include <utility>
 
-#include "rqt_multiplot/MessageFieldItem.h"
+#include "rqt_multiplot/MessageFieldItem.hpp"
 
 namespace rqt_multiplot {
 

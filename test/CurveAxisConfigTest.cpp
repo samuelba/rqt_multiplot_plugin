@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveAxisConfig.h>
+#include "rqt_multiplot/CurveAxisConfig.hpp"
 
 namespace {
 

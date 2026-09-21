@@ -16,21 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include "rqt_multiplot/CurveData.h"
+#include "rqt_multiplot/CurveData.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveData::CurveData() = default;
 
 CurveData::~CurveData() = default;
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 double CurveData::getValue(size_t index, CurveConfig::Axis axis) const {
   if (axis == CurveConfig::X) {
@@ -73,10 +65,6 @@ QPair<double, double> CurveData::getAxisBounds(CurveConfig::Axis axis) const {
 bool CurveData::isEmpty() const {
   return getNumPoints() == 0u;
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 size_t CurveData::size() const {
   return getNumPoints();

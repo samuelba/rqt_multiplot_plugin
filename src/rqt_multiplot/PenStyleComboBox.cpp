@@ -20,15 +20,11 @@
 #include <QPainter>
 #include <QPen>
 
-#include <rqt_multiplot/PenStyleItemDelegate.h>
+#include "rqt_multiplot/PenStyleItemDelegate.hpp"
 
-#include "rqt_multiplot/PenStyleComboBox.h"
+#include "rqt_multiplot/PenStyleComboBox.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PenStyleComboBox::PenStyleComboBox(QWidget* parent) : QComboBox(parent) {
   setItemDelegate(new PenStyleItemDelegate(this));
@@ -42,10 +38,6 @@ PenStyleComboBox::PenStyleComboBox(QWidget* parent) : QComboBox(parent) {
 
 PenStyleComboBox::~PenStyleComboBox() = default;
 
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
-
 void PenStyleComboBox::setCurrentStyle(Qt::PenStyle style) {
   setCurrentIndex(style - Qt::SolidLine);
 }
@@ -53,10 +45,6 @@ void PenStyleComboBox::setCurrentStyle(Qt::PenStyle style) {
 Qt::PenStyle PenStyleComboBox::getCurrentStyle() const {
   return static_cast<Qt::PenStyle>(Qt::SolidLine + currentIndex());
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 void PenStyleComboBox::paintEvent(QPaintEvent* event) {
   QComboBox::paintEvent(event);
@@ -75,10 +63,6 @@ void PenStyleComboBox::paintEvent(QPaintEvent* event) {
     painter.drawLine(event->rect().left() + 5, event->rect().center().y(), event->rect().right() - 20, event->rect().center().y());
   }
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void PenStyleComboBox::currentIndexChanged(int index) {
   if (index >= 0) {

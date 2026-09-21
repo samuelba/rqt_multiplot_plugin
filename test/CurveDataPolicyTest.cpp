@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveDataCircularBuffer.h>
-#include <rqt_multiplot/CurveDataListTimeFrame.h>
+#include "rqt_multiplot/CurveDataCircularBuffer.hpp"
+#include "rqt_multiplot/CurveDataListTimeFrame.hpp"
 
 namespace {
 

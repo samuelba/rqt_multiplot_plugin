@@ -21,13 +21,9 @@
 
 #include <ui_CurveItemWidget.h>
 
-#include "rqt_multiplot/CurveItemWidget.h"
+#include "rqt_multiplot/CurveItemWidget.hpp"
 
 namespace rqt_multiplot {
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 CurveItemWidget::CurveItemWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveItemWidget()), config_(nullptr) {
   ui_->setupUi(this);
@@ -38,10 +34,6 @@ CurveItemWidget::CurveItemWidget(QWidget* parent) : QWidget(parent), ui_(new Ui:
 CurveItemWidget::~CurveItemWidget() {
   delete ui_;
 }
-
-/*****************************************************************************/
-/* Accessors                                                                 */
-/*****************************************************************************/
 
 void CurveItemWidget::setConfig(CurveConfig* config) {
   if (config != config_) {
@@ -74,10 +66,6 @@ CurveConfig* CurveItemWidget::getConfig() const {
   return config_;
 }
 
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
-
 bool CurveItemWidget::eventFilter(QObject* object, QEvent* event) {
   if (config_ != nullptr) {
     if ((object == ui_->frameColor) && (event->type() == QEvent::Paint)) {
@@ -96,10 +84,6 @@ bool CurveItemWidget::eventFilter(QObject* object, QEvent* event) {
 
   return false;
 }
-
-/*****************************************************************************/
-/* Slots                                                                     */
-/*****************************************************************************/
 
 void CurveItemWidget::configTitleChanged(const QString& /*title*/) {
   ui_->labelTitle->setText(config_->getTitle());

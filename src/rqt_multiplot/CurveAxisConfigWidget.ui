@@ -285,29 +285,29 @@
   <customwidget>
    <class>rqt_multiplot::MessageTopicComboBox</class>
    <extends>QComboBox</extends>
-   <header location="global">rqt_multiplot/MessageTopicComboBox.h</header>
+   <header location="global">rqt_multiplot/MessageTopicComboBox.hpp</header>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::MessageTypeComboBox</class>
    <extends>QComboBox</extends>
-   <header location="global">rqt_multiplot/MessageTypeComboBox.h</header>
+   <header location="global">rqt_multiplot/MessageTypeComboBox.hpp</header>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::StatusWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/StatusWidget.h</header>
+   <header location="global">rqt_multiplot/StatusWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::MessageFieldWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/MessageFieldWidget.h</header>
+   <header location="global">rqt_multiplot/MessageFieldWidget.hpp</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>rqt_multiplot::CurveAxisScaleConfigWidget</class>
    <extends>QWidget</extends>
-   <header location="global">rqt_multiplot/CurveAxisScaleConfigWidget.h</header>
+   <header location="global">rqt_multiplot/CurveAxisScaleConfigWidget.hpp</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

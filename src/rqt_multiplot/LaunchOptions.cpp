@@ -3,7 +3,7 @@
  * ralf.kaestner@gmail.com                                                    *
  ******************************************************************************/
 
-#include "rqt_multiplot/LaunchOptions.h"
+#include "rqt_multiplot/LaunchOptions.hpp"
 
 #include <QCommandLineParser>
 #include <QUrl>

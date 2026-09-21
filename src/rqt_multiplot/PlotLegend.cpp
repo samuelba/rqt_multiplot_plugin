@@ -39,14 +39,14 @@
 #include <qwt/qwt_legend_itemmanager.h>
 #endif
 
-#include <rqt_multiplot/CurveConfigDialog.h>
-#include <rqt_multiplot/CurveConfigWidget.h>
-#include <rqt_multiplot/PlotCurve.h>
-#include <rqt_multiplot/PlotLegendStyle.h>
-#include <rqt_multiplot/PlotMouseBindings.h>
-#include <rqt_multiplot/PlotWidget.h>
+#include "rqt_multiplot/CurveConfigDialog.hpp"
+#include "rqt_multiplot/CurveConfigWidget.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotLegendStyle.hpp"
+#include "rqt_multiplot/PlotMouseBindings.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 
-#include "rqt_multiplot/PlotLegend.h"
+#include "rqt_multiplot/PlotLegend.hpp"
 
 namespace rqt_multiplot {
 namespace {
@@ -57,10 +57,6 @@ void toggleCurveVisibility(QWidget* widget, PlotCurve* curve) {
 }
 
 }  // namespace
-
-/*****************************************************************************/
-/* Constructors and Destructor                                               */
-/*****************************************************************************/
 
 PlotLegend::PlotLegend(QWidget* parent)
     : QwtLegend(parent),
@@ -78,10 +74,6 @@ PlotLegend::PlotLegend(QWidget* parent)
 PlotLegend::~PlotLegend() {
   cancelPendingToggle();
 }
-
-/*****************************************************************************/
-/* Methods                                                                   */
-/*****************************************************************************/
 
 PlotCurve* PlotLegend::findCurve(QWidget* widget) const {
 #if QWT_VERSION >= 0x060100

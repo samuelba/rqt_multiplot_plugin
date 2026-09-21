@@ -6,11 +6,11 @@
 
 #include <gtest/gtest.h>
 
-#include <rqt_multiplot/CurveAxisConfig.h>
-#include <rqt_multiplot/CurveConfig.h>
-#include <rqt_multiplot/PlotAxesConfig.h>
-#include <rqt_multiplot/PlotAxisConfig.h>
-#include <rqt_multiplot/PlotConfig.h>
+#include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/PlotAxesConfig.hpp"
+#include "rqt_multiplot/PlotAxisConfig.hpp"
+#include "rqt_multiplot/PlotConfig.hpp"
 
 namespace {
 
