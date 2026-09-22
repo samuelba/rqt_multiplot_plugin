@@ -122,7 +122,6 @@ PlotWidget::PlotWidget(QWidget* parent)
     : QWidget(parent),
       ui_(new Ui::PlotWidget()),
       timer_(new QTimer(this)),
-      menuImportExport_(new QMenu(this)),
       menuSplit_(new QMenu(this)),
       menuContext_(new QMenu(this)),
       actionContextResetZoom_(nullptr),
@@ -175,7 +174,6 @@ PlotWidget::PlotWidget(QWidget* parent)
 
   ui_->pushButtonRunPause->setIcon(runIcon_);
   setThemeIcon(ui_->pushButtonClear, QStringLiteral("resource/delete-data.svg"), QSize(16, 16));
-  setThemeIcon(ui_->pushButtonImportExport, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonSetup, QStringLiteral("resource/settings-edit.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonSplit, QStringLiteral("resource/split/layout.svg"), QSize(16, 16));
   ui_->pushButtonSplit->setIconSize(QSize(16, 16));
@@ -208,8 +206,6 @@ PlotWidget::PlotWidget(QWidget* parent)
   timer_->setInterval(static_cast<int>(1e3 / 30.0));
   timer_->start();
 
-  menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
-  menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
   buildSplitMenu();
   buildContextMenu();
 
@@ -241,7 +237,6 @@ PlotWidget::PlotWidget(QWidget* parent)
   connect(ui_->pushButtonRunPause, SIGNAL(clicked()), this, SLOT(pushButtonRunPauseClicked()));
   connect(ui_->pushButtonClear, SIGNAL(clicked()), this, SLOT(pushButtonClearClicked()));
   connect(ui_->pushButtonSetup, SIGNAL(clicked()), this, SLOT(pushButtonSetupClicked()));
-  connect(ui_->pushButtonImportExport, SIGNAL(clicked()), this, SLOT(pushButtonImportExportClicked()));
   connect(ui_->pushButtonSplit, SIGNAL(clicked()), this, SLOT(pushButtonSplitClicked()));
   connect(ui_->pushButtonState, SIGNAL(clicked()), this, SLOT(pushButtonStateClicked()));
   connect(ui_->pushButtonClose, SIGNAL(clicked()), this, SLOT(pushButtonCloseClicked()));
@@ -1431,10 +1426,6 @@ void PlotWidget::pushButtonSetupClicked() {
       *config_ = dialog.getWidget()->getConfig();
     }
   }
-}
-
-void PlotWidget::pushButtonImportExportClicked() {
-  menuImportExport_->popup(QCursor::pos());
 }
 
 void PlotWidget::pushButtonStateClicked() {

@@ -118,7 +118,7 @@ The rqt launcher needs `--` before those flags.
 | Click a legend item | Toggle that curve's visibility |
 | Drag a legend item onto another plot | Copy that curve |
 
-Use the plot toolbar to run, pause, clear, configure, export, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. The even-distribution button on the main toolbar resets splitter sizes in the active tab. Older row×column files still load.
+Use the plot toolbar to run, pause, clear, configure, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. The even-distribution button on the main toolbar resets splitter sizes in the active tab. Older row×column files still load.
 
 **Link Scale** keeps axis ranges in sync across the plots. **Link Cursor** moves the crosshair on every plot. **Track Points** marks the nearest sample on each curve and shows its title and x, y. The side-panel button (between Track Points and the time toggles) shows or hides **Curve values** for the active tab. The grid button turns plot grids on or off for the active tab.
 

@@ -149,7 +149,6 @@ class PlotWidget : public QWidget {
   QIcon normalIcon_;
   QIcon maximizedIcon_;
   QTimer* timer_;
-  QMenu* menuImportExport_;
   QMenu* menuSplit_;
   QMenu* menuContext_;
   QAction* actionContextResetZoom_;
@@ -241,7 +240,6 @@ class PlotWidget : public QWidget {
   void pushButtonRunPauseClicked();
   void pushButtonClearClicked();
   void pushButtonSetupClicked();
-  void pushButtonImportExportClicked();
   void pushButtonStateClicked();
   void pushButtonSplitClicked();
   void pushButtonCloseClicked();
