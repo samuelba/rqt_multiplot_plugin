@@ -30,6 +30,9 @@
 
 namespace rqt_multiplot {
 
+constexpr int kExportImageWidth = 1280;
+constexpr int kExportImageHeight = 1024;
+
 enum class CurveTableHeaderStyle { Comment, Csv };
 
 enum class ImageExportFormat { Png, Svg, Pdf };

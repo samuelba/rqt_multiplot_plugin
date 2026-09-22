@@ -111,7 +111,6 @@ TEST(PlotWidget, toolbarButtonsHaveVisibleRasterIcons) {
   PlotWidget widget;
   expectVisibleButtonIcon(&widget, "pushButtonRunPause");
   expectVisibleButtonIcon(&widget, "pushButtonClear");
-  expectVisibleButtonIcon(&widget, "pushButtonImportExport");
   expectVisibleButtonIcon(&widget, "pushButtonSetup");
   expectVisibleButtonIcon(&widget, "pushButtonSplit");
   expectVisibleButtonIcon(&widget, "pushButtonState");

@@ -12,6 +12,7 @@ using rqt_multiplot::isLegendToggleClick;
 using rqt_multiplot::isPanMouse;
 using rqt_multiplot::isRectangleZoomMouse;
 using rqt_multiplot::isStationaryClick;
+using rqt_multiplot::isUserScaleLocked;
 using rqt_multiplot::isZoomResetClick;
 using rqt_multiplot::isZoomResetMouse;
 using rqt_multiplot::mouseEventPosition;
@@ -91,6 +92,21 @@ TEST(PlotMouseBindings, skipsPreferredScaleWhenUserScaleIsLocked) {
   EXPECT_FALSE(shouldApplyPreferredScale(true, true));
   EXPECT_FALSE(shouldApplyPreferredScale(false, false));
   EXPECT_FALSE(shouldApplyPreferredScale(false, true));
+}
+
+TEST(PlotMouseBindings, appliesPreferredScaleWhenEitherAxisIsUnlocked) {
+  EXPECT_TRUE(shouldApplyPreferredScale(true, false, false));
+  EXPECT_TRUE(shouldApplyPreferredScale(true, true, false));
+  EXPECT_TRUE(shouldApplyPreferredScale(true, false, true));
+  EXPECT_FALSE(shouldApplyPreferredScale(true, true, true));
+  EXPECT_FALSE(shouldApplyPreferredScale(false, false, false));
+}
+
+TEST(PlotMouseBindings, userScaleLockedWhenEitherAxisIsLocked) {
+  EXPECT_FALSE(isUserScaleLocked(false, false));
+  EXPECT_TRUE(isUserScaleLocked(true, false));
+  EXPECT_TRUE(isUserScaleLocked(false, true));
+  EXPECT_TRUE(isUserScaleLocked(true, true));
 }
 
 TEST(PlotMouseBindings, ignoresLinkedPreferredScaleWhenAnyPlotIsLocked) {

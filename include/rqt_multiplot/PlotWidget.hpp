@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <QAction>
 #include <QColor>
 #include <QEvent>
 #include <QIcon>
@@ -89,6 +90,14 @@ class PlotWidget : public QWidget {
   bool canClose() const;
   void setUserScaleLocked(bool locked);
   bool isUserScaleLocked() const;
+  void setXScaleLocked(bool locked);
+  bool isXScaleLocked() const;
+  void setYScaleLocked(bool locked);
+  bool isYScaleLocked() const;
+  void syncScaleLocksFrom(const PlotWidget& source);
+  void resetZoom();
+  void resetZoomHorizontal();
+  void resetZoomVertical();
   void setOpenGLCanvasEnabled(bool enabled);
   bool isOpenGLCanvasEnabled() const;
   void setPlotTitleStyle(const PlotTitleStyle& style);
@@ -140,8 +149,21 @@ class PlotWidget : public QWidget {
   QIcon normalIcon_;
   QIcon maximizedIcon_;
   QTimer* timer_;
-  QMenu* menuImportExport_;
   QMenu* menuSplit_;
+  QMenu* menuContext_;
+  QAction* actionContextResetZoom_;
+  QAction* actionContextResetZoomHorizontal_;
+  QAction* actionContextResetZoomVertical_;
+  QAction* actionContextConfigure_;
+  QMenu* menuContextSplit_;
+  QAction* actionContextShowLegend_;
+  QAction* actionContextMaximizeRestore_;
+  QAction* actionContextRunPause_;
+  QAction* actionContextClear_;
+  QAction* actionContextClose_;
+  QAction* actionContextCopyImage_;
+  QAction* actionContextSaveImage_;
+  QAction* actionContextSaveData_;
 
   PlotConfig* config_;
 
@@ -161,7 +183,8 @@ class PlotWidget : public QWidget {
   bool replot_;
   bool replotting_;
   bool gridVisible_;
-  bool userScaleLocked_;
+  bool xScaleLocked_;
+  bool yScaleLocked_;
   State state_;
 
   BoundingRectangle currentBounds_;
@@ -185,6 +208,10 @@ class PlotWidget : public QWidget {
   void applyAxisTimeOffsets();
   void updateGridPen();
   void buildSplitMenu();
+  void buildContextMenu();
+  void updateContextMenuState();
+  BoundingRectangle mergePreferredWithLocked(const BoundingRectangle& preferred) const;
+  void updateZoomBaseFromPreferred(const BoundingRectangle& preferred);
   void applyPlotTimeWindow();
   void refreshStatefulIcons();
   void createCanvasPickers();
@@ -213,7 +240,6 @@ class PlotWidget : public QWidget {
   void pushButtonRunPauseClicked();
   void pushButtonClearClicked();
   void pushButtonSetupClicked();
-  void pushButtonImportExportClicked();
   void pushButtonStateClicked();
   void pushButtonSplitClicked();
   void pushButtonCloseClicked();
@@ -223,12 +249,17 @@ class PlotWidget : public QWidget {
   void menuSplitBottomTriggered();
   void menuExportImageFileTriggered();
   void menuExportTextFileTriggered();
+  void menuResetZoomTriggered();
+  void menuResetZoomHorizontalTriggered();
+  void menuResetZoomVerticalTriggered();
+  void menuToggleLegendTriggered();
+  void menuCopyImageTriggered();
+  void showPlotContextMenu(const QPoint& globalPos);
   void configDestroyed();
 
   void plotXBottomScaleDivChanged();
   void plotYLeftScaleDivChanged();
   void plotZoomed(const QRectF& bounds);
-  void plotZoomResetRequested();
 };
 
 }  // namespace rqt_multiplot

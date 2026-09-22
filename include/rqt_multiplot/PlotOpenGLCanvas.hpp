@@ -11,6 +11,8 @@
 
 #include <QOpenGLWidget>
 #include <QPaintEvent>
+#include <QPainterPath>
+#include <QRect>
 
 class QwtPlot;
 
@@ -21,6 +23,7 @@ class PlotOpenGLCanvas : public QOpenGLWidget {
  public:
   explicit PlotOpenGLCanvas(QwtPlot* plot = nullptr);
   void setFrameStyle(int style);
+  Q_INVOKABLE QPainterPath borderPath(const QRect& rect) const;
 
  public slots:
   void replot();

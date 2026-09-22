@@ -281,11 +281,11 @@ TEST(MultiplotFileMenu, idleToolbarHasExpandingSpacerBeforePlaybackButtons) {
   EXPECT_TRUE(foundExpandingSpacer);
 }
 
-TEST(MultiplotFileMenu, perPlotExportButtonRemains) {
+TEST(MultiplotFileMenu, perPlotExportButtonRemovedFromHeader) {
   ensureApplication();
 
   PlotWidget plotWidget;
-  EXPECT_NE(plotWidget.findChild<QPushButton*>("pushButtonImportExport"), nullptr);
+  EXPECT_EQ(plotWidget.findChild<QPushButton*>("pushButtonImportExport"), nullptr);
 }
 
 TEST(MultiplotFileMenu, hasQuitActionWhenTopLevelWindow) {

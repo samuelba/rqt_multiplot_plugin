@@ -10,6 +10,7 @@
 #include "rqt_multiplot/PlotOpenGLCanvas.hpp"
 
 #include <QPainter>
+#include <QPainterPath>
 #include <QPalette>
 #include <QSurfaceFormat>
 
@@ -29,6 +30,12 @@ PlotOpenGLCanvas::PlotOpenGLCanvas(QwtPlot* plot) : QOpenGLWidget(plot) {
 }
 
 void PlotOpenGLCanvas::setFrameStyle(int /*style*/) {}
+
+// QwtPlotRenderer invokes borderPath via QMetaObject; keep as instance method.
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+QPainterPath PlotOpenGLCanvas::borderPath(const QRect& /*rect*/) const {
+  return QPainterPath();
+}
 
 void PlotOpenGLCanvas::replot() {
   update();

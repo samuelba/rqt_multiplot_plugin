@@ -88,8 +88,11 @@ void PlotZoomer::widgetMousePressEvent(QMouseEvent* event) {
 void PlotZoomer::widgetMouseReleaseEvent(QMouseEvent* event) {
   if (isZoomResetMouse(event->button())) {
     if (pressRecorded_ && isZoomResetClick(event->button(), position_, mouseEventPosition(*event))) {
-      zoom(0);
-      emit zoomResetRequested();
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      emit contextMenuRequested(event->globalPosition().toPoint());
+#else
+      emit contextMenuRequested(event->globalPos());
+#endif
     }
     pressRecorded_ = false;
     return;
