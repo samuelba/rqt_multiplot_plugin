@@ -50,6 +50,14 @@ inline bool shouldApplyPreferredScale(bool rescaleRequested, bool userScaleLocke
   return rescaleRequested && !userScaleLocked;
 }
 
+inline bool shouldApplyPreferredScale(bool rescaleRequested, bool xScaleLocked, bool yScaleLocked) {
+  return rescaleRequested && (!xScaleLocked || !yScaleLocked);
+}
+
+inline bool isUserScaleLocked(bool xScaleLocked, bool yScaleLocked) {
+  return xScaleLocked || yScaleLocked;
+}
+
 inline bool shouldIgnoreLinkedPreferredScale(bool scaleLinked, bool anyPlotLocked) {
   return scaleLinked && anyPlotLocked;
 }

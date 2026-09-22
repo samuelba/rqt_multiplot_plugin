@@ -708,19 +708,24 @@ void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds)
   }
 
   auto* plot = dynamic_cast<PlotWidget*>(sender());
-  if ((plot != nullptr) && shouldApplyPreferredScale(true, plot->isUserScaleLocked())) {
+  if ((plot != nullptr) && shouldApplyPreferredScale(true, plot->isXScaleLocked(), plot->isYScaleLocked())) {
     plot->setCurrentScale(bounds);
   }
 }
 
-void PlotTableWidget::plotUserScaleLockedChanged(bool locked) {
+void PlotTableWidget::plotUserScaleLockedChanged(bool /*locked*/) {
   if ((config_ == nullptr) || !config_->isScaleLinked()) {
     return;
   }
 
+  auto* source = dynamic_cast<PlotWidget*>(sender());
+  if (source == nullptr) {
+    return;
+  }
+
   for (PlotWidget* plot : plotWidgets_) {
-    if (sender() != plot) {
-      plot->setUserScaleLocked(locked);
+    if (plot != source) {
+      plot->syncScaleLocksFrom(*source);
     }
   }
 }

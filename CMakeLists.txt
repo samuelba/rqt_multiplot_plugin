@@ -444,6 +444,7 @@ if(BUILD_TESTING)
     test/PlotTitleStyleTest.cpp
     test/PlotWidgetTitleStyleTest.cpp
     test/PlotWidgetSplitMenuTest.cpp
+    test/PlotWidgetContextMenuTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp

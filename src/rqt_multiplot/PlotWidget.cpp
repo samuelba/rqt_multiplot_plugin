@@ -19,6 +19,8 @@
 #include <array>
 #include <optional>
 
+#include <QApplication>
+#include <QClipboard>
 #include <QColor>
 #include <QCursor>
 #include <QDragEnterEvent>
@@ -28,11 +30,13 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QGridLayout>
+#include <QKeyEvent>
 #include <QMetaObject>
 #include <QMimeData>
 #include <QPainter>
 #include <QPalette>
 #include <QPixmap>
+#include <QSignalBlocker>
 #include <QSize>
 #include <QTextStream>
 #include <QTimeZone>
@@ -106,6 +110,12 @@ class BoolGuard {
   bool& flag_;
 };
 
+constexpr QSize kContextMenuIconSize(16, 16);
+
+void setContextMenuIcon(QAction* action, const QString& relativePath) {
+  setThemeIcon(action, relativePath, kContextMenuIconSize);
+}
+
 }  // namespace
 
 PlotWidget::PlotWidget(QWidget* parent)
@@ -114,6 +124,20 @@ PlotWidget::PlotWidget(QWidget* parent)
       timer_(new QTimer(this)),
       menuImportExport_(new QMenu(this)),
       menuSplit_(new QMenu(this)),
+      menuContext_(new QMenu(this)),
+      actionContextResetZoom_(nullptr),
+      actionContextResetZoomHorizontal_(nullptr),
+      actionContextResetZoomVertical_(nullptr),
+      actionContextConfigure_(nullptr),
+      menuContextSplit_(new QMenu(tr("Split"), menuContext_)),
+      actionContextShowLegend_(nullptr),
+      actionContextMaximizeRestore_(nullptr),
+      actionContextRunPause_(nullptr),
+      actionContextClear_(nullptr),
+      actionContextClose_(nullptr),
+      actionContextCopyImage_(nullptr),
+      actionContextSaveImage_(nullptr),
+      actionContextSaveData_(nullptr),
       config_(nullptr),
       broker_(nullptr),
       legend_(nullptr),
@@ -127,7 +151,8 @@ PlotWidget::PlotWidget(QWidget* parent)
       replot_(false),
       replotting_(false),
       gridVisible_(false),
-      userScaleLocked_(false),
+      xScaleLocked_(false),
+      yScaleLocked_(false),
       state_(Normal),
       xOriginSet_(false),
       yOriginSet_(false),
@@ -186,6 +211,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   menuImportExport_->addAction("Export to image file...", this, SLOT(menuExportImageFileTriggered()));
   menuImportExport_->addAction("Export to text file...", this, SLOT(menuExportTextFileTriggered()));
   buildSplitMenu();
+  buildContextMenu();
 
   grid_ = new QwtPlotGrid();
   grid_->attach(ui_->plot);
@@ -449,22 +475,148 @@ bool PlotWidget::canClose() const {
 }
 
 void PlotWidget::setUserScaleLocked(bool locked) {
-  if (locked == userScaleLocked_) {
+  if (locked) {
+    setXScaleLocked(true);
+    setYScaleLocked(true);
     return;
   }
 
-  userScaleLocked_ = locked;
+  const bool wasLocked = isUserScaleLocked();
+  xScaleLocked_ = false;
+  yScaleLocked_ = false;
+  if (wasLocked) {
+    emit userScaleLockedChanged(false);
+  }
+  rescale_ = true;
+  requestReplot();
+}
 
+bool PlotWidget::isUserScaleLocked() const {
+  return xScaleLocked_ || yScaleLocked_;
+}
+
+void PlotWidget::setXScaleLocked(bool locked) {
+  if (locked == xScaleLocked_) {
+    return;
+  }
+
+  xScaleLocked_ = locked;
+  emit userScaleLockedChanged(isUserScaleLocked());
   if (!locked) {
     rescale_ = true;
     requestReplot();
   }
-
-  emit userScaleLockedChanged(locked);
 }
 
-bool PlotWidget::isUserScaleLocked() const {
-  return userScaleLocked_;
+bool PlotWidget::isXScaleLocked() const {
+  return xScaleLocked_;
+}
+
+void PlotWidget::setYScaleLocked(bool locked) {
+  if (locked == yScaleLocked_) {
+    return;
+  }
+
+  yScaleLocked_ = locked;
+  emit userScaleLockedChanged(isUserScaleLocked());
+  if (!locked) {
+    rescale_ = true;
+    requestReplot();
+  }
+}
+
+bool PlotWidget::isYScaleLocked() const {
+  return yScaleLocked_;
+}
+
+void PlotWidget::syncScaleLocksFrom(const PlotWidget& source) {
+  xScaleLocked_ = source.xScaleLocked_;
+  yScaleLocked_ = source.yScaleLocked_;
+}
+
+void PlotWidget::resetZoom() {
+  if (zoomer_ != nullptr) {
+    zoomer_->zoom(0);
+  }
+  setUserScaleLocked(false);
+}
+
+void PlotWidget::resetZoomHorizontal() {
+  const BoundingRectangle preferred = getPreferredScale();
+  BoundingRectangle bounds = getCurrentScale();
+  if (preferred.isValid()) {
+    bounds.getMinimum().setX(preferred.getMinimum().x());
+    bounds.getMaximum().setX(preferred.getMaximum().x());
+  }
+
+  if (xScaleLocked_) {
+    xScaleLocked_ = false;
+    emit userScaleLockedChanged(isUserScaleLocked());
+  }
+  setCurrentScale(bounds);
+  if (zoomer_ != nullptr) {
+    updateZoomBaseFromPreferred(preferred);
+    if (!yScaleLocked_) {
+      zoomer_->zoom(0);
+    }
+  }
+  rescale_ = true;
+}
+
+void PlotWidget::resetZoomVertical() {
+  const BoundingRectangle preferred = getPreferredScale();
+  BoundingRectangle bounds = getCurrentScale();
+  if (preferred.isValid()) {
+    bounds.getMinimum().setY(preferred.getMinimum().y());
+    bounds.getMaximum().setY(preferred.getMaximum().y());
+  }
+
+  if (yScaleLocked_) {
+    yScaleLocked_ = false;
+    emit userScaleLockedChanged(isUserScaleLocked());
+  }
+  setCurrentScale(bounds);
+  if (zoomer_ != nullptr) {
+    updateZoomBaseFromPreferred(preferred);
+    if (!xScaleLocked_) {
+      zoomer_->zoom(0);
+    }
+  }
+  rescale_ = true;
+}
+
+BoundingRectangle PlotWidget::mergePreferredWithLocked(const BoundingRectangle& preferred) const {
+  if (!xScaleLocked_ && !yScaleLocked_) {
+    return preferred;
+  }
+
+  BoundingRectangle bounds = getCurrentScale();
+  if (!xScaleLocked_ && preferred.isValid()) {
+    bounds.getMinimum().setX(preferred.getMinimum().x());
+    bounds.getMaximum().setX(preferred.getMaximum().x());
+  }
+  if (!yScaleLocked_ && preferred.isValid()) {
+    bounds.getMinimum().setY(preferred.getMinimum().y());
+    bounds.getMaximum().setY(preferred.getMaximum().y());
+  }
+  return bounds;
+}
+
+void PlotWidget::updateZoomBaseFromPreferred(const BoundingRectangle& preferred) {
+  if (zoomer_ == nullptr) {
+    return;
+  }
+
+  QRectF base = preferred.isValid() ? preferred.getRectangle() : zoomer_->zoomBase();
+  if (xScaleLocked_) {
+    base.setLeft(currentBounds_.getMinimum().x());
+    base.setRight(currentBounds_.getMaximum().x());
+  }
+  if (yScaleLocked_) {
+    base.setTop(currentBounds_.getMinimum().y());
+    base.setBottom(currentBounds_.getMaximum().y());
+  }
+  zoomer_->setZoomBase(base);
 }
 
 void PlotWidget::setOpenGLCanvasEnabled(bool enabled) {
@@ -517,7 +669,9 @@ void PlotWidget::createCanvasPickers() {
   zoomer_ = new PlotZoomer(canvas);
   zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
   connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
-  connect(zoomer_, SIGNAL(zoomResetRequested()), this, SLOT(plotZoomResetRequested()));
+  connect(zoomer_, SIGNAL(contextMenuRequested(QPoint)), this, SLOT(showPlotContextMenu(QPoint)));
+  canvas->setFocusPolicy(Qt::StrongFocus);
+  canvas->installEventFilter(this);
 }
 
 void PlotWidget::destroyCanvasPickers() {
@@ -580,6 +734,98 @@ void PlotWidget::buildSplitMenu() {
   menuSplit_->addAction(action);
 }
 
+void PlotWidget::buildContextMenu() {
+  menuContext_->setObjectName(QStringLiteral("plotContextMenu"));
+
+  actionContextResetZoom_ = menuContext_->addAction(tr("Reset zoom"), this, SLOT(menuResetZoomTriggered()));
+  actionContextResetZoom_->setObjectName(QStringLiteral("actionContextResetZoom"));
+  setContextMenuIcon(actionContextResetZoom_, QStringLiteral("resource/zoom-reset.svg"));
+
+  actionContextResetZoomHorizontal_ = menuContext_->addAction(tr("Zoom out horizontally"), this, SLOT(menuResetZoomHorizontalTriggered()));
+  actionContextResetZoomHorizontal_->setObjectName(QStringLiteral("actionContextResetZoomHorizontal"));
+  setContextMenuIcon(actionContextResetZoomHorizontal_, QStringLiteral("resource/zoom-reset-horizontally.svg"));
+
+  actionContextResetZoomVertical_ = menuContext_->addAction(tr("Zoom out vertically"), this, SLOT(menuResetZoomVerticalTriggered()));
+  actionContextResetZoomVertical_->setObjectName(QStringLiteral("actionContextResetZoomVertical"));
+  setContextMenuIcon(actionContextResetZoomVertical_, QStringLiteral("resource/zoom-reset-vertically.svg"));
+
+  menuContext_->addSeparator();
+
+  actionContextConfigure_ = menuContext_->addAction(tr("Configure plot..."), this, SLOT(pushButtonSetupClicked()));
+  actionContextConfigure_->setObjectName(QStringLiteral("actionContextConfigure"));
+  setContextMenuIcon(actionContextConfigure_, QStringLiteral("resource/settings-edit.svg"));
+
+  menuContextSplit_->setObjectName(QStringLiteral("menuContextSplit"));
+  menuContext_->addMenu(menuContextSplit_);
+  setContextMenuIcon(menuContextSplit_->menuAction(), QStringLiteral("resource/split/layout.svg"));
+  setContextMenuIcon(menuContextSplit_->addAction(tr("Split left"), this, SLOT(menuSplitLeftTriggered())),
+                     QStringLiteral("resource/split/split-left.svg"));
+  setContextMenuIcon(menuContextSplit_->addAction(tr("Split right"), this, SLOT(menuSplitRightTriggered())),
+                     QStringLiteral("resource/split/split-right.svg"));
+  setContextMenuIcon(menuContextSplit_->addAction(tr("Split up"), this, SLOT(menuSplitTopTriggered())),
+                     QStringLiteral("resource/split/split-up.svg"));
+  setContextMenuIcon(menuContextSplit_->addAction(tr("Split down"), this, SLOT(menuSplitBottomTriggered())),
+                     QStringLiteral("resource/split/split-down.svg"));
+
+  actionContextShowLegend_ = menuContext_->addAction(QString(), this, SLOT(menuToggleLegendTriggered()));
+  actionContextShowLegend_->setObjectName(QStringLiteral("actionContextShowLegend"));
+  setContextMenuIcon(actionContextShowLegend_, QStringLiteral("resource/legend.svg"));
+
+  actionContextMaximizeRestore_ = menuContext_->addAction(QString(), this, SLOT(pushButtonStateClicked()));
+  actionContextMaximizeRestore_->setObjectName(QStringLiteral("actionContextMaximizeRestore"));
+
+  actionContextRunPause_ = menuContext_->addAction(QString(), this, SLOT(pushButtonRunPauseClicked()));
+  actionContextRunPause_->setObjectName(QStringLiteral("actionContextRunPause"));
+
+  actionContextClear_ = menuContext_->addAction(tr("Clear"), this, SLOT(pushButtonClearClicked()));
+  actionContextClear_->setObjectName(QStringLiteral("actionContextClear"));
+  setContextMenuIcon(actionContextClear_, QStringLiteral("resource/delete-data.svg"));
+
+  actionContextClose_ = menuContext_->addAction(tr("Close"), this, SLOT(pushButtonCloseClicked()));
+  actionContextClose_->setObjectName(QStringLiteral("actionContextClose"));
+  setContextMenuIcon(actionContextClose_, QStringLiteral("resource/close.svg"));
+
+  menuContext_->addSeparator();
+
+  actionContextCopyImage_ = menuContext_->addAction(tr("Copy image"), this, SLOT(menuCopyImageTriggered()));
+  actionContextCopyImage_->setObjectName(QStringLiteral("actionContextCopyImage"));
+  setContextMenuIcon(actionContextCopyImage_, QStringLiteral("resource/copy.svg"));
+
+  actionContextSaveImage_ = menuContext_->addAction(tr("Save image..."), this, SLOT(menuExportImageFileTriggered()));
+  actionContextSaveImage_->setObjectName(QStringLiteral("actionContextSaveImage"));
+  setContextMenuIcon(actionContextSaveImage_, QStringLiteral("resource/data-export.svg"));
+
+  actionContextSaveData_ = menuContext_->addAction(tr("Save data..."), this, SLOT(menuExportTextFileTriggered()));
+  actionContextSaveData_->setObjectName(QStringLiteral("actionContextSaveData"));
+  setContextMenuIcon(actionContextSaveData_, QStringLiteral("resource/data-export.svg"));
+}
+
+void PlotWidget::updateContextMenuState() {
+  if (actionContextMaximizeRestore_ != nullptr) {
+    actionContextMaximizeRestore_->setText((state_ == Maximized) ? tr("Restore") : tr("Maximize"));
+    actionContextMaximizeRestore_->setEnabled(canChangeState());
+    setContextMenuIcon(actionContextMaximizeRestore_,
+                       (state_ == Maximized) ? QStringLiteral("resource/minimize.svg") : QStringLiteral("resource/maximize.svg"));
+  }
+  if (actionContextRunPause_ != nullptr) {
+    actionContextRunPause_->setText(paused_ ? tr("Run") : tr("Pause"));
+    setContextMenuIcon(actionContextRunPause_, paused_ ? QStringLiteral("resource/play.svg") : QStringLiteral("resource/pause.svg"));
+  }
+  if (actionContextClose_ != nullptr) {
+    actionContextClose_->setEnabled(canClose());
+  }
+  if ((actionContextShowLegend_ != nullptr) && (config_ != nullptr) && (config_->getLegendConfig() != nullptr)) {
+    const bool legendVisible = config_->getLegendConfig()->isVisible();
+    actionContextShowLegend_->setText(legendVisible ? tr("Hide legend") : tr("Show legend"));
+    setContextMenuIcon(actionContextShowLegend_, QStringLiteral("resource/legend.svg"));
+  }
+}
+
+void PlotWidget::showPlotContextMenu(const QPoint& globalPos) {
+  updateContextMenuState();
+  menuContext_->popup(globalPos);
+}
+
 void PlotWidget::run() {
   if (paused_) {
     paused_ = false;
@@ -631,14 +877,18 @@ void PlotWidget::forceReplot() {
 
   BoundingRectangle preferredBounds = getPreferredScale();
 
-  if (shouldApplyPreferredScale(rescale_, userScaleLocked_)) {
-    emit preferredScaleChanged(preferredBounds);
+  if (shouldApplyPreferredScale(rescale_, xScaleLocked_, yScaleLocked_)) {
+    emit preferredScaleChanged(mergePreferredWithLocked(preferredBounds));
 
     rescale_ = false;
   }
 
-  if (!userScaleLocked_) {
-    zoomer_->setZoomBase(preferredBounds.getRectangle());
+  if (zoomer_ != nullptr) {
+    if (!xScaleLocked_ && !yScaleLocked_) {
+      zoomer_->setZoomBase(preferredBounds.getRectangle());
+    } else {
+      updateZoomBaseFromPreferred(preferredBounds);
+    }
   }
 
   ui_->plot->replot();
@@ -652,6 +902,8 @@ void PlotWidget::renderToPainter(QPainter& painter, const QRectF& bounds) {
   if (plotBounds.isEmpty() && (painter.device() != nullptr)) {
     plotBounds = QRectF(0, 0, painter.device()->width(), painter.device()->height());
   }
+
+  painter.fillRect(plotBounds, ui_->plot->canvasBackground());
 
   QwtPlotRenderer renderer;
 
@@ -754,7 +1006,15 @@ void PlotWidget::dropEvent(QDropEvent* event) {
 }
 
 bool PlotWidget::eventFilter(QObject* object, QEvent* event) {
-  if ((object == ui_->plot->axisWidget(QwtPlot::yLeft)) && (event->type() == QEvent::Resize)) {
+  if (object == ui_->plot->canvas()) {
+    if (event->type() == QEvent::KeyPress) {
+      const auto* keyEvent = dynamic_cast<QKeyEvent*>(event);
+      if ((keyEvent != nullptr) && (keyEvent->key() == Qt::Key_Home)) {
+        resetZoom();
+        return true;
+      }
+    }
+  } else if ((object == ui_->plot->axisWidget(QwtPlot::yLeft)) && (event->type() == QEvent::Resize)) {
     ui_->horizontalSpacerLeft->changeSize(ui_->plot->axisWidget(QwtPlot::yLeft)->width(), 20);
     layout()->update();
   } else if ((object == ui_->plot->axisWidget(QwtPlot::yRight)) && (event->type() == QEvent::Resize)) {
@@ -1249,6 +1509,36 @@ void PlotWidget::menuExportTextFileTriggered() {
   }
 }
 
+void PlotWidget::menuResetZoomTriggered() {
+  resetZoom();
+}
+
+void PlotWidget::menuResetZoomHorizontalTriggered() {
+  resetZoomHorizontal();
+}
+
+void PlotWidget::menuResetZoomVerticalTriggered() {
+  resetZoomVertical();
+}
+
+void PlotWidget::menuToggleLegendTriggered() {
+  if ((config_ != nullptr) && (config_->getLegendConfig() != nullptr)) {
+    config_->getLegendConfig()->setVisible(!config_->getLegendConfig()->isVisible());
+  }
+}
+
+void PlotWidget::menuCopyImageTriggered() {
+  if (ui_->plot == nullptr) {
+    return;
+  }
+
+  const QSize size(kExportImageWidth, kExportImageHeight);
+  QPixmap pixmap(size);
+  pixmap.fill(ui_->plot->canvasBackground().color());
+  renderToPixmap(pixmap);
+  QApplication::clipboard()->setPixmap(pixmap);
+}
+
 void PlotWidget::plotXBottomScaleDivChanged() {
 #if QWT_VERSION >= 0x060100
   const QwtScaleDiv& scale = ui_->plot->axisScaleDiv(QwtPlot::xBottom);
@@ -1280,13 +1570,14 @@ void PlotWidget::plotYLeftScaleDivChanged() {
 }
 
 void PlotWidget::plotZoomed(const QRectF& /*bounds*/) {
-  setUserScaleLocked(zoomer_->zoomRectIndex() > 0);
-}
+  const bool locked = zoomer_->zoomRectIndex() > 0;
+  if ((xScaleLocked_ == locked) && (yScaleLocked_ == locked)) {
+    return;
+  }
 
-void PlotWidget::plotZoomResetRequested() {
-  setUserScaleLocked(false);
-  rescale_ = true;
-  requestReplot();
+  xScaleLocked_ = locked;
+  yScaleLocked_ = locked;
+  emit userScaleLockedChanged(locked);
 }
 
 }  // namespace rqt_multiplot

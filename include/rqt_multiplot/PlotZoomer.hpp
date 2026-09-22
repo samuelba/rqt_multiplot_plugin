@@ -39,7 +39,7 @@ class PlotZoomer : public QwtPlotZoomer {
   QRegion rubberBandMask() const override;
 
  signals:
-  void zoomResetRequested();
+  void contextMenuRequested(const QPoint& globalPos);
 
  protected:
   void widgetMousePressEvent(QMouseEvent* event) override;

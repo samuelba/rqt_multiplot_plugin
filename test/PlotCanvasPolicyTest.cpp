@@ -3,13 +3,18 @@
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_plot_canvas.h>
 #include <QApplication>
+#include <QMetaObject>
 #include <QOpenGLWidget>
+#include <QPainterPath>
+#include <QPixmap>
 #include <QStringList>
 #include <QSurfaceFormat>
 
 #include <gtest/gtest.h>
+#include <qwt/qwt_plot_renderer.h>
 
 #include "rqt_multiplot/PlotCanvasPolicy.hpp"
+#include "rqt_multiplot/PlotOpenGLCanvas.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
@@ -23,6 +28,7 @@ using rqt_multiplot::kOpenGLCanvasSamples;
 using rqt_multiplot::openGLCanvasFallbackWarning;
 using rqt_multiplot::openGLCanvasSurfaceFormat;
 using rqt_multiplot::openGLPlotCanvasAvailable;
+using rqt_multiplot::PlotOpenGLCanvas;
 using rqt_multiplot::PlotTableConfig;
 using rqt_multiplot::PlotTableWidget;
 using rqt_multiplot::PlotWidget;
@@ -38,6 +44,14 @@ QApplication* ensureApplication() {
   static char arg0[] = "test_rqt_multiplot";
   static char* argv[] = {arg0, nullptr};
   return new QApplication(argc, argv);
+}
+
+QStringList gOpenGLWarnings;
+
+void captureOpenGLWarnings(QtMsgType type, const QMessageLogContext& /*context*/, const QString& message) {
+  if (type == QtWarningMsg) {
+    gOpenGLWarnings.append(message);
+  }
 }
 
 TEST(PlotCanvasPolicy, softwareCanvasIsNotOpenGL) {
@@ -94,6 +108,46 @@ TEST(PlotCanvasPolicy, openGLCanvasRequestsMultisampling) {
   plot.setCanvas(canvas);
 }
 
+TEST(PlotOpenGLCanvas, borderPathIsInvokable) {
+  ensureApplication();
+
+  QwtPlot plot;
+  PlotOpenGLCanvas canvas(&plot);
+  plot.setCanvas(&canvas);
+
+  QPainterPath path;
+  const bool ok =
+      QMetaObject::invokeMethod(&canvas, "borderPath", Qt::DirectConnection, Q_RETURN_ARG(QPainterPath, path), Q_ARG(QRect, canvas.rect()));
+  EXPECT_TRUE(ok);
+  EXPECT_TRUE(path.isEmpty());
+}
+
+TEST(PlotOpenGLCanvas, plotRendererDoesNotWarnAboutBorderPath) {
+  ensureApplication();
+  if (!openGLPlotCanvasAvailable()) {
+    GTEST_SKIP() << "OpenGL is not available";
+  }
+
+  QwtPlot plot;
+  PlotOpenGLCanvas canvas(&plot);
+  plot.setCanvas(&canvas);
+  plot.resize(400, 300);
+
+  QPixmap pixmap(400, 300);
+  pixmap.fill(Qt::black);
+  QPainter painter(&pixmap);
+  QwtPlotRenderer renderer;
+
+  gOpenGLWarnings.clear();
+  const QtMessageHandler previous = qInstallMessageHandler(captureOpenGLWarnings);
+  renderer.render(&plot, &painter, QRectF(0, 0, 400, 300));
+  qInstallMessageHandler(previous);
+
+  for (const QString& warning : gOpenGLWarnings) {
+    EXPECT_FALSE(warning.contains(QStringLiteral("borderPath"))) << warning.toStdString();
+  }
+}
+
 TEST(PlotCanvasPolicy, warnsOnlyWhenOpenGLRequestedAndUnavailable) {
   EXPECT_TRUE(shouldWarnOpenGLCanvasFallback(true, false));
   EXPECT_FALSE(shouldWarnOpenGLCanvasFallback(true, true));
@@ -105,14 +159,6 @@ TEST(PlotCanvasPolicy, fallbackWarningMentionsSoftwareCanvas) {
   const QString message = openGLCanvasFallbackWarning();
   EXPECT_TRUE(message.contains(QStringLiteral("OpenGL")));
   EXPECT_TRUE(message.contains(QStringLiteral("software canvas")));
-}
-
-QStringList gOpenGLWarnings;
-
-void captureOpenGLWarnings(QtMsgType type, const QMessageLogContext& /*context*/, const QString& message) {
-  if (type == QtWarningMsg) {
-    gOpenGLWarnings.append(message);
-  }
 }
 
 TEST(PlotCanvasPolicy, writesQtWarningOnOpenGLFallback) {

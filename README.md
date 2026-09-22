@@ -112,7 +112,8 @@ The rqt launcher needs `--` before those flags.
 | Left drag | Pan |
 | Ctrl + left drag | Draw a rectangle to zoom |
 | Mouse wheel | Zoom in / out |
-| Right click | Reset zoom |
+| Right click | Open plot context menu |
+| Home (canvas focused) | Reset zoom |
 | Hover (Points enabled) | Crosshair; nearest-sample marker and title / x, y readout |
 | Click a legend item | Toggle that curve's visibility |
 | Drag a legend item onto another plot | Copy that curve |

@@ -32,9 +32,6 @@ namespace rqt_multiplot {
 
 namespace {
 
-constexpr int kExportWidth = 1280;
-constexpr int kExportHeight = 1024;
-
 QString fileSuffix(const QString& fileName) {
   return QFileInfo(fileName).suffix().toLower();
 }
@@ -132,7 +129,7 @@ QString ensureFileSuffix(const QString& fileName, const QString& suffix) {
 }
 
 bool renderExportImage(const QString& fileName, const std::function<void(QPainter&, const QRectF&)>& render) {
-  const QSize size(kExportWidth, kExportHeight);
+  const QSize size(kExportImageWidth, kExportImageHeight);
   const QRectF bounds(0, 0, size.width(), size.height());
   const auto format = imageFormatFromPath(fileName).value_or(ImageExportFormat::Png);
 

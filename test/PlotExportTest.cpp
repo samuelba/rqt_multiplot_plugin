@@ -14,6 +14,8 @@ using rqt_multiplot::dataFormatFromPath;
 using rqt_multiplot::ensureFileSuffix;
 using rqt_multiplot::ImageExportFormat;
 using rqt_multiplot::imageFormatFromPath;
+using rqt_multiplot::kExportImageHeight;
+using rqt_multiplot::kExportImageWidth;
 using rqt_multiplot::suffixFromNameFilter;
 using rqt_multiplot::writeCurveTable;
 
@@ -50,6 +52,11 @@ TEST(PlotExport, writesCsvHeaderWithoutCommentPrefix) {
   ASSERT_FALSE(lines.isEmpty());
   EXPECT_EQ(lines[0], QString("a_x, a_y, b_x, b_y"));
   EXPECT_FALSE(lines[0].startsWith('#'));
+}
+
+TEST(PlotExport, usesStandardExportDimensions) {
+  EXPECT_EQ(kExportImageWidth, 1280);
+  EXPECT_EQ(kExportImageHeight, 1024);
 }
 
 TEST(PlotExport, mapsImageSuffixToFormat) {
