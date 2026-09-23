@@ -203,6 +203,78 @@
        </property>
       </widget>
      </item>
+     <item row="1" column="0" alignment="Qt::AlignTop">
+      <widget class="QWidget" name="diagnosticFieldsWidget" native="true">
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+       <layout class="QGridLayout" name="gridLayoutDiagnostic">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item row="0" column="0">
+         <widget class="QLabel" name="labelDiagnosticStatus">
+          <property name="text">
+           <string>Status name:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QComboBox" name="comboBoxDiagnosticStatus">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <property name="insertPolicy">
+           <enum>QComboBox::NoInsert</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="labelDiagnosticHardwareId">
+          <property name="text">
+           <string>Hardware id:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QComboBox" name="comboBoxDiagnosticHardwareId">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <property name="insertPolicy">
+           <enum>QComboBox::NoInsert</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="labelDiagnosticKey">
+          <property name="text">
+           <string>Key:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QComboBox" name="comboBoxDiagnosticKey">
+          <property name="editable">
+           <bool>true</bool>
+          </property>
+          <property name="insertPolicy">
+           <enum>QComboBox::NoInsert</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
      <item row="2" column="0">
       <widget class="QCheckBox" name="checkBoxFieldReceiptTime">
        <property name="text">
@@ -218,6 +290,16 @@
       </widget>
      </item>
      <item row="4" column="0">
+      <widget class="QCheckBox" name="checkBoxFieldDiagnosticValue">
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+       <property name="text">
+        <string>Diagnostic value</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
       <layout class="QHBoxLayout" name="horizontalLayoutUnitConversion">
        <property name="spacing">
         <number>5</number>

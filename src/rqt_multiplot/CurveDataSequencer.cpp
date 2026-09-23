@@ -179,6 +179,18 @@ void fillIndexSeries(std::vector<double>& values, size_t count) {
   }
 }
 
+bool tryReadDiagnosticValue(const Message& message, const CurveAxisConfig& axis, double& value) {
+  if (message.isEmpty()) {
+    return false;
+  }
+  if (!tryGetDiagnosticValue(*message.getCompound(), axis.getDiagnosticStatus().toStdString(), axis.getDiagnosticKey().toStdString(), value,
+                             axis.getDiagnosticHardwareId().toStdString())) {
+    return false;
+  }
+  value = axis.convertValue(value);
+  return true;
+}
+
 }  // namespace
 
 bool CurveDataSequencer::hasSnapshotHint(const CurveConfig& config) {
@@ -280,7 +292,13 @@ void CurveDataSequencer::processMessage(const Message& message) {
     return;
   }
 
-  if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
+  if (xAxisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+    double x = 0.0;
+    if (!tryReadDiagnosticValue(message, *xAxisConfig, x)) {
+      return;
+    }
+    point.setX(x);
+  } else if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
     double x = 0.0;
     if (!tryGetNumericValue(*message.getCompound(), xAxisConfig->getField().toStdString(), x)) {
       return;
@@ -290,7 +308,13 @@ void CurveDataSequencer::processMessage(const Message& message) {
     point.setX(message.getReceiptTime().seconds());
   }
 
-  if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
+  if (yAxisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+    double y = 0.0;
+    if (!tryReadDiagnosticValue(message, *yAxisConfig, y)) {
+      return;
+    }
+    point.setY(y);
+  } else if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
     double y = 0.0;
     if (!tryGetNumericValue(*message.getCompound(), yAxisConfig->getField().toStdString(), y)) {
       qWarning() << "No such member" << yAxisConfig->getField();
@@ -315,7 +339,11 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
     if (!timeFields_.contains(axis)) {
       timeFields_[axis] = QString();
 
-      if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
+      if (axisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue && !message.isEmpty()) {
+        if (hasHeader(*message.getCompound())) {
+          timeFields_[axis] = QStringLiteral("header/stamp");
+        }
+      } else if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
         QStringList fieldParts = axisConfig->getField().split("/");
 
         while (!fieldParts.isEmpty()) {
@@ -346,7 +374,13 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
       return;
     }
 
-    if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
+    if (axisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+      double axisValue = 0.0;
+      if (!tryReadDiagnosticValue(message, *axisConfig, axisValue)) {
+        return;
+      }
+      timeValue.value_ = axisValue;
+    } else if (axisConfig->getFieldType() == CurveAxisConfig::MessageData && !message.isEmpty()) {
       double axisValue = 0.0;
       if (!tryGetNumericValue(*message.getCompound(), axisConfig->getField().toStdString(), axisValue)) {
         return;

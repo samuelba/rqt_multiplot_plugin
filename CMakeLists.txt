@@ -384,6 +384,7 @@ install(TARGETS multiplot
 install(PROGRAMS
   scripts/rqt_multiplot
   scripts/publish_array_demo.py
+  scripts/publish_diagnostics_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

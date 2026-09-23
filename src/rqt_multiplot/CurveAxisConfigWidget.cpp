@@ -16,10 +16,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <algorithm>
+
 #include <QPixmap>
 #include <QSignalBlocker>
 
 #include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/MessageSubscriberRegistry.hpp"
 #include "rqt_multiplot/MessageTopicComboBox.hpp"
 #include "rqt_multiplot/MessageTypeComboBox.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
@@ -30,8 +33,12 @@
 
 namespace rqt_multiplot {
 
-CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr) {
+CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent)
+    : QWidget(parent), ui_(new Ui::CurveAxisConfigWidget()), config_(nullptr), diagnosticRegistry_(new MessageSubscriberRegistry(this)) {
   ui_->setupUi(this);
+  if (ui_->comboBoxDiagnosticHardwareId->lineEdit() != nullptr) {
+    ui_->comboBoxDiagnosticHardwareId->lineEdit()->setPlaceholderText(QStringLiteral("optional"));
+  }
 
   QPixmap pixmapOkay = packagePixmap("resource/status-okay.svg", QSize(22, 22));
   QPixmap pixmapError = packagePixmap("resource/status-error.svg", QSize(22, 22));
@@ -78,6 +85,12 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent) : QWidget(parent),
 
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
   connect(ui_->checkBoxFieldArrayIndex, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldArrayIndexStateChanged(int)));
+  connect(ui_->checkBoxFieldDiagnosticValue, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldDiagnosticValueStateChanged(int)));
+  connect(ui_->comboBoxDiagnosticStatus, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(comboBoxDiagnosticStatusEdited(const QString&)));
+  connect(ui_->comboBoxDiagnosticKey, SIGNAL(currentTextChanged(const QString&)), this, SLOT(comboBoxDiagnosticKeyEdited(const QString&)));
+  connect(ui_->comboBoxDiagnosticHardwareId, SIGNAL(currentTextChanged(const QString&)), this,
+          SLOT(comboBoxDiagnosticHardwareIdEdited(const QString&)));
   connect(ui_->checkBoxRadiansToDegrees, SIGNAL(stateChanged(int)), this, SLOT(checkBoxRadiansToDegreesStateChanged(int)));
   connect(ui_->checkBoxDegreesToRadians, SIGNAL(stateChanged(int)), this, SLOT(checkBoxDegreesToRadiansStateChanged(int)));
 
@@ -105,6 +118,10 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       disconnect(config_, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       disconnect(config_, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       disconnect(config_, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      disconnect(config_, SIGNAL(diagnosticStatusChanged(const QString&)), this, SLOT(configDiagnosticStatusChanged(const QString&)));
+      disconnect(config_, SIGNAL(diagnosticKeyChanged(const QString&)), this, SLOT(configDiagnosticKeyChanged(const QString&)));
+      disconnect(config_, SIGNAL(diagnosticHardwareIdChanged(const QString&)), this,
+                 SLOT(configDiagnosticHardwareIdChanged(const QString&)));
       disconnect(config_, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
       disconnect(config_->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
     }
@@ -118,6 +135,9 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       connect(config, SIGNAL(typeChanged(const QString&)), this, SLOT(configTypeChanged(const QString&)));
       connect(config, SIGNAL(fieldTypeChanged(int)), this, SLOT(configFieldTypeChanged(int)));
       connect(config, SIGNAL(fieldChanged(const QString&)), this, SLOT(configFieldChanged(const QString&)));
+      connect(config, SIGNAL(diagnosticStatusChanged(const QString&)), this, SLOT(configDiagnosticStatusChanged(const QString&)));
+      connect(config, SIGNAL(diagnosticKeyChanged(const QString&)), this, SLOT(configDiagnosticKeyChanged(const QString&)));
+      connect(config, SIGNAL(diagnosticHardwareIdChanged(const QString&)), this, SLOT(configDiagnosticHardwareIdChanged(const QString&)));
       connect(config, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
       connect(config->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
 
@@ -125,10 +145,14 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       configTypeChanged(config->getType());
       configFieldTypeChanged(config->getFieldType());
       configFieldChanged(config->getField());
+      configDiagnosticStatusChanged(config->getDiagnosticStatus());
+      configDiagnosticKeyChanged(config->getDiagnosticKey());
+      configDiagnosticHardwareIdChanged(config->getDiagnosticHardwareId());
       configUnitConversionChanged(config->getUnitConversion());
       configScaleConfigChanged();
     } else {
       ui_->widgetScale->setConfig(nullptr);
+      updateFieldWidgetEnabled();
     }
   }
 }
@@ -240,6 +264,10 @@ bool CurveAxisConfigWidget::isSyntheticFieldType() const {
          (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex);
 }
 
+bool CurveAxisConfigWidget::isDiagnosticArrayType() const {
+  return (config_ != nullptr) && isDiagnosticArrayTypeName(config_->getType().toStdString());
+}
+
 bool CurveAxisConfigWidget::applyFieldStatusAfterLocalOk() {
   if (!pairingError_.isEmpty()) {
     ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, pairingError_);
@@ -253,6 +281,18 @@ bool CurveAxisConfigWidget::applyFieldStatusAfterLocalOk() {
 bool CurveAxisConfigWidget::validateField() {
   if (config_ == nullptr) {
     return false;
+  }
+
+  if (config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+    if (!isDiagnosticArrayType()) {
+      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "No message field selected");
+      return false;
+    }
+    if (config_->getDiagnosticStatus().isEmpty() || config_->getDiagnosticKey().isEmpty()) {
+      ui_->statusWidgetField->setCurrentRole(StatusWidget::Error, "No diagnostic status or key");
+      return false;
+    }
+    return applyFieldStatusAfterLocalOk();
   }
 
   if (!isSyntheticFieldType() && ui_->widgetField->isLoading()) {
@@ -313,10 +353,15 @@ bool CurveAxisConfigWidget::validateScale() {
 }
 
 void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
+  const bool diagnostic = (config_ != nullptr) && config_->getFieldType() == CurveAxisConfig::DiagnosticValue && isDiagnosticArrayType();
+  ui_->checkBoxFieldDiagnosticValue->setVisible(isDiagnosticArrayType());
+  ui_->diagnosticFieldsWidget->setVisible(diagnostic);
+  ui_->widgetField->setVisible(!diagnostic);
   const bool syntheticField =
       (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) || (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
-  ui_->widgetField->setEnabled(!syntheticField);
+  ui_->widgetField->setEnabled(!syntheticField && !diagnostic);
   updateUnitConversionWidgetsEnabled();
+  updateDiagnosticSubscription();
 }
 
 void CurveAxisConfigWidget::updateUnitConversionWidgetsEnabled() {
@@ -327,13 +372,17 @@ void CurveAxisConfigWidget::updateUnitConversionWidgetsEnabled() {
 
 void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType) {
   const bool checked = (state == Qt::Checked);
-  if (checked && fieldType == CurveAxisConfig::ArrayIndex) {
+  if (checked && fieldType != CurveAxisConfig::MessageReceiptTime) {
     const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
     ui_->checkBoxFieldReceiptTime->setCheckState(Qt::Unchecked);
   }
-  if (checked && fieldType == CurveAxisConfig::MessageReceiptTime) {
+  if (checked && fieldType != CurveAxisConfig::ArrayIndex) {
     const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
     ui_->checkBoxFieldArrayIndex->setCheckState(Qt::Unchecked);
+  }
+  if (checked) {
+    const QSignalBlocker diagnosticBlocker(ui_->checkBoxFieldDiagnosticValue);
+    ui_->checkBoxFieldDiagnosticValue->setCheckState(Qt::Unchecked);
   }
 
   updateFieldWidgetEnabled();
@@ -348,7 +397,8 @@ void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::Fi
     return;
   }
 
-  if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked) {
+  if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked &&
+      ui_->checkBoxFieldDiagnosticValue->checkState() != Qt::Checked) {
     config_->setFieldType(CurveAxisConfig::MessageData);
   }
 }
@@ -393,6 +443,11 @@ void CurveAxisConfigWidget::syncLabelFromZero() {
     return;
   }
 
+  if (config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+    config_->setLabelFromZero(false);
+    return;
+  }
+
   const MessageFieldType fieldType = ui_->widgetField->getCurrentFieldDataType();
   if (fieldType.isValid()) {
     config_->setLabelFromZero(fieldType.isTime);
@@ -402,24 +457,30 @@ void CurveAxisConfigWidget::syncLabelFromZero() {
 void CurveAxisConfigWidget::configTopicChanged(const QString& topic) {
   ui_->comboBoxTopic->setCurrentTopic(topic);
 
+  clearDiagnosticSuggestions();
   validateTopic();
+  updateDiagnosticSubscription();
 }
 
 void CurveAxisConfigWidget::configTypeChanged(const QString& type) {
   ui_->comboBoxType->setCurrentType(type);
 
   validateType();
+  updateFieldWidgetEnabled();
 }
 
 void CurveAxisConfigWidget::configFieldTypeChanged(int fieldType) {
   const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
   const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
+  const QSignalBlocker diagnosticBlocker(ui_->checkBoxFieldDiagnosticValue);
   ui_->checkBoxFieldReceiptTime->setCheckState((fieldType == CurveAxisConfig::MessageReceiptTime) ? Qt::Checked : Qt::Unchecked);
   ui_->checkBoxFieldArrayIndex->setCheckState((fieldType == CurveAxisConfig::ArrayIndex) ? Qt::Checked : Qt::Unchecked);
+  ui_->checkBoxFieldDiagnosticValue->setCheckState((fieldType == CurveAxisConfig::DiagnosticValue) ? Qt::Checked : Qt::Unchecked);
 
   updateFieldWidgetEnabled();
   syncLabelFromZero();
   validateType();
+  validateField();
 }
 
 void CurveAxisConfigWidget::configUnitConversionChanged(int unitConversion) {
@@ -479,6 +540,9 @@ void CurveAxisConfigWidget::comboBoxTypeUpdateFinished() {
 void CurveAxisConfigWidget::comboBoxTypeCurrentTypeChanged(const QString& type) {
   if (config_ != nullptr) {
     config_->setType(type);
+    if (config_->getFieldType() == CurveAxisConfig::DiagnosticValue && !isDiagnosticArrayType()) {
+      config_->setFieldType(CurveAxisConfig::MessageData);
+    }
   }
 
   validateType();
@@ -547,6 +611,183 @@ void CurveAxisConfigWidget::widgetFieldCurrentFieldChanged(const QString& field)
 
   syncLabelFromZero();
   validateField();
+}
+
+void CurveAxisConfigWidget::updateDiagnosticSubscription() {
+  const bool want = (config_ != nullptr) && isDiagnosticArrayType() && config_->getFieldType() == CurveAxisConfig::DiagnosticValue &&
+                    !config_->getTopic().isEmpty();
+  const QString topic = want ? config_->getTopic() : QString();
+  if (topic == diagnosticTopic_) {
+    return;
+  }
+
+  if (!diagnosticTopic_.isEmpty()) {
+    diagnosticRegistry_->unsubscribe(diagnosticTopic_, this, SLOT(diagnosticMessageReceived(const QString&, const Message&)));
+    diagnosticTopic_.clear();
+  }
+  if (topic.isEmpty()) {
+    return;
+  }
+
+  if (diagnosticRegistry_->subscribe(topic, this, SLOT(diagnosticMessageReceived(const QString&, const Message&)),
+                                     MessageBroker::PropertyMap(), Qt::AutoConnection)) {
+    diagnosticTopic_ = topic;
+  }
+}
+
+void CurveAxisConfigWidget::refreshDiagnosticHardwareItems() {
+  const QString current = ui_->comboBoxDiagnosticHardwareId->currentText();
+  const QSignalBlocker blocker(ui_->comboBoxDiagnosticHardwareId);
+  ui_->comboBoxDiagnosticHardwareId->clear();
+  QStringList hardwareIds;
+  for (const DiagnosticSuggestion& entry : diagnosticSuggestions_.value(ui_->comboBoxDiagnosticStatus->currentText())) {
+    if (!entry.hardwareId.isEmpty() && !hardwareIds.contains(entry.hardwareId)) {
+      hardwareIds.append(entry.hardwareId);
+    }
+  }
+  ui_->comboBoxDiagnosticHardwareId->addItems(hardwareIds);
+  ui_->comboBoxDiagnosticHardwareId->setCurrentText(current);
+}
+
+void CurveAxisConfigWidget::refreshDiagnosticKeyItems() {
+  const QString current = ui_->comboBoxDiagnosticKey->currentText();
+  const QString hardwareId = ui_->comboBoxDiagnosticHardwareId->currentText();
+  const QSignalBlocker blocker(ui_->comboBoxDiagnosticKey);
+  ui_->comboBoxDiagnosticKey->clear();
+  QStringList keys;
+  for (const DiagnosticSuggestion& entry : diagnosticSuggestions_.value(ui_->comboBoxDiagnosticStatus->currentText())) {
+    if (!hardwareId.isEmpty() && entry.hardwareId != hardwareId) {
+      continue;
+    }
+    if (!entry.key.isEmpty() && !keys.contains(entry.key)) {
+      keys.append(entry.key);
+    }
+  }
+  ui_->comboBoxDiagnosticKey->addItems(keys);
+  ui_->comboBoxDiagnosticKey->setCurrentText(current);
+}
+
+void CurveAxisConfigWidget::clearDiagnosticSuggestions() {
+  diagnosticSuggestions_.clear();
+  const QString status = ui_->comboBoxDiagnosticStatus->currentText();
+  const QString hardwareId = ui_->comboBoxDiagnosticHardwareId->currentText();
+  const QString key = ui_->comboBoxDiagnosticKey->currentText();
+  const QSignalBlocker statusBlocker(ui_->comboBoxDiagnosticStatus);
+  const QSignalBlocker hardwareBlocker(ui_->comboBoxDiagnosticHardwareId);
+  const QSignalBlocker keyBlocker(ui_->comboBoxDiagnosticKey);
+  ui_->comboBoxDiagnosticStatus->clear();
+  ui_->comboBoxDiagnosticHardwareId->clear();
+  ui_->comboBoxDiagnosticKey->clear();
+  ui_->comboBoxDiagnosticStatus->setCurrentText(status);
+  ui_->comboBoxDiagnosticHardwareId->setCurrentText(hardwareId);
+  ui_->comboBoxDiagnosticKey->setCurrentText(key);
+}
+
+void CurveAxisConfigWidget::configDiagnosticStatusChanged(const QString& status) {
+  if (ui_->comboBoxDiagnosticStatus->currentText() != status) {
+    const QSignalBlocker blocker(ui_->comboBoxDiagnosticStatus);
+    ui_->comboBoxDiagnosticStatus->setCurrentText(status);
+  }
+  refreshDiagnosticHardwareItems();
+  refreshDiagnosticKeyItems();
+  validateField();
+}
+
+void CurveAxisConfigWidget::configDiagnosticKeyChanged(const QString& key) {
+  if (ui_->comboBoxDiagnosticKey->currentText() != key) {
+    const QSignalBlocker blocker(ui_->comboBoxDiagnosticKey);
+    ui_->comboBoxDiagnosticKey->setCurrentText(key);
+  }
+  validateField();
+}
+
+void CurveAxisConfigWidget::configDiagnosticHardwareIdChanged(const QString& hardwareId) {
+  if (ui_->comboBoxDiagnosticHardwareId->currentText() != hardwareId) {
+    const QSignalBlocker blocker(ui_->comboBoxDiagnosticHardwareId);
+    ui_->comboBoxDiagnosticHardwareId->setCurrentText(hardwareId);
+  }
+  refreshDiagnosticKeyItems();
+  validateField();
+}
+
+void CurveAxisConfigWidget::checkBoxFieldDiagnosticValueStateChanged(int state) {
+  const bool checked = (state == Qt::Checked);
+  if (checked) {
+    const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
+    const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
+    ui_->checkBoxFieldReceiptTime->setCheckState(Qt::Unchecked);
+    ui_->checkBoxFieldArrayIndex->setCheckState(Qt::Unchecked);
+  }
+
+  if (config_ != nullptr) {
+    if (checked) {
+      config_->setFieldType(CurveAxisConfig::DiagnosticValue);
+    } else if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked &&
+               config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+      config_->setFieldType(CurveAxisConfig::MessageData);
+    }
+  }
+
+  updateFieldWidgetEnabled();
+  syncLabelFromZero();
+  validateField();
+}
+
+void CurveAxisConfigWidget::comboBoxDiagnosticStatusEdited(const QString& status) {
+  refreshDiagnosticHardwareItems();
+  refreshDiagnosticKeyItems();
+  if (config_ != nullptr) {
+    config_->setDiagnosticStatus(status);
+  }
+  validateField();
+}
+
+void CurveAxisConfigWidget::comboBoxDiagnosticKeyEdited(const QString& key) {
+  if (config_ != nullptr) {
+    config_->setDiagnosticKey(key);
+  }
+  validateField();
+}
+
+void CurveAxisConfigWidget::comboBoxDiagnosticHardwareIdEdited(const QString& hardwareId) {
+  refreshDiagnosticKeyItems();
+  if (config_ != nullptr) {
+    config_->setDiagnosticHardwareId(hardwareId);
+  }
+  validateField();
+}
+
+void CurveAxisConfigWidget::diagnosticMessageReceived(const QString& /*topic*/, const Message& message) {
+  if (message.isEmpty()) {
+    return;
+  }
+
+  const QString statusText = ui_->comboBoxDiagnosticStatus->currentText();
+  bool suggestionsChanged = false;
+  {
+    const QSignalBlocker blocker(ui_->comboBoxDiagnosticStatus);
+    const auto readings = diagnosticStatusKeys(*message.getCompound());
+    for (const DiagnosticStatusKey& reading : readings) {
+      const QString status = QString::fromStdString(reading.name);
+      const QString hardwareId = QString::fromStdString(reading.hardwareId);
+      const QString key = QString::fromStdString(reading.key);
+      QList<DiagnosticSuggestion>& entries = diagnosticSuggestions_[status];
+      const bool known = std::any_of(entries.cbegin(), entries.cend(),
+                                     [&](const DiagnosticSuggestion& entry) { return entry.hardwareId == hardwareId && entry.key == key; });
+      if (!known) {
+        entries.append(DiagnosticSuggestion{hardwareId, key});
+        suggestionsChanged = true;
+      }
+      if (ui_->comboBoxDiagnosticStatus->findText(status) < 0) {
+        ui_->comboBoxDiagnosticStatus->addItem(status);
+      }
+    }
+    ui_->comboBoxDiagnosticStatus->setCurrentText(statusText);
+  }
+  if (suggestionsChanged) {
+    refreshDiagnosticHardwareItems();
+    refreshDiagnosticKeyItems();
+  }
 }
 
 void CurveAxisConfigWidget::checkBoxFieldReceiptTimeStateChanged(int state) {

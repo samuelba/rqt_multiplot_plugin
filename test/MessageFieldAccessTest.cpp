@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <memory>
 #include <vector>
 
@@ -16,15 +17,19 @@ namespace {
 
 using rqt_multiplot::createMessagePrototype;
 using rqt_multiplot::deserializeMessage;
+using rqt_multiplot::DiagnosticStatusKey;
+using rqt_multiplot::diagnosticStatusKeys;
 using rqt_multiplot::fieldTypeFromMessage;
 using rqt_multiplot::getMember;
 using rqt_multiplot::getNumericValue;
 using rqt_multiplot::getStamp;
 using rqt_multiplot::hasHeader;
+using rqt_multiplot::isDiagnosticArrayTypeName;
 using rqt_multiplot::isNumericMessageType;
 using rqt_multiplot::isPlottableFieldPath;
 using rqt_multiplot::isWildcardFieldPath;
 using rqt_multiplot::normalizeTypeName;
+using rqt_multiplot::tryGetDiagnosticValue;
 using rqt_multiplot::tryGetNumericSeries;
 using rqt_multiplot::tryGetNumericValue;
 
@@ -266,6 +271,104 @@ TEST(MessageFieldAccess, returnsEmptySeriesForEmptyArray) {
   std::vector<double> values{1.0};
   ASSERT_TRUE(tryGetNumericSeries(*message, "position/*", values));
   EXPECT_TRUE(values.empty());
+}
+
+ros_babel_fish::CompoundMessage& appendStatus(ros_babel_fish::CompoundMessage& message, const std::string& name) {
+  auto& status = message["status"].as<ros_babel_fish::CompoundArrayMessage>();
+  auto& entry = status.appendEmpty();
+  entry["name"] = name;
+  return entry;
+}
+
+void appendKeyValue(ros_babel_fish::CompoundMessage& status, const std::string& key, const std::string& value) {
+  auto& values = status["values"].as<ros_babel_fish::CompoundArrayMessage>();
+  auto& entry = values.appendEmpty();
+  entry["key"] = key;
+  entry["value"] = value;
+}
+
+TEST(MessageFieldAccess, readsDiagnosticValueByNameAndKey) {
+  EXPECT_TRUE(isDiagnosticArrayTypeName("diagnostic_msgs/DiagnosticArray"));
+  EXPECT_TRUE(isDiagnosticArrayTypeName("diagnostic_msgs/msg/DiagnosticArray"));
+  EXPECT_FALSE(isDiagnosticArrayTypeName("sensor_msgs/msg/JointState"));
+
+  auto message = createMessagePrototype("diagnostic_msgs/msg/DiagnosticArray");
+  ASSERT_NE(message, nullptr);
+
+  auto& other = appendStatus(*message, "Motor");
+  appendKeyValue(other, "Voltage", "1.0");
+  auto& battery = appendStatus(*message, "/Power System/Battery");
+  appendKeyValue(battery, "Current", "ok");
+  appendKeyValue(battery, "Voltage", " 12.5 ");
+  auto& duplicate = appendStatus(*message, "/Power System/Battery");
+  appendKeyValue(duplicate, "Voltage", "99");
+
+  double value = 0.0;
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "/Power System/Battery", "Voltage", value));
+  EXPECT_DOUBLE_EQ(value, 12.5);
+
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "Motor", "Voltage", value));
+  EXPECT_DOUBLE_EQ(value, 1.0);
+
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "/Power System/Battery", "Current", value));
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "/Power System/Battery", "Missing", value));
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "Missing", "Voltage", value));
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "", "Voltage", value));
+
+  auto& scientific = appendStatus(*message, "Science");
+  appendKeyValue(scientific, "Scale", "1.5e-3");
+  appendKeyValue(scientific, "Labeled", "1.5 V");
+  appendKeyValue(scientific, "Empty", "");
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "Science", "Scale", value));
+  EXPECT_DOUBLE_EQ(value, 0.0015);
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "Science", "Labeled", value));
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "Science", "Empty", value));
+
+  const auto pairs = diagnosticStatusKeys(*message);
+  ASSERT_GE(pairs.size(), 2u);
+  EXPECT_EQ(pairs[0].name, "Motor");
+  EXPECT_EQ(pairs[0].key, "Voltage");
+  EXPECT_TRUE(pairs[0].hardwareId.empty());
+}
+
+TEST(MessageFieldAccess, matchesDiagnosticHardwareIdOnlyWhenSet) {
+  auto message = createMessagePrototype("diagnostic_msgs/msg/DiagnosticArray");
+  ASSERT_NE(message, nullptr);
+
+  auto& front = appendStatus(*message, "Range");
+  front["hardware_id"] = std::string("front");
+  appendKeyValue(front, "Distance", "1.5");
+  auto& rear = appendStatus(*message, "Range");
+  rear["hardware_id"] = std::string("rear");
+  appendKeyValue(rear, "Distance", "3.5");
+
+  double value = 0.0;
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "Range", "Distance", value));
+  EXPECT_DOUBLE_EQ(value, 1.5);
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "Range", "Distance", value, "rear"));
+  EXPECT_DOUBLE_EQ(value, 3.5);
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "Range", "Distance", value, "missing"));
+
+  auto& frontAgain = appendStatus(*message, "Range");
+  frontAgain["hardware_id"] = std::string("front");
+  appendKeyValue(frontAgain, "Distance", "9");
+  ASSERT_TRUE(tryGetDiagnosticValue(*message, "Range", "Distance", value, "front"));
+  EXPECT_DOUBLE_EQ(value, 1.5);
+
+  auto& bare = appendStatus(*message, "Bare");
+  bare["hardware_id"] = std::string("a");
+  appendKeyValue(bare, "Other", "1");
+  auto& later = appendStatus(*message, "Bare");
+  later["hardware_id"] = std::string("a");
+  appendKeyValue(later, "Distance", "4");
+  EXPECT_FALSE(tryGetDiagnosticValue(*message, "Bare", "Distance", value, "a"));
+
+  const auto readings = diagnosticStatusKeys(*message);
+  const auto rearReading =
+      std::find_if(readings.begin(), readings.end(), [](const DiagnosticStatusKey& reading) { return reading.hardwareId == "rear"; });
+  ASSERT_NE(rearReading, readings.end());
+  EXPECT_EQ(rearReading->name, "Range");
+  EXPECT_EQ(rearReading->key, "Distance");
 }
 
 TEST(MessageFieldAccess, deserializesSerializedMessage) {

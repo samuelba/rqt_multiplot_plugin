@@ -18,10 +18,13 @@
 
 #pragma once
 
+#include <QList>
+#include <QMap>
 #include <QStringList>
 #include <QWidget>
 
 #include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/Message.hpp"
 #include "rqt_multiplot/StatusWidget.hpp"
 
 namespace Ui {
@@ -31,6 +34,8 @@ class CurveAxisConfigWidget;
 }
 
 namespace rqt_multiplot {
+
+class MessageSubscriberRegistry;
 
 class CurveAxisConfigWidget : public QWidget {
   Q_OBJECT
@@ -57,6 +62,13 @@ class CurveAxisConfigWidget : public QWidget {
 
   CurveAxisConfig* config_;
   QString pairingError_;
+  MessageSubscriberRegistry* diagnosticRegistry_;
+  QString diagnosticTopic_;
+  struct DiagnosticSuggestion {
+    QString hardwareId;
+    QString key;
+  };
+  QMap<QString, QList<DiagnosticSuggestion>> diagnosticSuggestions_;
 
   bool validateTopic();
   bool validateType();
@@ -64,9 +76,14 @@ class CurveAxisConfigWidget : public QWidget {
   bool validateScale();
   bool applyFieldStatusAfterLocalOk();
   bool isSyntheticFieldType() const;
+  bool isDiagnosticArrayType() const;
   void syncLabelFromZero();
   void updateFieldWidgetEnabled();
   void updateUnitConversionWidgetsEnabled();
+  void updateDiagnosticSubscription();
+  void refreshDiagnosticHardwareItems();
+  void refreshDiagnosticKeyItems();
+  void clearDiagnosticSuggestions();
   void setSyntheticFieldType(int state, CurveAxisConfig::FieldType fieldType);
   void setUnitConversionCheckbox(int state, CurveAxisConfig::UnitConversion unitConversion);
 
@@ -75,6 +92,9 @@ class CurveAxisConfigWidget : public QWidget {
   void configTypeChanged(const QString& type);
   void configFieldTypeChanged(int fieldType);
   void configFieldChanged(const QString& field);
+  void configDiagnosticStatusChanged(const QString& status);
+  void configDiagnosticKeyChanged(const QString& key);
+  void configDiagnosticHardwareIdChanged(const QString& hardwareId);
   void configScaleConfigChanged();
   void configUnitConversionChanged(int unitConversion);
 
@@ -96,6 +116,11 @@ class CurveAxisConfigWidget : public QWidget {
 
   void checkBoxFieldReceiptTimeStateChanged(int state);
   void checkBoxFieldArrayIndexStateChanged(int state);
+  void checkBoxFieldDiagnosticValueStateChanged(int state);
+  void comboBoxDiagnosticStatusEdited(const QString& status);
+  void comboBoxDiagnosticKeyEdited(const QString& key);
+  void comboBoxDiagnosticHardwareIdEdited(const QString& hardwareId);
+  void diagnosticMessageReceived(const QString& topic, const Message& message);
   void checkBoxRadiansToDegreesStateChanged(int state);
   void checkBoxDegreesToRadiansStateChanged(int state);
 };
