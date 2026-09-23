@@ -26,6 +26,17 @@ bool isNumericMessageType(const ros_babel_fish::Message& message);
 double getNumericValue(const ros_babel_fish::Message& message);
 bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::string& path, double& value);
 bool tryGetNumericSeries(const ros_babel_fish::Message& message, const std::string& path, std::vector<double>& values);
+bool isDiagnosticArrayTypeName(const std::string& typeName);
+
+struct DiagnosticStatusKey {
+  std::string name;
+  std::string hardwareId;
+  std::string key;
+};
+
+bool tryGetDiagnosticValue(const ros_babel_fish::Message& message, const std::string& statusName, const std::string& key, double& value,
+                           const std::string& hardwareId = {});
+std::vector<DiagnosticStatusKey> diagnosticStatusKeys(const ros_babel_fish::Message& message);
 bool isWildcardFieldPath(const std::string& path);
 bool isPlottableFieldPath(const MessageFieldType& fieldType, const std::string& path);
 rclcpp::Time getStamp(const ros_babel_fish::Message& message);

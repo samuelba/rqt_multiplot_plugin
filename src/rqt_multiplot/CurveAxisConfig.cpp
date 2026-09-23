@@ -30,6 +30,7 @@ CurveAxisConfig::FieldType parseFieldType(int raw) {
     case CurveAxisConfig::MessageData:
     case CurveAxisConfig::MessageReceiptTime:
     case CurveAxisConfig::ArrayIndex:
+    case CurveAxisConfig::DiagnosticValue:
       return static_cast<CurveAxisConfig::FieldType>(raw);
     default:
       return CurveAxisConfig::MessageData;
@@ -115,6 +116,45 @@ const QString& CurveAxisConfig::getField() const {
   return field_;
 }
 
+void CurveAxisConfig::setDiagnosticStatus(const QString& status) {
+  if (status != diagnosticStatus_) {
+    diagnosticStatus_ = status;
+
+    emit diagnosticStatusChanged(status);
+    emit changed();
+  }
+}
+
+const QString& CurveAxisConfig::getDiagnosticStatus() const {
+  return diagnosticStatus_;
+}
+
+void CurveAxisConfig::setDiagnosticKey(const QString& key) {
+  if (key != diagnosticKey_) {
+    diagnosticKey_ = key;
+
+    emit diagnosticKeyChanged(key);
+    emit changed();
+  }
+}
+
+const QString& CurveAxisConfig::getDiagnosticKey() const {
+  return diagnosticKey_;
+}
+
+void CurveAxisConfig::setDiagnosticHardwareId(const QString& hardwareId) {
+  if (hardwareId != diagnosticHardwareId_) {
+    diagnosticHardwareId_ = hardwareId;
+
+    emit diagnosticHardwareIdChanged(hardwareId);
+    emit changed();
+  }
+}
+
+const QString& CurveAxisConfig::getDiagnosticHardwareId() const {
+  return diagnosticHardwareId_;
+}
+
 void CurveAxisConfig::setLabelFromZero(bool labelFromZero) {
   if (labelFromZero != labelFromZero_) {
     labelFromZero_ = labelFromZero;
@@ -165,20 +205,23 @@ bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
 }
 
 bool CurveAxisConfig::usesTimeScale() const {
-  if (fieldType_ == ArrayIndex) {
+  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue) {
     return false;
   }
   return labelFromZero_ || (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
 }
 
 bool CurveAxisConfig::isTimeSource() const {
-  if (fieldType_ == ArrayIndex) {
+  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue) {
     return false;
   }
   return (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
 }
 
 bool CurveAxisConfig::hasConfiguredSource() const {
+  if (fieldType_ == DiagnosticValue) {
+    return !diagnosticStatus_.isEmpty() && !diagnosticKey_.isEmpty();
+  }
   return fieldType_ == MessageReceiptTime || fieldType_ == ArrayIndex || !field_.isEmpty();
 }
 
@@ -188,6 +231,13 @@ QString CurveAxisConfig::getFieldLabel() const {
   }
   if (fieldType_ == ArrayIndex) {
     return QStringLiteral("index");
+  }
+  if (fieldType_ == DiagnosticValue) {
+    const QString label = diagnosticStatus_ + QLatin1Char('/') + diagnosticKey_;
+    if (diagnosticHardwareId_.isEmpty()) {
+      return label;
+    }
+    return label + QStringLiteral(" [") + diagnosticHardwareId_ + QLatin1Char(']');
   }
   return field_;
 }
@@ -201,6 +251,9 @@ void CurveAxisConfig::save(QSettings& settings) const {
   settings.setValue("type", type_);
   settings.setValue("field_type", fieldType_);
   settings.setValue("field", field_);
+  settings.setValue("diagnostic_status", diagnosticStatus_);
+  settings.setValue("diagnostic_key", diagnosticKey_);
+  settings.setValue("diagnostic_hardware_id", diagnosticHardwareId_);
   settings.setValue("label_from_zero", labelFromZero_);
   settings.setValue("unit_conversion", unitConversion_);
 
@@ -215,6 +268,9 @@ void CurveAxisConfig::load(QSettings& settings) {
   const auto fieldType = parseFieldType(settings.value("field_type").toInt());
   setFieldType(fieldType);
   setField(settings.value("field").toString());
+  setDiagnosticStatus(settings.value("diagnostic_status").toString());
+  setDiagnosticKey(settings.value("diagnostic_key").toString());
+  setDiagnosticHardwareId(settings.value("diagnostic_hardware_id").toString());
   setLabelFromZero(settings.value("label_from_zero", fieldType == MessageReceiptTime).toBool());
   setUnitConversion(parseUnitConversion(settings.value("unit_conversion", None).toInt()));
 
@@ -228,6 +284,9 @@ void CurveAxisConfig::reset() {
   setType(QString());
   setFieldType(MessageData);
   setField(QString());
+  setDiagnosticStatus(QString());
+  setDiagnosticKey(QString());
+  setDiagnosticHardwareId(QString());
   setLabelFromZero(false);
   setUnitConversion(None);
 
@@ -239,6 +298,9 @@ void CurveAxisConfig::write(QDataStream& stream) const {
   stream << type_;
   stream << (int)fieldType_;
   stream << field_;
+  stream << diagnosticStatus_;
+  stream << diagnosticKey_;
+  stream << diagnosticHardwareId_;
   stream << labelFromZero_;
   stream << static_cast<int>(unitConversion_);
 
@@ -249,6 +311,9 @@ void CurveAxisConfig::read(QDataStream& stream) {
   QString topic;
   QString type;
   QString field;
+  QString diagnosticStatus;
+  QString diagnosticKey;
+  QString diagnosticHardwareId;
   int fieldType = 0;
   bool labelFromZero = false;
   int unitConversion = 0;
@@ -261,6 +326,12 @@ void CurveAxisConfig::read(QDataStream& stream) {
   setFieldType(parseFieldType(fieldType));
   stream >> field;
   setField(field);
+  stream >> diagnosticStatus;
+  setDiagnosticStatus(diagnosticStatus);
+  stream >> diagnosticKey;
+  setDiagnosticKey(diagnosticKey);
+  stream >> diagnosticHardwareId;
+  setDiagnosticHardwareId(diagnosticHardwareId);
   stream >> labelFromZero;
   setLabelFromZero(labelFromZero);
   stream >> unitConversion;
@@ -278,6 +349,9 @@ CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
   setType(src.type_);
   setFieldType(src.fieldType_);
   setField(src.field_);
+  setDiagnosticStatus(src.diagnosticStatus_);
+  setDiagnosticKey(src.diagnosticKey_);
+  setDiagnosticHardwareId(src.diagnosticHardwareId_);
   setLabelFromZero(src.labelFromZero_);
   setUnitConversion(src.unitConversion_);
 

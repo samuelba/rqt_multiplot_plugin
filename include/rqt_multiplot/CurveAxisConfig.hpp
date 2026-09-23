@@ -28,7 +28,7 @@ namespace rqt_multiplot {
 class CurveAxisConfig : public Config {
   Q_OBJECT
  public:
-  enum FieldType { MessageData, MessageReceiptTime, ArrayIndex };
+  enum FieldType { MessageData, MessageReceiptTime, ArrayIndex, DiagnosticValue };
   enum UnitConversion { None, RadiansToDegrees, DegreesToRadians };
 
   explicit CurveAxisConfig(QObject* parent = nullptr, QString topic = QString(), QString type = QString(),
@@ -43,6 +43,12 @@ class CurveAxisConfig : public Config {
   FieldType getFieldType() const;
   void setField(const QString& field);
   const QString& getField() const;
+  void setDiagnosticStatus(const QString& status);
+  const QString& getDiagnosticStatus() const;
+  void setDiagnosticKey(const QString& key);
+  const QString& getDiagnosticKey() const;
+  void setDiagnosticHardwareId(const QString& hardwareId);
+  const QString& getDiagnosticHardwareId() const;
   void setLabelFromZero(bool labelFromZero);
   bool isLabelFromZero() const;
   void setUnitConversion(UnitConversion unitConversion);
@@ -70,6 +76,9 @@ class CurveAxisConfig : public Config {
   void typeChanged(const QString& type);
   void fieldTypeChanged(int fieldType);
   void fieldChanged(const QString& field);
+  void diagnosticStatusChanged(const QString& status);
+  void diagnosticKeyChanged(const QString& key);
+  void diagnosticHardwareIdChanged(const QString& hardwareId);
   void labelFromZeroChanged(bool labelFromZero);
   void unitConversionChanged(int unitConversion);
 
@@ -78,6 +87,9 @@ class CurveAxisConfig : public Config {
   QString type_;
   FieldType fieldType_;
   QString field_;
+  QString diagnosticStatus_;
+  QString diagnosticKey_;
+  QString diagnosticHardwareId_;
   bool labelFromZero_;
   UnitConversion unitConversion_;
 

@@ -326,6 +326,63 @@ TEST(CurveAxisConfig, resetClearsUnitConversion) {
   EXPECT_EQ(config.getUnitConversion(), CurveAxisConfig::None);
 }
 
+TEST(CurveAxisConfig, savesLoadsAndCopiesDiagnosticValue) {
+  EXPECT_EQ(static_cast<int>(CurveAxisConfig::DiagnosticValue), 3);
+
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    CurveAxisConfig config;
+    config.setFieldType(CurveAxisConfig::DiagnosticValue);
+    config.setDiagnosticStatus("/Power System/Battery");
+    config.setDiagnosticKey("Voltage");
+    config.setDiagnosticHardwareId("pack-a");
+
+    QSettings settings(settingsPath(dir, "diagnostic.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+  }
+
+  CurveAxisConfig loaded;
+  QSettings settings(settingsPath(dir, "diagnostic.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::DiagnosticValue);
+  EXPECT_EQ(loaded.getDiagnosticStatus(), QString("/Power System/Battery"));
+  EXPECT_EQ(loaded.getDiagnosticKey(), QString("Voltage"));
+  EXPECT_EQ(loaded.getDiagnosticHardwareId(), QString("pack-a"));
+  EXPECT_EQ(loaded.getFieldLabel(), QString("/Power System/Battery/Voltage [pack-a]"));
+  EXPECT_TRUE(loaded.hasConfiguredSource());
+  EXPECT_FALSE(loaded.usesTimeScale());
+  EXPECT_FALSE(loaded.isTimeSource());
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream stream(&buffer);
+  loaded.write(stream);
+  buffer.seek(0);
+  CurveAxisConfig streamed;
+  streamed.read(stream);
+  EXPECT_EQ(streamed.getFieldType(), CurveAxisConfig::DiagnosticValue);
+  EXPECT_EQ(streamed.getDiagnosticStatus(), loaded.getDiagnosticStatus());
+  EXPECT_EQ(streamed.getDiagnosticKey(), loaded.getDiagnosticKey());
+  EXPECT_EQ(streamed.getDiagnosticHardwareId(), loaded.getDiagnosticHardwareId());
+
+  CurveAxisConfig copy;
+  copy = loaded;
+  EXPECT_EQ(copy.getDiagnosticStatus(), loaded.getDiagnosticStatus());
+  EXPECT_EQ(copy.getDiagnosticKey(), loaded.getDiagnosticKey());
+  EXPECT_EQ(copy.getDiagnosticHardwareId(), loaded.getDiagnosticHardwareId());
+
+  loaded.reset();
+  EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::MessageData);
+  EXPECT_TRUE(loaded.getDiagnosticStatus().isEmpty());
+  EXPECT_TRUE(loaded.getDiagnosticKey().isEmpty());
+  EXPECT_TRUE(loaded.getDiagnosticHardwareId().isEmpty());
+  EXPECT_FALSE(loaded.hasConfiguredSource());
+}
+
 TEST(CurveAxisConfig, assignmentCopiesUnitConversion) {
   CurveAxisConfig source;
   source.setUnitConversion(CurveAxisConfig::RadiansToDegrees);

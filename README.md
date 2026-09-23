@@ -23,6 +23,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Light and dark** — theme and plot-title size, weight, and color under **File → Preferences**. Changes apply to the open plots
 - **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import a bag; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
+- **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
 
 Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
 
@@ -211,6 +212,40 @@ ros2 run rqt_multiplot publish_array_demo.py
 | `/array_demo/covariance` | `geometry_msgs/PoseWithCovariance` | Y `covariance/*` |
 | `/array_demo/poses` | `geometry_msgs/PoseArray` | X `poses/*/position/x`, Y `poses/*/position/y` |
 | `/array_demo/scan` | `sensor_msgs/LaserScan` | Y `ranges/*` |
+
+## Diagnostic messages
+
+Diagnostic messages can be plotted from the `/diagnostics`/`/diagnostics_agg` topic.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="images/diagnostics_1.png" alt="Range distance diagnostic curve" />
+      <br/>Range distance from <code>/diagnostics</code> with <code>hardware_id</code> filter
+    </td>
+    <td align="center" width="50%">
+      <img src="images/diagnostics_2.png" alt="CPU load diagnostic curve" />
+      <br/>CPU load from <code>/diagnostics</code> without <code>hardware_id</code> filter
+    </td>
+  </tr>
+</table>
+
+```shell
+ros2 run rqt_multiplot publish_diagnostics_demo.py
+```
+
+All on `/diagnostics` (`diagnostic_msgs/DiagnosticArray`). X: `header/stamp` or message receipt time; Y: **Diagnostic value**.
+
+| Status name | Key | Hardware id | Note |
+| --- | --- | --- | --- |
+| `/Power System/Battery` | `Voltage` | | published with Charger; duplicate every 5th message |
+| `/Power System/Charger` | `Output current` | | |
+| `/Motors/Front Left` | `Position` | | order swaps with Front Right each message |
+| `/Motors/Front Left` | `Winding temp` | | missing every 4th message |
+| `/IMU` | `Yaw rate` | | only status in that message |
+| `/Computer` | `CPU load` | | two keys on one status |
+| `/GPS` | `Satellites` | | absent between publishes |
+| `/Sensors/Range` | `Distance` | `front` or `rear` | same status name and key |
 
 ## Bugs and feature requests
 

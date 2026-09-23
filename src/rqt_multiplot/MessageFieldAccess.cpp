@@ -13,7 +13,9 @@
 #include <utility>
 #include <vector>
 
+#include <QLocale>
 #include <QPair>
+#include <QRegularExpression>
 
 #include <rmw/rmw.h>
 #include <ros_babel_fish/exceptions/babel_fish_exception.hpp>
@@ -222,6 +224,81 @@ ros_babel_fish::MessageMemberIntrospection compoundArrayElementIntrospection(con
   return {};
 }
 
+bool parseFullDouble(const std::string& text, double& value) {
+  const QString trimmed = QString::fromStdString(text).trimmed();
+  if (trimmed.isEmpty()) {
+    return false;
+  }
+  static const QRegularExpression numberPattern(QStringLiteral(R"(^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$)"));
+  if (!numberPattern.match(trimmed).hasMatch()) {
+    return false;
+  }
+  bool ok = false;
+  const double parsed = QLocale::c().toDouble(trimmed, &ok);
+  if (!ok) {
+    return false;
+  }
+  value = parsed;
+  return true;
+}
+
+bool tryGetStringValue(const ros_babel_fish::Message& message, std::string& value) {
+  if (message.type() != ros_babel_fish::MessageTypes::String) {
+    return false;
+  }
+  try {
+    value = message.value<std::string>();
+    return true;
+  } catch (const ros_babel_fish::BabelFishException&) {
+    return false;
+  }
+}
+
+const ros_babel_fish::Message* compoundMember(const ros_babel_fish::Message& message, const char* key) {
+  if (message.type() != ros_babel_fish::MessageTypes::Compound) {
+    return nullptr;
+  }
+  const auto& compound = message.as<ros_babel_fish::CompoundMessage>();
+  if (!compound.containsKey(key)) {
+    return nullptr;
+  }
+  return &compound[key];
+}
+
+bool diagnosticHardwareMatches(const ros_babel_fish::Message& status, const std::string& hardwareId) {
+  if (hardwareId.empty()) {
+    return true;
+  }
+  const auto* field = compoundMember(status, "hardware_id");
+  std::string actual;
+  return field != nullptr && tryGetStringValue(*field, actual) && actual == hardwareId;
+}
+
+bool tryDiagnosticKey(const ros_babel_fish::Message& status, const std::string& key, double& value) {
+  const auto* valuesField = compoundMember(status, "values");
+  if (valuesField == nullptr || valuesField->type() != ros_babel_fish::MessageTypes::Array) {
+    return false;
+  }
+
+  for (size_t index = 0;; ++index) {
+    const auto* entry = compoundArrayAt(*valuesField, index);
+    if (entry == nullptr) {
+      return false;
+    }
+    const auto* entryKey = compoundMember(*entry, "key");
+    const auto* entryValue = compoundMember(*entry, "value");
+    if (entryKey == nullptr || entryValue == nullptr) {
+      continue;
+    }
+    std::string keyText;
+    std::string valueText;
+    if (!tryGetStringValue(*entryKey, keyText) || keyText != key || !tryGetStringValue(*entryValue, valueText)) {
+      continue;
+    }
+    return parseFullDouble(valueText, value);
+  }
+}
+
 }  // namespace
 
 std::string normalizeTypeName(const std::string& typeName) {
@@ -355,6 +432,78 @@ bool tryGetNumericValue(const ros_babel_fish::Message& message, const std::strin
 
   value = getNumericValue(*current);
   return true;
+}
+
+bool isDiagnosticArrayTypeName(const std::string& typeName) {
+  return normalizeTypeName(typeName) == "diagnostic_msgs/msg/DiagnosticArray";
+}
+
+bool tryGetDiagnosticValue(const ros_babel_fish::Message& message, const std::string& statusName, const std::string& key, double& value,
+                           const std::string& hardwareId) {
+  if (statusName.empty() || key.empty()) {
+    return false;
+  }
+  const auto* statusField = compoundMember(message, "status");
+  if (statusField == nullptr || statusField->type() != ros_babel_fish::MessageTypes::Array) {
+    return false;
+  }
+
+  for (size_t index = 0;; ++index) {
+    const auto* status = compoundArrayAt(*statusField, index);
+    if (status == nullptr) {
+      return false;
+    }
+    const auto* nameField = compoundMember(*status, "name");
+    std::string name;
+    if (nameField == nullptr || !tryGetStringValue(*nameField, name) || name != statusName) {
+      continue;
+    }
+    if (!diagnosticHardwareMatches(*status, hardwareId)) {
+      continue;
+    }
+    return tryDiagnosticKey(*status, key, value);
+  }
+}
+
+std::vector<DiagnosticStatusKey> diagnosticStatusKeys(const ros_babel_fish::Message& message) {
+  std::vector<DiagnosticStatusKey> pairs;
+  const auto* statusField = compoundMember(message, "status");
+  if (statusField == nullptr || statusField->type() != ros_babel_fish::MessageTypes::Array) {
+    return pairs;
+  }
+
+  for (size_t index = 0;; ++index) {
+    const auto* status = compoundArrayAt(*statusField, index);
+    if (status == nullptr) {
+      break;
+    }
+    const auto* nameField = compoundMember(*status, "name");
+    std::string name;
+    if (nameField == nullptr || !tryGetStringValue(*nameField, name) || name.empty()) {
+      continue;
+    }
+    std::string hardwareId;
+    const auto* hardwareField = compoundMember(*status, "hardware_id");
+    if (hardwareField != nullptr) {
+      tryGetStringValue(*hardwareField, hardwareId);
+    }
+    const auto* valuesField = compoundMember(*status, "values");
+    if (valuesField == nullptr || valuesField->type() != ros_babel_fish::MessageTypes::Array) {
+      continue;
+    }
+    for (size_t valueIndex = 0;; ++valueIndex) {
+      const auto* entry = compoundArrayAt(*valuesField, valueIndex);
+      if (entry == nullptr) {
+        break;
+      }
+      const auto* keyField = compoundMember(*entry, "key");
+      std::string key;
+      if (keyField != nullptr && tryGetStringValue(*keyField, key) && !key.empty()) {
+        pairs.push_back(DiagnosticStatusKey{name, hardwareId, key});
+      }
+    }
+  }
+  return pairs;
 }
 
 bool isWildcardFieldPath(const std::string& path) {
