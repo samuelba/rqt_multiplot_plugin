@@ -18,11 +18,28 @@
 
 #include "rqt_multiplot/PlotConfig.hpp"
 
+#include <algorithm>
 #include <utility>
+
+#include <QRegularExpression>
 
 #include <cmath>
 
 namespace rqt_multiplot {
+
+namespace {
+
+int curveGroupIndex(const QString& group) {
+  const QRegularExpression pattern(QStringLiteral("^curve_(\\d+)$"));
+  const QRegularExpressionMatch match = pattern.match(group);
+  if (!match.hasMatch()) {
+    return -1;
+  }
+
+  return match.captured(1).toInt();
+}
+
+}  // namespace
 
 PlotConfig::PlotConfig(QObject* parent, QString title, double plotRate)
     : Config(parent),
@@ -243,9 +260,15 @@ void PlotConfig::load(QSettings& settings) {
   settings.beginGroup("curves");
 
   QStringList groups = settings.childGroups();
+  std::sort(groups.begin(), groups.end(),
+            [](const QString& lhs, const QString& rhs) { return curveGroupIndex(lhs) < curveGroupIndex(rhs); });
   size_t index = 0;
 
-  for (auto& group : groups) {
+  for (const QString& group : groups) {
+    if (curveGroupIndex(group) < 0) {
+      continue;
+    }
+
     CurveConfig* curveConfig = nullptr;
 
     if (index < static_cast<size_t>(curveConfig_.count())) {

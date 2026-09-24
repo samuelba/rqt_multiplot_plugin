@@ -11,6 +11,7 @@
 #include "rqt_multiplot/PlotAxesConfig.hpp"
 #include "rqt_multiplot/PlotAxisConfig.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/XmlSettings.hpp"
 
 namespace {
 
@@ -88,6 +89,38 @@ TEST(PlotConfig, canApplyTimeWindowRequiresAllCurvesWithTimeX) {
   PlotConfig stamp;
   configureStampX(stamp.addCurve());
   EXPECT_TRUE(stamp.canApplyTimeWindow());
+}
+
+TEST(PlotConfig, xmlRoundTripKeepsCurveOrderPastTen) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "curves.xml");
+
+  {
+    PlotConfig config;
+    for (int index = 0; index < 12; ++index) {
+      config.addCurve()->setTitle(QString("curve-%1").arg(index));
+    }
+
+    QSettings settings(path, rqt_multiplot::XmlSettings::format);
+    settings.beginGroup("rqt_multiplot");
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+    ASSERT_EQ(settings.status(), QSettings::NoError);
+  }
+
+  PlotConfig loaded;
+  QSettings settings(path, rqt_multiplot::XmlSettings::format);
+  settings.beginGroup("rqt_multiplot");
+  loaded.load(settings);
+  settings.endGroup();
+
+  ASSERT_EQ(loaded.getNumCurves(), 12u);
+  for (int index = 0; index < 12; ++index) {
+    ASSERT_NE(loaded.getCurveConfig(static_cast<size_t>(index)), nullptr);
+    EXPECT_EQ(loaded.getCurveConfig(static_cast<size_t>(index))->getTitle(), QString("curve-%1").arg(index));
+  }
 }
 
 TEST(PlotConfig, savesAndLoadsTimeWindow) {
