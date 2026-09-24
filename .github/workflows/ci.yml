@@ -30,9 +30,10 @@ jobs:
       DEBIAN_FRONTEND: noninteractive
       ROS_DISTRO: ${{ matrix.ros_distro }}
     steps:
-      - name: Install git
+      - name: Upgrade system and install git
         run: |
           apt-get update
+          apt-get dist-upgrade -y
           apt-get install -y --no-install-recommends git
 
       - name: Checkout
@@ -89,9 +90,10 @@ jobs:
       ROS_DISTRO: ${{ matrix.ros_distro }}
       CLANG_TIDY_VERSION: '23'
     steps:
-      - name: Install git
+      - name: Upgrade system and install git
         run: |
           apt-get update
+          apt-get dist-upgrade -y
           apt-get install -y --no-install-recommends git
 
       - name: Checkout
@@ -160,9 +162,10 @@ jobs:
       ROS_DISTRO: ${{ matrix.ros_distro }}
       DEB_BUILD_OPTIONS: nocheck
     steps:
-      - name: Install git
+      - name: Upgrade system and install git
         run: |
           apt-get update
+          apt-get dist-upgrade -y
           apt-get install -y --no-install-recommends git
 
       - name: Checkout
