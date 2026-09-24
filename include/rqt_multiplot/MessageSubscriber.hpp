@@ -21,6 +21,7 @@
 #include <QMetaMethod>
 #include <QObject>
 #include <QString>
+#include <QTimer>
 
 #include <ros_babel_fish/detail/babel_fish_subscription.hpp>
 #include <ros_babel_fish/messages/compound_message.hpp>
@@ -32,13 +33,15 @@ namespace rqt_multiplot {
 class MessageSubscriber : public QObject {
   Q_OBJECT
  public:
-  enum Property { QueueSize };
+  enum Property { QueueSize, MessageType };
 
   explicit MessageSubscriber(QObject* parent = nullptr);
   ~MessageSubscriber() override;
 
   void setTopic(const QString& topic);
   const QString& getTopic() const;
+  void setMessageType(const QString& type);
+  const QString& getMessageType() const;
   void setQueueSize(size_t queueSize);
   size_t getQueueSize() const;
   size_t getNumPublishers() const;
@@ -52,14 +55,22 @@ class MessageSubscriber : public QObject {
   void unsubscribed(const QString& topic);
   void aboutToBeDestroyed();
 
+ private slots:
+  void retryTimerTimeout();
+
  private:
   QString topic_;
+  QString messageType_;
   size_t queueSize_;
+  QTimer* retryTimer_;
+  bool hasReportedError_;
 
   ros_babel_fish::BabelFishSubscription::SharedPtr subscriber_;
 
   void subscribe();
   void unsubscribe();
+  void resubscribe();
+  bool hasReceivers() const;
 
   void callback(const ros_babel_fish::CompoundMessage& compound);
 

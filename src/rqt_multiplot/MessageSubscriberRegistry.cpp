@@ -35,15 +35,23 @@ bool MessageSubscriberRegistry::subscribe(const QString& topic, QObject* receive
     queueSize = properties[MessageSubscriber::QueueSize].toULongLong();
   }
 
+  const QString messageType = properties.value(MessageSubscriber::MessageType).toString();
+
   if (it == subscribers_.end()) {
     it = subscribers_.insert(topic, new MessageSubscriber(this));
 
     it.value()->setQueueSize(queueSize);
+    it.value()->setMessageType(messageType);
     it.value()->setTopic(topic);
 
     connect(it.value(), SIGNAL(aboutToBeDestroyed()), this, SLOT(subscriberAboutToBeDestroyed()));
-  } else if (it.value()->getQueueSize() < queueSize) {
-    it.value()->setQueueSize(queueSize);
+  } else {
+    if (it.value()->getQueueSize() < queueSize) {
+      it.value()->setQueueSize(queueSize);
+    }
+    if (it.value()->getMessageType().isEmpty() && !messageType.isEmpty()) {
+      it.value()->setMessageType(messageType);
+    }
   }
 
   return receiver->connect(it.value(), SIGNAL(messageReceived(const QString&, const Message&)), method, type) != nullptr;
