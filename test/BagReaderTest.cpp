@@ -5,17 +5,21 @@
 #include <vector>
 
 #include <geometry_msgs/msg/twist.hpp>
+#include <rclcpp/serialization.hpp>
 #include <rclcpp/serialized_message.hpp>
 #include <rclcpp/time.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_cpp/writer.hpp>
 #include <rosbag2_storage/storage_options.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/float64.hpp>
 
 #include <gtest/gtest.h>
 
+#include "MessageDefinitionSource.hpp"
 #include "rqt_multiplot/BagOpen.hpp"
 #include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/RosContext.hpp"
 
 namespace {
 
@@ -153,6 +157,49 @@ TEST(BagOpen, leavesStorageIdEmptyForBagDirectory) {
   const auto root = makeTempDir();
   const auto options = rqt_multiplot::storageOptionsForUri(root.string());
   EXPECT_TRUE(options.storage_id.empty());
+  std::filesystem::remove_all(root);
+}
+
+TEST(BagReader, decodesTypeThatIsNotInstalledFromMcapSchema) {
+  const std::string type = "rqt_multiplot_not_installed_msgs/msg/JointReading";
+  const std::string topic = "/joint_reading";
+  const auto root = makeTempDir();
+  const auto uri = (root / "mcap_bag").string();
+  {
+    auto definition = rqt_multiplot::test::fullMessageDefinition("sensor_msgs/msg/JointState");
+    definition.topic_type = type;
+    definition.type_hash.clear();
+
+    rosbag2_storage::StorageOptions options;
+    options.uri = uri;
+    options.storage_id = "mcap";
+    rosbag2_cpp::Writer writer;
+    writer.open(options);
+    rosbag2_storage::TopicMetadata metadata;
+    metadata.name = topic;
+    metadata.type = type;
+    metadata.serialization_format = "cdr";
+    writer.create_topic(metadata, definition);
+
+    sensor_msgs::msg::JointState message;
+    message.position = {0.5, -1.75};
+    auto serialized = std::make_shared<rclcpp::SerializedMessage>();
+    rclcpp::Serialization<sensor_msgs::msg::JointState>().serialize_message(&message, serialized.get());
+    writer.write(serialized, topic, type, rclcpp::Time(1, 0, RCL_ROS_TIME));
+    writer.close();
+  }
+
+  rosbag2_cpp::Reader reader;
+  rqt_multiplot::openBag(reader, uri);
+  EXPECT_EQ(std::vector<std::string>{type},
+            rqt_multiplot::registerMessageDefinitions(reader, rqt_multiplot::RosContext::typeSupportProvider()));
+  ASSERT_TRUE(reader.has_next());
+  const auto bagMessage = reader.read_next();
+  const auto decoded = deserializeMessage(type, rclcpp::SerializedMessage(*bagMessage->serialized_data));
+  ASSERT_NE(nullptr, decoded);
+  double value = 0.0;
+  ASSERT_TRUE(rqt_multiplot::tryGetNumericValue(*decoded, "position/1", value));
+  EXPECT_DOUBLE_EQ(-1.75, value);
   std::filesystem::remove_all(root);
 }
 

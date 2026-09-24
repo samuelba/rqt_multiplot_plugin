@@ -240,7 +240,9 @@ bool CurveAxisConfigWidget::validateType() {
 
       return true;
     } else {
-      ui_->statusWidgetType->setCurrentRole(StatusWidget::Error, "Message type [" + config_->getType() + "] not found in package path");
+      ui_->statusWidgetType->setCurrentRole(
+          StatusWidget::Error,
+          "Message type [" + config_->getType() + "] not installed; the description is fetched from the publisher when it starts");
 
       return false;
     }

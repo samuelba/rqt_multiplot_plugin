@@ -30,6 +30,7 @@
 
 #include "rqt_multiplot/BagOpen.hpp"
 #include "rqt_multiplot/BagReader.hpp"
+#include "rqt_multiplot/RosContext.hpp"
 
 namespace rqt_multiplot {
 
@@ -121,6 +122,7 @@ void BagReader::Impl::run() {
   try {
     rosbag2_cpp::Reader reader;
     openBag(reader, fileName_.toStdString());
+    registerMessageDefinitions(reader, RosContext::typeSupportProvider());
 
     QMap<QString, QString> topicTypes;
     for (const auto& topic : reader.get_all_topics_and_types()) {

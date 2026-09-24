@@ -165,9 +165,10 @@ void MessageSubscriber::subscribe() {
     subscriber_.reset();
     if (!hasReportedError_) {
       hasReportedError_ = true;
-      qWarning("MessageSubscriber: cannot subscribe to [%s] with type [%s]: %s. Source the workspace that provides the message type.",
+      qWarning("MessageSubscriber: cannot subscribe to [%s] with type [%s]: %s. Retrying until a publisher provides the type.",
                qPrintable(topic_), qPrintable(messageType_), ex.what());
     }
+    retryTimer_->start();
     return;
   }
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <rosbag2_storage/storage_options.hpp>
 
@@ -17,7 +18,16 @@ class Reader;
 
 namespace rqt_multiplot {
 
+namespace runtime_types {
+
+class RuntimeTypeSupportProvider;
+
+}  // namespace runtime_types
+
 rosbag2_storage::StorageOptions storageOptionsForUri(const std::string& uri);
 void openBag(rosbag2_cpp::Reader& reader, const std::string& uri);
+
+// Registers the bag's ros2msg schemas of types that are not installed. Returns the registered type names.
+std::vector<std::string> registerMessageDefinitions(rosbag2_cpp::Reader& reader, runtime_types::RuntimeTypeSupportProvider& provider);
 
 }  // namespace rqt_multiplot

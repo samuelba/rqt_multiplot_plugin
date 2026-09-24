@@ -1,5 +1,7 @@
 #include <chrono>
 #include <functional>
+#include <memory>
+#include <string>
 
 #include <QApplication>
 #include <QCoreApplication>
@@ -11,6 +13,7 @@
 #include "rqt_multiplot/Message.hpp"
 #include "rqt_multiplot/MessageSubscriber.hpp"
 #include "rqt_multiplot/RosContext.hpp"
+#include "rqt_multiplot/runtime_types/MsgDefinitionParser.hpp"
 
 namespace {
 
@@ -49,9 +52,12 @@ class MessageSubscriberTest : public ::testing::Test {
     initRos();
     node_ = std::make_shared<rclcpp::Node>("message_subscriber_test");
     RosContext::setNode(node_);
+    executor_ = std::make_unique<rclcpp::executors::SingleThreadedExecutor>();
+    executor_->add_node(node_);
   }
 
   void TearDown() override {
+    executor_.reset();
     RosContext::setNode(nullptr);
     node_.reset();
   }
@@ -62,7 +68,7 @@ class MessageSubscriberTest : public ::testing::Test {
       if (onTick) {
         onTick();
       }
-      rclcpp::spin_some(node_);
+      executor_->spin_some();
       QCoreApplication::processEvents(QEventLoop::AllEvents, static_cast<int>(kPublishPeriod.count()));
       if (condition()) {
         return true;
@@ -72,6 +78,7 @@ class MessageSubscriberTest : public ::testing::Test {
   }
 
   rclcpp::Node::SharedPtr node_;
+  std::unique_ptr<rclcpp::executors::SingleThreadedExecutor> executor_;
 };
 
 void connectReceiver(MessageSubscriber& subscriber, QObject& receiver, int* received = nullptr) {
@@ -120,4 +127,17 @@ TEST_F(MessageSubscriberTest, unknownTypeDoesNotThrow) {
 
   EXPECT_NO_THROW(connectReceiver(subscriber, receiver));
   EXPECT_FALSE(subscriber.isValid());
+}
+
+TEST_F(MessageSubscriberTest, typeThatIsNotInstalledSubscribesOnceDescriptionIsAvailable) {
+  const std::string type = "rqt_multiplot_not_installed_msgs/msg/Retry";
+  MessageSubscriber subscriber;
+  subscriber.setMessageType(QString::fromStdString(type));
+  subscriber.setTopic("/message_subscriber_test/not_installed");
+  QObject receiver;
+  connectReceiver(subscriber, receiver);
+  EXPECT_FALSE(subscriber.isValid());
+
+  RosContext::typeSupportProvider().registerDescription(rqt_multiplot::runtime_types::parseMsgDefinition(type, "float64 value\n"));
+  EXPECT_TRUE(spinUntil([&subscriber]() { return subscriber.isValid(); }));
 }

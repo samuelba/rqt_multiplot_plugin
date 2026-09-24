@@ -11,20 +11,28 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>ament_index_cpp</depend>
+  <depend>fastcdr</depend>
   <depend>libboost-dev</depend>
   <depend>pluginlib</depend>
   <depend>qt_gui_cpp</depend>
+  <depend>rcl</depend>
   <depend>rclcpp</depend>
   <depend>ros_babel_fish</depend>
+  <depend>rosidl_runtime_c</depend>
+  <depend>rosidl_runtime_cpp</depend>
+  <depend>rosidl_typesupport_fastrtps_cpp</depend>
+  <depend>rosidl_typesupport_introspection_cpp</depend>
   <depend>rosbag2_cpp</depend>
   <depend>rosbag2_storage</depend>
   <depend>rosbag2_storage_default_plugins</depend>
   <depend>rosbag2_storage_mcap</depend>
   <depend>rqt_gui</depend>
   <depend>rqt_gui_cpp</depend>
+  <depend>type_description_interfaces</depend>
   <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">qtbase5-dev</depend>
   <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">libqt5-svg-dev</depend>
   <depend condition="$ROS_DISTRO == 'jazzy' or $ROS_DISTRO == 'kilted'">libqwt-qt5-dev</depend>
+  <depend condition="$ROS_DISTRO != 'jazzy' and $ROS_DISTRO != 'kilted'">rosidl_buffer</depend>
   <depend condition="$ROS_DISTRO != 'jazzy' and $ROS_DISTRO != 'kilted'">qt6-base-dev</depend>
   <depend condition="$ROS_DISTRO != 'jazzy' and $ROS_DISTRO != 'kilted'">qt6-svg-dev</depend>
 
@@ -43,6 +51,10 @@
   <test_depend>sensor_msgs</test_depend>
   <test_depend>std_msgs</test_depend>
   <test_depend>rosbag2_storage_mcap</test_depend>
+  <test_depend>rmw_cyclonedds_cpp</test_depend>
+  <test_depend>rmw_fastrtps_cpp</test_depend>
+  <test_depend>rmw_zenoh_cpp</test_depend>
+  <test_depend>test_msgs</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
