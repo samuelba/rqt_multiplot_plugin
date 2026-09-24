@@ -240,7 +240,9 @@ bool CurveAxisConfigWidget::validateType() {
 
       return true;
     } else {
-      ui_->statusWidgetType->setCurrentRole(StatusWidget::Error, "Message type [" + config_->getType() + "] not found in package path");
+      ui_->statusWidgetType->setCurrentRole(
+          StatusWidget::Error,
+          "Message type [" + config_->getType() + "] not installed; the description is fetched from the publisher when it starts");
 
       return false;
     }
@@ -629,8 +631,10 @@ void CurveAxisConfigWidget::updateDiagnosticSubscription() {
     return;
   }
 
-  if (diagnosticRegistry_->subscribe(topic, this, SLOT(diagnosticMessageReceived(const QString&, const Message&)),
-                                     MessageBroker::PropertyMap(), Qt::AutoConnection)) {
+  MessageBroker::PropertyMap properties;
+  properties[MessageSubscriber::MessageType] = config_->getType();
+  if (diagnosticRegistry_->subscribe(topic, this, SLOT(diagnosticMessageReceived(const QString&, const Message&)), properties,
+                                     Qt::AutoConnection)) {
     diagnosticTopic_ = topic;
   }
 }

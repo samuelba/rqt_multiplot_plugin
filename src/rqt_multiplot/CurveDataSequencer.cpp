@@ -102,6 +102,7 @@ void CurveDataSequencer::subscribe() {
 
       MessageBroker::PropertyMap properties;
       properties[MessageSubscriber::QueueSize] = QVariant::fromValue<qulonglong>(config_->getSubscriberQueueSize());
+      properties[MessageSubscriber::MessageType] = xAxisConfig->getType().isEmpty() ? yAxisConfig->getType() : xAxisConfig->getType();
 
       if (broker_->subscribe(topic, this, SLOT(subscriberMessageReceived(const QString&, const Message&)), properties)) {
         subscribedTopics_[CurveConfig::X] = topic;
@@ -114,10 +115,12 @@ void CurveDataSequencer::subscribe() {
       MessageBroker::PropertyMap properties;
       properties[MessageSubscriber::QueueSize] = QVariant::fromValue<qulonglong>(config_->getSubscriberQueueSize());
 
+      properties[MessageSubscriber::MessageType] = xAxisConfig->getType();
       if (broker_->subscribe(xTopic, this, SLOT(subscriberXAxisMessageReceived(const QString&, const Message&)), properties)) {
         subscribedTopics_[CurveConfig::X] = xTopic;
       }
 
+      properties[MessageSubscriber::MessageType] = yAxisConfig->getType();
       if (broker_->subscribe(yTopic, this, SLOT(subscriberYAxisMessageReceived(const QString&, const Message&)), properties)) {
         subscribedTopics_[CurveConfig::Y] = yTopic;
       }

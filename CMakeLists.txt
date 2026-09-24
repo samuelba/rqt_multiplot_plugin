@@ -15,13 +15,21 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(Boost REQUIRED)
+find_package(fastcdr REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(qt_gui_cpp REQUIRED)
+find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(ros_babel_fish REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosbag2_storage REQUIRED)
+find_package(rosidl_runtime_c REQUIRED)
+find_package(rosidl_runtime_cpp REQUIRED)
+find_package(rosidl_typesupport_fastrtps_cpp REQUIRED)
+find_package(rosidl_typesupport_introspection_cpp REQUIRED)
+find_package(rosidl_buffer QUIET)
 find_package(rqt_gui_cpp REQUIRED)
+find_package(type_description_interfaces REQUIRED)
 
 # Follow the Qt major version already selected by qt_gui_cpp / rqt_gui_cpp.
 # Preferring Qt6 here would break jazzy/kilted hosts that also have Qt6 installed.
@@ -171,6 +179,15 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/ProgressWidget.cpp
   src/rqt_multiplot/QwtPlotCustom.cpp
   src/rqt_multiplot/RosContext.cpp
+  src/rqt_multiplot/runtime_types/MsgDefinitionParser.cpp
+  src/rqt_multiplot/runtime_types/RuntimeCdr.cpp
+  src/rqt_multiplot/runtime_types/RuntimeFieldOperations.cpp
+  src/rqt_multiplot/runtime_types/RuntimeMessageLayout.cpp
+  src/rqt_multiplot/runtime_types/RuntimeSlots.cpp
+  src/rqt_multiplot/runtime_types/RuntimeTypeSupport.cpp
+  src/rqt_multiplot/runtime_types/RuntimeTypeSupportProvider.cpp
+  src/rqt_multiplot/runtime_types/TypeDescriptionClient.cpp
+  src/rqt_multiplot/runtime_types/TypeDescriptionModel.cpp
   src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/TimeZoneUtil.cpp
@@ -284,6 +301,16 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/QwtPlotCustom.hpp
   include/rqt_multiplot/SnapshotHistory.hpp
   include/rqt_multiplot/RosContext.hpp
+  include/rqt_multiplot/runtime_types/MsgDefinitionParser.hpp
+  include/rqt_multiplot/runtime_types/RuntimeCdr.hpp
+  include/rqt_multiplot/runtime_types/RuntimeFieldOperations.hpp
+  include/rqt_multiplot/runtime_types/RuntimeMessageLayout.hpp
+  include/rqt_multiplot/runtime_types/RuntimeSlots.hpp
+  include/rqt_multiplot/runtime_types/RuntimeTypeSupport.hpp
+  include/rqt_multiplot/runtime_types/RuntimeTypeSupportProvider.hpp
+  include/rqt_multiplot/runtime_types/RuntimeValueTypes.hpp
+  include/rqt_multiplot/runtime_types/TypeDescriptionClient.hpp
+  include/rqt_multiplot/runtime_types/TypeDescriptionModel.hpp
   include/rqt_multiplot/StatusWidget.hpp
   include/rqt_multiplot/Theme.hpp
   include/rqt_multiplot/TimeZoneUtil.hpp
@@ -342,11 +369,22 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
   Qt${QT_VERSION_MAJOR}::Widgets
   Qt${QT_VERSION_MAJOR}::Svg
   ament_index_cpp::ament_index_cpp
+  fastcdr
+  rcl::rcl
   rclcpp::rclcpp
   ros_babel_fish::ros_babel_fish
   rosbag2_cpp::rosbag2_cpp
   rosbag2_storage::rosbag2_storage
+  rosidl_runtime_c::rosidl_runtime_c
+  rosidl_runtime_cpp::rosidl_runtime_cpp
+  rosidl_typesupport_fastrtps_cpp::rosidl_typesupport_fastrtps_cpp
+  rosidl_typesupport_introspection_cpp::rosidl_typesupport_introspection_cpp
+  ${type_description_interfaces_TARGETS}
 )
+
+if(TARGET rosidl_buffer::rosidl_buffer)
+  target_link_libraries(${PROJECT_NAME} PUBLIC rosidl_buffer::rosidl_buffer)
+endif()
 
 if(QT_VERSION_MAJOR EQUAL 6)
   target_link_libraries(${PROJECT_NAME} PUBLIC Qt6::OpenGLWidgets)
@@ -411,8 +449,11 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   find_package(ament_cmake_test REQUIRED)
   find_package(builtin_interfaces REQUIRED)
+  find_package(diagnostic_msgs REQUIRED)
   find_package(geometry_msgs REQUIRED)
+  find_package(sensor_msgs REQUIRED)
   find_package(std_msgs REQUIRED)
+  find_package(test_msgs REQUIRED)
 
   ament_add_gtest(test_${PROJECT_NAME}
     test/AxisTimeFormatTest.cpp
@@ -426,6 +467,7 @@ if(BUILD_TESTING)
     test/CurveDataVectorTest.cpp
     test/CurveValuesWidgetTest.cpp
     test/MessageFieldAccessTest.cpp
+    test/MessageSubscriberTest.cpp
     test/MessageTopicRegistryTest.cpp
     test/OffsetScaleDrawTest.cpp
     test/LaunchOptionsTest.cpp
@@ -471,8 +513,11 @@ if(BUILD_TESTING)
       ${PROJECT_NAME}
       Qt${QT_VERSION_MAJOR}::Core
       Qt${QT_VERSION_MAJOR}::Widgets
+      ${diagnostic_msgs_TARGETS}
       ${geometry_msgs_TARGETS}
+      ${sensor_msgs_TARGETS}
       ${std_msgs_TARGETS}
+      ${test_msgs_TARGETS}
       rosbag2_cpp::rosbag2_cpp
       rosbag2_storage::rosbag2_storage
     )
@@ -480,6 +525,31 @@ if(BUILD_TESTING)
       target_link_libraries(test_${PROJECT_NAME} qwt_qt6)
     endif()
   endif()
+
+  ament_add_gtest_executable(test_runtime_types
+    test/MsgDefinitionParserTest.cpp
+    test/RuntimeTypeSupportProviderTest.cpp
+    test/RuntimeTypeSupportTest.cpp
+  )
+  target_link_libraries(test_runtime_types
+    ${PROJECT_NAME}
+    ${diagnostic_msgs_TARGETS}
+    ${sensor_msgs_TARGETS}
+    ${test_msgs_TARGETS}
+    rosbag2_cpp::rosbag2_cpp
+    rosbag2_storage::rosbag2_storage
+  )
+  foreach(rmw_implementation rmw_fastrtps_cpp rmw_cyclonedds_cpp rmw_zenoh_cpp)
+    find_package(${rmw_implementation} QUIET)
+    if(${rmw_implementation}_FOUND)
+      ament_add_gtest_test(test_runtime_types
+        TEST_NAME test_runtime_types_${rmw_implementation}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
+        ENV RMW_IMPLEMENTATION=${rmw_implementation}
+      )
+      set_tests_properties(test_runtime_types_${rmw_implementation} PROPERTIES LABELS "unit_testing")
+    endif()
+  endforeach()
 
   find_package(ament_cmake_clang_format REQUIRED)
   ament_clang_format(

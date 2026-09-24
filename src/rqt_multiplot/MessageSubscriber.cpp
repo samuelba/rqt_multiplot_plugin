@@ -22,6 +22,7 @@
 #include <QApplication>
 
 #include "rqt_multiplot/MessageEvent.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 #include "rqt_multiplot/RosContext.hpp"
 
 #include "rqt_multiplot/MessageSubscriber.hpp"
@@ -51,11 +52,40 @@ ros_babel_fish::BabelFishSubscription::SharedPtr createTopicSubscription(ros_bab
   return createTopicSubscription(fish, node, topic, qos, std::forward<Callback>(callback), timeout, 0);
 }
 
+template <typename Callback>
+auto createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node, const std::string& topic, const std::string& type,
+                                  const rclcpp::QoS& qos, Callback&& callback, int /*preferNewApi*/)
+    -> decltype(fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{})) {
+  return fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{});
+}
+
+template <typename Callback>
+ros_babel_fish::BabelFishSubscription::SharedPtr createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
+                                                                              const std::string& topic, const std::string& type,
+                                                                              const rclcpp::QoS& qos, Callback&& callback,
+                                                                              long /*preferLegacyApi*/) {
+  return fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), nullptr, {});
+}
+
+template <typename Callback>
+ros_babel_fish::BabelFishSubscription::SharedPtr createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
+                                                                              const std::string& topic, const std::string& type,
+                                                                              const rclcpp::QoS& qos, Callback&& callback) {
+  return createTypedTopicSubscription(fish, node, topic, type, qos, std::forward<Callback>(callback), 0);
+}
+
+constexpr int kSubscribeRetryIntervalMs = 1000;
+
 }  // namespace
 
 namespace rqt_multiplot {
 
-MessageSubscriber::MessageSubscriber(QObject* parent) : QObject(parent), queueSize_(100) {}
+MessageSubscriber::MessageSubscriber(QObject* parent)
+    : QObject(parent), queueSize_(100), retryTimer_(new QTimer(this)), hasReportedError_(false) {
+  retryTimer_->setSingleShot(true);
+  retryTimer_->setInterval(kSubscribeRetryIntervalMs);
+  connect(retryTimer_, SIGNAL(timeout()), this, SLOT(retryTimerTimeout()));
+}
 
 MessageSubscriber::~MessageSubscriber() {
   unsubscribe();
@@ -68,22 +98,27 @@ const QString& MessageSubscriber::getTopic() const {
 void MessageSubscriber::setTopic(const QString& topic) {
   if (topic != topic_) {
     topic_ = topic;
-
-    if (subscriber_) {
-      unsubscribe();
-      subscribe();
-    }
+    hasReportedError_ = false;
+    resubscribe();
   }
+}
+
+void MessageSubscriber::setMessageType(const QString& type) {
+  if (type != messageType_) {
+    messageType_ = type;
+    hasReportedError_ = false;
+    resubscribe();
+  }
+}
+
+const QString& MessageSubscriber::getMessageType() const {
+  return messageType_;
 }
 
 void MessageSubscriber::setQueueSize(size_t queueSize) {
   if (queueSize != queueSize_) {
     queueSize_ = queueSize;
-
-    if (subscriber_) {
-      unsubscribe();
-      subscribe();
-    }
+    resubscribe();
   }
 }
 
@@ -117,16 +152,53 @@ void MessageSubscriber::subscribe() {
     return;
   }
 
-  subscriber_ = createTopicSubscription(
-      RosContext::fish(), *node, topic_.toStdString(), rclcpp::QoS(queueSize_),
-      [this](const ros_babel_fish::CompoundMessage& compound) { callback(compound); }, std::chrono::nanoseconds(0));
+  auto onMessage = [this](const ros_babel_fish::CompoundMessage& compound) { callback(compound); };
+  try {
+    if (messageType_.isEmpty()) {
+      subscriber_ = createTopicSubscription(RosContext::fish(), *node, topic_.toStdString(), rclcpp::QoS(queueSize_), onMessage,
+                                            std::chrono::nanoseconds(0));
+    } else {
+      subscriber_ = createTypedTopicSubscription(RosContext::fish(), *node, topic_.toStdString(),
+                                                 normalizeTypeName(messageType_.toStdString()), rclcpp::QoS(queueSize_), onMessage);
+    }
+  } catch (const std::exception& ex) {
+    subscriber_.reset();
+    if (!hasReportedError_) {
+      hasReportedError_ = true;
+      qWarning("MessageSubscriber: cannot subscribe to [%s] with type [%s]: %s. Retrying until a publisher provides the type.",
+               qPrintable(topic_), qPrintable(messageType_), ex.what());
+    }
+    retryTimer_->start();
+    return;
+  }
 
   if (subscriber_) {
     emit subscribed(topic_);
+  } else {
+    retryTimer_->start();
+  }
+}
+
+void MessageSubscriber::resubscribe() {
+  if (subscriber_ || retryTimer_->isActive() || hasReceivers()) {
+    unsubscribe();
+    subscribe();
+  }
+}
+
+bool MessageSubscriber::hasReceivers() const {
+  return receivers(QMetaObject::normalizedSignature(SIGNAL(messageReceived(const QString&, const Message&)))) > 0;
+}
+
+void MessageSubscriber::retryTimerTimeout() {
+  if (!subscriber_ && hasReceivers()) {
+    subscribe();
   }
 }
 
 void MessageSubscriber::unsubscribe() {
+  retryTimer_->stop();
+
   if (subscriber_) {
     subscriber_.reset();
 
@@ -154,7 +226,7 @@ void MessageSubscriber::connectNotify(const QMetaMethod& signal) {
 }
 
 void MessageSubscriber::disconnectNotify(const QMetaMethod& /*signal*/) {
-  if (receivers(QMetaObject::normalizedSignature(SIGNAL(messageReceived(const QString&, const Message&)))) == 0) {
+  if (!hasReceivers()) {
     if (subscriber_) {
       unsubscribe();
     }

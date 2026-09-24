@@ -15,6 +15,7 @@ RUN echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99no-install-r
 
 RUN --mount=type=cache,id=apt-cache-${ROS_DISTRO},target=/var/cache/apt \
     apt-get update && \
+    apt-get dist-upgrade -y && \
     apt-get install -y \
     #
     # Distrobox packages.
