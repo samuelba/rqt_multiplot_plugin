@@ -16,7 +16,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <algorithm>
+
 #include <QAbstractButton>
+#include <QAction>
 #include <QCloseEvent>
 #include <QDockWidget>
 #include <QEvent>
@@ -25,13 +28,20 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QPushButton>
 #include <QShowEvent>
+#include <QSignalBlocker>
+#include <QSizePolicy>
+#include <QSplitter>
 #include <QTimer>
 
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/PlotSplitter.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/PreferencesDialog.hpp"
 #include "rqt_multiplot/Theme.hpp"
+#include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/UserPreferences.hpp"
 
 #include <ui_MultiplotWidget.h>
@@ -69,6 +79,9 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       config_(new MultiplotConfig(this)),
       messageTypeRegistry_(new MessageTypeRegistry(this)),
       packageRegistry_(new PackageRegistry(this)),
+      topicBrowser_(nullptr),
+      topicBrowserSplitter_(nullptr),
+      actionTopicBrowser_(nullptr),
       guardedDock_(nullptr),
       guardedCloseButton_(nullptr),
       closePromptCompleted_(false),
@@ -99,6 +112,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->plotTabWidget->setConfig(config_);
   ui_->plotTableConfigWidget->setPlotTabs(ui_->plotTabWidget);
   plotTabCurrentPlotTableChanged(ui_->plotTabWidget->getCurrentPlotTable());
+  setupTopicBrowser();
 
   connect(ui_->configWidget, SIGNAL(currentConfigModifiedChanged(bool)), this, SLOT(configWidgetCurrentConfigModifiedChanged(bool)));
   connect(ui_->configWidget, SIGNAL(currentConfigUrlChanged(const QString&)), this,
@@ -313,6 +327,69 @@ bool MultiplotWidget::isCloseButtonActivation(QObject* object, QEvent* event) co
   }
 
   return false;
+}
+
+void MultiplotWidget::setupTopicBrowser() {
+  topicBrowser_ = new TopicBrowserWidget(ui_->frame);
+  topicBrowserSplitter_ = new PlotSplitter(Qt::Horizontal, ui_->frame);
+  topicBrowserSplitter_->setObjectName(QStringLiteral("topicBrowserSideSplitter"));
+  ui_->gridLayout->removeWidget(ui_->plotTabWidget);
+  topicBrowserSplitter_->addWidget(topicBrowser_);
+  topicBrowserSplitter_->addWidget(ui_->plotTabWidget);
+  topicBrowser_->setMinimumWidth(0);
+  topicBrowser_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+  topicBrowserSplitter_->setStretchFactor(0, 0);
+  topicBrowserSplitter_->setStretchFactor(1, 1);
+  topicBrowserSplitter_->setCollapsible(0, true);
+  topicBrowserSplitter_->setCollapsible(1, false);
+  ui_->gridLayout->addWidget(topicBrowserSplitter_, 0, 0);
+
+  actionTopicBrowser_ = new QAction(tr("Topic browser"), this);
+  actionTopicBrowser_->setObjectName(QStringLiteral("actionTopicBrowser"));
+  setThemeIcon(actionTopicBrowser_, QStringLiteral("resource/tree-view.svg"));
+  setThemeIcon(ui_->pushButtonTopicBrowser, QStringLiteral("resource/tree-view.svg"));
+  QMenu* viewMenu = ui_->menuBar->addMenu(tr("&View"));
+  viewMenu->addAction(actionTopicBrowser_);
+
+  connect(actionTopicBrowser_, &QAction::triggered, this, [this]() { config_->setTopicBrowserVisible(!config_->isTopicBrowserVisible()); });
+  connect(ui_->pushButtonTopicBrowser, &QPushButton::toggled, config_, &MultiplotConfig::setTopicBrowserVisible);
+  connect(config_, &MultiplotConfig::topicBrowserVisibleChanged, this, [this]() { applyTopicBrowserState(); });
+  connect(config_, &MultiplotConfig::topicBrowserWidthChanged, this, [this](int width) {
+    const QList<int> sizes = topicBrowserSplitter_->sizes();
+    if (sizes.isEmpty() || (sizes.first() != width)) {
+      applyTopicBrowserState();
+    }
+  });
+  connect(topicBrowserSplitter_, &QSplitter::splitterMoved, this, &MultiplotWidget::topicBrowserSplitterMoved);
+  connect(ui_->plotTabWidget, &PlotTabWidget::bagFileImported, topicBrowser_, &TopicBrowserWidget::setBagFile);
+
+  applyTopicBrowserState();
+}
+
+void MultiplotWidget::applyTopicBrowserState() {
+  const bool visible = config_->isTopicBrowserVisible();
+  const QSignalBlocker buttonBlocker(ui_->pushButtonTopicBrowser);
+  ui_->pushButtonTopicBrowser->setChecked(visible);
+  ui_->pushButtonTopicBrowser->setToolTip(visible ? tr("Hide topic browser") : tr("Show topic browser"));
+  topicBrowser_->setVisible(visible);
+  if (!visible) {
+    return;
+  }
+
+  const int width = std::max(1, config_->getTopicBrowserWidth());
+  const int total = std::max(topicBrowserSplitter_->width(), width + 1);
+  topicBrowserSplitter_->setSizes({width, std::max(1, total - width)});
+}
+
+void MultiplotWidget::topicBrowserSplitterMoved(int /*pos*/, int /*index*/) {
+  if (!config_->isTopicBrowserVisible()) {
+    return;
+  }
+
+  const QList<int> sizes = topicBrowserSplitter_->sizes();
+  if (!sizes.isEmpty() && (sizes.first() > 0)) {
+    config_->setTopicBrowserWidth(sizes.first());
+  }
 }
 
 void MultiplotWidget::configWidgetCurrentConfigModifiedChanged(bool

@@ -85,6 +85,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/BagOpen.cpp
   src/rqt_multiplot/BagQuery.cpp
   src/rqt_multiplot/BagReader.cpp
+  src/rqt_multiplot/BagTopicLoader.cpp
   src/rqt_multiplot/BitOperations.cpp
   src/rqt_multiplot/BoundingRectangle.cpp
   src/rqt_multiplot/ColorOperations.cpp
@@ -191,6 +192,10 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/TimeZoneUtil.cpp
+  src/rqt_multiplot/TopicBrowserWidget.cpp
+  src/rqt_multiplot/TopicFieldMime.cpp
+  src/rqt_multiplot/TopicFieldTreeWidget.cpp
+  src/rqt_multiplot/TopicSampleLoader.cpp
   src/rqt_multiplot/UserPreferences.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
   src/rqt_multiplot/UrlComboBox.cpp
@@ -206,6 +211,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/BagOpen.hpp
   include/rqt_multiplot/BagQuery.hpp
   include/rqt_multiplot/BagReader.hpp
+  include/rqt_multiplot/BagTopicLoader.hpp
   include/rqt_multiplot/BitOperations.hpp
   include/rqt_multiplot/BoundingRectangle.hpp
   include/rqt_multiplot/ColorOperations.hpp
@@ -314,6 +320,10 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/StatusWidget.hpp
   include/rqt_multiplot/Theme.hpp
   include/rqt_multiplot/TimeZoneUtil.hpp
+  include/rqt_multiplot/TopicBrowserWidget.hpp
+  include/rqt_multiplot/TopicFieldMime.hpp
+  include/rqt_multiplot/TopicFieldTreeWidget.hpp
+  include/rqt_multiplot/TopicSampleLoader.hpp
   include/rqt_multiplot/UserPreferences.hpp
   include/rqt_multiplot/ThreadedTimer.hpp
   include/rqt_multiplot/UrlComboBox.hpp
@@ -458,6 +468,7 @@ if(BUILD_TESTING)
   ament_add_gtest(test_${PROJECT_NAME}
     test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
+    test/BagTopicLoaderTest.cpp
     test/CurveAxisConfigTest.cpp
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
@@ -488,11 +499,15 @@ if(BUILD_TESTING)
     test/PlotWidgetTitleStyleTest.cpp
     test/PlotWidgetSplitMenuTest.cpp
     test/PlotWidgetContextMenuTest.cpp
+    test/PlotWidgetTopicDropTest.cpp
     test/PlotCursorLabelTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp
     test/ThemeTest.cpp
     test/TimeZoneUtilTest.cpp
+    test/TopicBrowserWidgetTest.cpp
+    test/TopicFieldMimeTest.cpp
+    test/TopicSampleLoaderTest.cpp
     test/UserPreferencesTest.cpp
     test/UrlComboBoxTest.cpp
     test/PlotExportTest.cpp

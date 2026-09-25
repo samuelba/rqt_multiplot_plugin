@@ -8,6 +8,9 @@
 #include <string>
 #include <vector>
 
+#include <QHash>
+#include <QString>
+
 #include <rclcpp/serialized_message.hpp>
 #include <rclcpp/time.hpp>
 #include <ros_babel_fish/messages/compound_message.hpp>
@@ -43,6 +46,9 @@ rclcpp::Time getStamp(const ros_babel_fish::Message& message);
 bool hasHeader(const ros_babel_fish::Message& message);
 
 MessageFieldType fieldTypeFromMessage(const ros_babel_fish::Message& message);
+
+// Maps each array path (with concrete indices, e.g. "status/0/values") to its length; recurses into at most maxElements elements.
+QHash<QString, int> collectArrayLengths(const ros_babel_fish::Message& message, int maxElements);
 
 ros_babel_fish::CompoundMessage::SharedPtr createMessagePrototype(const std::string& typeName);
 ros_babel_fish::CompoundMessage::SharedPtr deserializeMessage(const std::string& typeName, const rclcpp::SerializedMessage& serialized);

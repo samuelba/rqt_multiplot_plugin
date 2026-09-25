@@ -398,6 +398,20 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
 }
 
+TEST(PlotTabWidget, loadFromBagFileEmitsBagFileImported) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  QStringList imported;
+  QObject::connect(&tabs, &PlotTabWidget::bagFileImported, [&imported](const QString& fileName) { imported.append(fileName); });
+
+  tabs.loadFromBagFile("/this/path/does/not/exist.mcap");
+
+  EXPECT_EQ(imported, QStringList({"/this/path/does/not/exist.mcap"}));
+}
+
 TEST(PlotTabWidget, progressRowHiddenWhenIdle) {
   ensureApplication();
 

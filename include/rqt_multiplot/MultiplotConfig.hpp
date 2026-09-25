@@ -31,6 +31,8 @@ namespace rqt_multiplot {
 class MultiplotConfig : public Config {
   Q_OBJECT
  public:
+  static constexpr int kDefaultTopicBrowserWidth = 280;
+
   explicit MultiplotConfig(QObject* parent);
   ~MultiplotConfig() override;
 
@@ -50,6 +52,10 @@ class MultiplotConfig : public Config {
   bool isOpenGLCanvasEnabled() const;
   void setPlotTitleStyle(const PlotTitleStyle& style);
   PlotTitleStyle plotTitleStyle() const;
+  void setTopicBrowserVisible(bool visible);
+  bool isTopicBrowserVisible() const;
+  void setTopicBrowserWidth(int width);
+  int getTopicBrowserWidth() const;
   bool isPreferencesOverridden() const;
   void setPreferencesOverridden(bool overridden);
   void applyUserDefaults();
@@ -73,6 +79,8 @@ class MultiplotConfig : public Config {
   void themeChanged(const QString& themeId);
   void openGLCanvasChanged(bool enabled);
   void plotTitleStyleChanged(const PlotTitleStyle& style);
+  void topicBrowserVisibleChanged(bool visible);
+  void topicBrowserWidthChanged(int width);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
@@ -82,7 +90,10 @@ class MultiplotConfig : public Config {
   bool openGLCanvasEnabled_;
   PlotTitleStyle plotTitleStyle_;
   bool preferencesOverridden_;
+  bool topicBrowserVisible_;
+  int topicBrowserWidth_;
 
+  void readTopicBrowserState(QDataStream& stream);
   PlotTableConfig* createTab(const QString& title);
   void applyThemeColorsTo(PlotTableConfig* table) const;
   void applyThemeColors();

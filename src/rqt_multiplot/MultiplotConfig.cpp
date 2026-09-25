@@ -36,6 +36,7 @@ namespace {
 
 constexpr quint32 kTabsStreamMagic = 0x52544D31;
 constexpr auto kPreferencesStreamMarker = "__rtp_prefs_v2__";
+constexpr auto kTopicBrowserStreamMarker = "__rtp_topic_browser_v1__";
 constexpr quint64 kMaxStreamTabs = 256;
 constexpr auto kTimeZoneLocal = "local";
 constexpr auto kTimeZoneUtc = "utc";
@@ -66,7 +67,9 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
       themeId_(QString::fromLatin1(Theme::kLightId)),
       openGLCanvasEnabled_(false),
       plotTitleStyle_(PlotTitleStyle::factory()),
-      preferencesOverridden_(false) {
+      preferencesOverridden_(false),
+      topicBrowserVisible_(false),
+      topicBrowserWidth_(kDefaultTopicBrowserWidth) {
   createTab("Tab 1");
   applyUserDefaults();
 }
@@ -227,6 +230,34 @@ PlotTitleStyle MultiplotConfig::plotTitleStyle() const {
   return plotTitleStyle_;
 }
 
+void MultiplotConfig::setTopicBrowserVisible(bool visible) {
+  if (visible == topicBrowserVisible_) {
+    return;
+  }
+
+  topicBrowserVisible_ = visible;
+  emit topicBrowserVisibleChanged(visible);
+  emit changed();
+}
+
+bool MultiplotConfig::isTopicBrowserVisible() const {
+  return topicBrowserVisible_;
+}
+
+void MultiplotConfig::setTopicBrowserWidth(int width) {
+  if (width == topicBrowserWidth_) {
+    return;
+  }
+
+  topicBrowserWidth_ = width;
+  emit topicBrowserWidthChanged(width);
+  emit changed();
+}
+
+int MultiplotConfig::getTopicBrowserWidth() const {
+  return topicBrowserWidth_;
+}
+
 bool MultiplotConfig::isPreferencesOverridden() const {
   return preferencesOverridden_;
 }
@@ -267,6 +298,8 @@ void MultiplotConfig::save(QSettings& settings) const {
     settings.remove("plot_title_color");
   }
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
+  settings.setValue("topic_browser_visible", topicBrowserVisible_);
+  settings.setValue("topic_browser_width", topicBrowserWidth_);
   settings.beginGroup("tabs");
 
   for (int index = 0; index < tableConfigs_.count(); ++index) {
@@ -294,6 +327,8 @@ void MultiplotConfig::load(QSettings& settings) {
     return;
   }
 
+  setTopicBrowserVisible(settings.value(QStringLiteral("topic_browser_visible"), false).toBool());
+  setTopicBrowserWidth(settings.value(QStringLiteral("topic_browser_width"), kDefaultTopicBrowserWidth).toInt());
   preferencesOverridden_ = hasPreferenceOverride;
   if (hasPreferenceOverride) {
     timeZoneId_ = normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
@@ -325,6 +360,8 @@ void MultiplotConfig::reset() {
   createTab("Tab 1");
   currentTabIndex_ = 0;
   preferencesOverridden_ = false;
+  setTopicBrowserVisible(false);
+  setTopicBrowserWidth(kDefaultTopicBrowserWidth);
   applyUserDefaults();
 
   emit tabsChanged();
@@ -353,6 +390,29 @@ void MultiplotConfig::write(QDataStream& stream) const {
     stream << plotTitleStyle_.autoColor;
     stream << plotTitleStyle_.customColor.name();
   }
+
+  stream << QString::fromLatin1(kTopicBrowserStreamMarker);
+  stream << topicBrowserVisible_;
+  stream << static_cast<qint32>(topicBrowserWidth_);
+}
+
+void MultiplotConfig::readTopicBrowserState(QDataStream& stream) {
+  if (stream.atEnd()) {
+    return;
+  }
+
+  QString marker;
+  bool visible = false;
+  qint32 width = kDefaultTopicBrowserWidth;
+  stream >> marker;
+  if (marker != QLatin1String(kTopicBrowserStreamMarker)) {
+    return;
+  }
+  stream >> visible >> width;
+  if (stream.status() == QDataStream::Ok) {
+    setTopicBrowserVisible(visible);
+    setTopicBrowserWidth(width);
+  }
 }
 
 void MultiplotConfig::read(QDataStream& stream) {
@@ -371,6 +431,9 @@ void MultiplotConfig::read(QDataStream& stream) {
   in.setVersion(stream.version());
   in.setByteOrder(stream.byteOrder());
   in.setFloatingPointPrecision(stream.floatingPointPrecision());
+
+  setTopicBrowserVisible(false);
+  setTopicBrowserWidth(kDefaultTopicBrowserWidth);
 
   quint32 magic = 0;
   in >> magic;
@@ -415,6 +478,7 @@ void MultiplotConfig::read(QDataStream& stream) {
         } else {
           applyUserDefaults();
         }
+        readTopicBrowserState(in);
       } else {
         preferencesOverridden_ = true;
         setTimeZoneId(marker);
@@ -469,6 +533,8 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   openGLCanvasEnabled_ = src.openGLCanvasEnabled_;
   plotTitleStyle_ = src.plotTitleStyle_;
   preferencesOverridden_ = src.preferencesOverridden_;
+  setTopicBrowserVisible(src.topicBrowserVisible_);
+  setTopicBrowserWidth(src.topicBrowserWidth_);
   applyThemeColors();
 
   emit tabsChanged();

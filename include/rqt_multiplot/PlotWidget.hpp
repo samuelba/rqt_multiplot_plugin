@@ -41,6 +41,9 @@
 #include "rqt_multiplot/PlotConfig.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
 #include "rqt_multiplot/PlotTitleStyle.hpp"
+#include "rqt_multiplot/TopicFieldMime.hpp"
+
+class QMimeData;
 
 namespace Ui {
 
@@ -198,6 +201,9 @@ class PlotWidget : public QWidget {
   QColor gridForegroundColor_;
   PlotTitleStyle plotTitleStyle_;
 
+  bool acceptsDrop(const QMimeData* mimeData, const QObject* source) const;
+  void addTopicFieldCurves(const QVector<TopicFieldRef>& refs);
+  void makeCurveTitleUnique(CurveConfig* curveConfig) const;
   void updateAxisTitle(PlotAxesConfig::Axis axis);
   void applyPlotTitleStyle();
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;

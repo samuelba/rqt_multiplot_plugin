@@ -133,6 +133,7 @@ void PlotTabWidget::clearPlots() {
 
 void PlotTabWidget::loadFromBagFile(const QString& fileName) {
   forEachPlotTable(&PlotTableWidget::loadFromBagFile, fileName);
+  emit bagFileImported(fileName);
 }
 
 void PlotTabWidget::rebuildTabs() {
