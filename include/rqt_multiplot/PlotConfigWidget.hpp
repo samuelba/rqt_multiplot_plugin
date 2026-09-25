@@ -21,6 +21,7 @@
 #include <QListWidgetItem>
 #include <QWidget>
 
+#include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
 
 namespace Ui {
@@ -64,6 +65,8 @@ class PlotConfigWidget : public QWidget {
   void pushButtonAddCurveClicked();
   void pushButtonEditCurveClicked();
   void pushButtonRemoveCurvesClicked();
+  void pushButtonMoveCurveUpClicked();
+  void pushButtonMoveCurveDownClicked();
 
   void pushButtonCopyCurvesClicked();
   void pushButtonPasteCurvesClicked();
@@ -76,6 +79,8 @@ class PlotConfigWidget : public QWidget {
   void spinBoxTimeWindowLengthValueChanged(int value);
 
   void updateTimeWindowControls();
+  void updateCurveMoveButtons();
+  void syncCurveListWithConfig(CurveConfig* selectedConfig);
   void clipboardDataChanged();
 };
 

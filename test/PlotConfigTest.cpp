@@ -6,7 +6,9 @@
 
 #include <gtest/gtest.h>
 
+#include "rqt_multiplot/ColorOperations.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
+#include "rqt_multiplot/CurveColorConfig.hpp"
 #include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/PlotAxesConfig.hpp"
 #include "rqt_multiplot/PlotAxisConfig.hpp"
@@ -15,7 +17,9 @@
 
 namespace {
 
+using rqt_multiplot::ColorOperations;
 using rqt_multiplot::CurveAxisConfig;
+using rqt_multiplot::CurveColorConfig;
 using rqt_multiplot::CurveConfig;
 using rqt_multiplot::PlotAxesConfig;
 using rqt_multiplot::PlotAxisConfig;
@@ -190,6 +194,79 @@ TEST(PlotConfig, assignmentCopiesTimeWindow) {
 
   EXPECT_TRUE(target.isTimeWindowEnabled());
   EXPECT_EQ(target.getTimeWindowLength(), 45);
+}
+
+TEST(PlotConfig, moveCurveSwapsOrder) {
+  PlotConfig config;
+  config.addCurve()->setTitle("first");
+  config.addCurve()->setTitle("second");
+  config.addCurve()->setTitle("third");
+
+  config.moveCurve(1, -1);
+
+  EXPECT_EQ(config.getCurveConfig(0)->getTitle(), QString("second"));
+  EXPECT_EQ(config.getCurveConfig(1)->getTitle(), QString("first"));
+  EXPECT_EQ(config.getCurveConfig(2)->getTitle(), QString("third"));
+
+  config.moveCurve(1, 1);
+
+  EXPECT_EQ(config.getCurveConfig(0)->getTitle(), QString("second"));
+  EXPECT_EQ(config.getCurveConfig(1)->getTitle(), QString("third"));
+  EXPECT_EQ(config.getCurveConfig(2)->getTitle(), QString("first"));
+}
+
+TEST(PlotConfig, moveCurveReindexesAutoColorIndices) {
+  PlotConfig config;
+  auto* first = config.addCurve();
+  auto* second = config.addCurve();
+  first->getColorConfig()->setType(CurveColorConfig::Auto);
+  second->getColorConfig()->setType(CurveColorConfig::Auto);
+
+  const QColor colorAtIndex0 = ColorOperations::intToRgb(0);
+  const QColor colorAtIndex1 = ColorOperations::intToRgb(1);
+  EXPECT_EQ(first->getColorConfig()->getCurrentColor(), colorAtIndex0);
+  EXPECT_EQ(second->getColorConfig()->getCurrentColor(), colorAtIndex1);
+
+  config.moveCurve(1, -1);
+
+  EXPECT_EQ(config.getCurveConfig(0), second);
+  EXPECT_EQ(config.getCurveConfig(1), first);
+  EXPECT_EQ(second->getColorConfig()->getAutoColorIndex(), 0u);
+  EXPECT_EQ(first->getColorConfig()->getAutoColorIndex(), 1u);
+  EXPECT_EQ(second->getColorConfig()->getCurrentColor(), colorAtIndex0);
+  EXPECT_EQ(first->getColorConfig()->getCurrentColor(), colorAtIndex1);
+}
+
+TEST(PlotConfig, moveCurveIgnoresOutOfRange) {
+  PlotConfig config;
+  config.addCurve()->setTitle("only");
+
+  config.moveCurve(0, -1);
+  config.moveCurve(0, 1);
+  config.moveCurve(1, -1);
+
+  EXPECT_EQ(config.getNumCurves(), 1u);
+  EXPECT_EQ(config.getCurveConfig(0)->getTitle(), QString("only"));
+}
+
+TEST(PlotConfig, saveLoadPreservesCurveOrderAfterMove) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  PlotConfig config;
+  config.addCurve()->setTitle("alpha");
+  config.addCurve()->setTitle("beta");
+  config.moveCurve(1, -1);
+
+  QSettings settings(settingsPath(dir, "plot.ini"), QSettings::IniFormat);
+  config.save(settings);
+
+  PlotConfig loaded;
+  loaded.load(settings);
+
+  ASSERT_EQ(loaded.getNumCurves(), 2u);
+  EXPECT_EQ(loaded.getCurveConfig(0)->getTitle(), QString("beta"));
+  EXPECT_EQ(loaded.getCurveConfig(1)->getTitle(), QString("alpha"));
 }
 
 TEST(PlotConfig, removeCurveEmitsCurveRemoved) {

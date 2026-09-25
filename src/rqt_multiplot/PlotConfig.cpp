@@ -198,6 +198,28 @@ void PlotConfig::removeCurve(size_t index) {
   emit changed();
 }
 
+void PlotConfig::moveCurve(size_t index, int offset) {
+  if (offset == 0 || curveConfig_.isEmpty()) {
+    return;
+  }
+
+  const int from = static_cast<int>(index);
+  const int to = from + offset;
+
+  if (from < 0 || from >= curveConfig_.count() || to < 0 || to >= curveConfig_.count()) {
+    return;
+  }
+
+  CurveConfig* curveConfig = curveConfig_.takeAt(from);
+  curveConfig_.insert(to, curveConfig);
+
+  for (int i = 0; i < curveConfig_.count(); ++i) {
+    curveConfig_[i]->getColorConfig()->setAutoColorIndex(static_cast<size_t>(i));
+  }
+
+  emit changed();
+}
+
 void PlotConfig::clearCurves() {
   if (curveConfig_.isEmpty()) {
     return;
