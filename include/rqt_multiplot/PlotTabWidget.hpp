@@ -30,6 +30,7 @@ class QToolButton;
 
 namespace rqt_multiplot {
 
+class BagReader;
 class PlotTableWidget;
 
 class PlotTabWidget : public QWidget {
@@ -43,6 +44,7 @@ class PlotTabWidget : public QWidget {
   size_t getNumPlotTables() const;
   PlotTableWidget* getPlotTable(size_t index) const;
   PlotTableWidget* getCurrentPlotTable() const;
+  BagReader* getBagReader() const;
   QString getTabText(size_t index) const;
   void addTab();
   void closeTab(size_t index);
@@ -65,6 +67,7 @@ class PlotTabWidget : public QWidget {
   QTabWidget* tabWidget_;
   QToolButton* addButton_;
   MultiplotConfig* config_;
+  BagReader* bagReader_;
   QHash<PlotTableWidget*, int> activeJobCounts_;
   QHash<PlotTableWidget*, double> jobProgress_;
 
@@ -78,7 +81,6 @@ class PlotTabWidget : public QWidget {
   void updateCloseButtons();
   QToolButton* createTabCloseButton(QTabBar* bar);
   void forEachPlotTable(void (PlotTableWidget::*method)());
-  void forEachPlotTable(void (PlotTableWidget::*method)(const QString&), const QString& argument);
 
  private slots:
   void configTabAdded(size_t index);
@@ -100,6 +102,11 @@ class PlotTabWidget : public QWidget {
   void plotTableJobProgressChanged(double progress);
   void plotTableJobFinished(const QString& toolTip);
   void plotTableJobFailed(const QString& toolTip);
+
+  void bagReadingStarted();
+  void bagReadingProgressChanged(double progress);
+  void bagReadingFinished();
+  void bagReadingFailed(const QString& error);
 };
 
 }  // namespace rqt_multiplot

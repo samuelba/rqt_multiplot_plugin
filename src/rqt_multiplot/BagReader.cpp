@@ -16,6 +16,9 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <string>
+#include <vector>
+
 #include <QApplication>
 #include <QDebug>
 #include <QMutexLocker>
@@ -25,6 +28,7 @@
 #include <rclcpp/time.hpp>
 #include <rosbag2_cpp/reader.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
+#include <rosbag2_storage/storage_filter.hpp>
 
 #include "rqt_multiplot/ProgressChangeEvent.hpp"
 
@@ -115,14 +119,25 @@ bool BagReader::event(QEvent* event) {
 }
 
 void BagReader::Impl::run() {
-  if (queries_.isEmpty()) {
-    return;
+  std::vector<std::string> topics;
+  {
+    QMutexLocker lock(&mutex_);
+    if (queries_.isEmpty()) {
+      return;
+    }
+    for (auto it = queries_.cbegin(); it != queries_.cend(); ++it) {
+      topics.push_back(it.key().toStdString());
+    }
   }
 
   try {
     rosbag2_cpp::Reader reader;
     openBag(reader, fileName_.toStdString());
     registerMessageDefinitions(reader, RosContext::typeSupportProvider());
+
+    rosbag2_storage::StorageFilter filter;
+    filter.topics = topics;
+    reader.set_filter(filter);
 
     QMap<QString, QString> topicTypes;
     for (const auto& topic : reader.get_all_topics_and_types()) {
@@ -132,6 +147,8 @@ void BagReader::Impl::run() {
     const auto& metadata = reader.get_metadata();
     const auto startNs = metadata.starting_time.time_since_epoch().count();
     const auto durationNs = metadata.duration.count();
+    constexpr double kProgressStep = 0.01;
+    double lastPostedProgress = -1.0;
 
     while (reader.has_next()) {
       auto bagMessage = reader.read_next();
@@ -154,8 +171,12 @@ void BagReader::Impl::run() {
         progress = static_cast<double>(bagMessage->recv_timestamp - startNs) / static_cast<double>(durationNs);
       }
 
-      auto* progressChangeEvent = new ProgressChangeEvent(progress);
-      QApplication::postEvent(parent(), progressChangeEvent);
+      const bool isLastMessage = !reader.has_next();
+      if (isLastMessage || (progress - lastPostedProgress) >= kProgressStep) {
+        lastPostedProgress = progress;
+        auto* progressChangeEvent = new ProgressChangeEvent(progress);
+        QApplication::postEvent(parent(), progressChangeEvent);
+      }
     }
   } catch (const std::exception& exception) {
     error_ = QString::fromStdString(exception.what());

@@ -290,15 +290,26 @@ void PlotTableWidget::writeFormattedCurveData(QList<QStringList>& formattedData)
 }
 
 void PlotTableWidget::loadFromBagFile(const QString& fileName) {
+  playFromBroker(bagReader_);
+  bagReader_->read(fileName);
+}
+
+void PlotTableWidget::playFromBroker(MessageBroker* broker) {
   clearPlots();
 
   for (PlotWidget* plot : plotWidgets_) {
-    plot->setBroker(bagReader_);
+    plot->setBroker(broker);
   }
 
   runPlots();
+}
 
-  bagReader_->read(fileName);
+void PlotTableWidget::restoreLiveBroker() {
+  pausePlots();
+
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setBroker(registry_);
+  }
 }
 
 void PlotTableWidget::saveToImageFile(const QString& fileName) {
@@ -668,21 +679,13 @@ void PlotTableWidget::bagReaderReadingProgressChanged(double progress) {
 }
 
 void PlotTableWidget::bagReaderReadingFinished() {
-  pausePlots();
-
-  for (PlotWidget* plot : plotWidgets_) {
-    plot->setBroker(registry_);
-  }
+  restoreLiveBroker();
 
   emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
 }
 
 void PlotTableWidget::bagReaderReadingFailed(const QString& /*error*/) {
-  pausePlots();
-
-  for (PlotWidget* plot : plotWidgets_) {
-    plot->setBroker(registry_);
-  }
+  restoreLiveBroker();
 
   emit jobFailed("Failed to read bag from [file://" + bagReader_->getFileName() + "]");
 }
