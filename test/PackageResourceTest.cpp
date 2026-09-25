@@ -147,6 +147,8 @@ TEST(PlotConfigWidget, curveButtonsHaveVisibleRasterIcons) {
   expectVisibleButtonIcon(&widget, "pushButtonAddCurve");
   expectVisibleButtonIcon(&widget, "pushButtonEditCurve");
   expectVisibleButtonIcon(&widget, "pushButtonRemoveCurves");
+  expectVisibleButtonIcon(&widget, "pushButtonMoveCurveUp");
+  expectVisibleButtonIcon(&widget, "pushButtonMoveCurveDown");
   expectVisibleButtonIcon(&widget, "pushButtonCopyCurves");
   expectVisibleButtonIcon(&widget, "pushButtonPasteCurves");
 }

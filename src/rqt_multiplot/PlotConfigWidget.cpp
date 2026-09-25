@@ -40,9 +40,13 @@ PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new U
   setThemeIcon(ui_->pushButtonAddCurve, QStringLiteral("resource/add-curve.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonEditCurve, QStringLiteral("resource/edit-curve.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonRemoveCurves, QStringLiteral("resource/remove-curve.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonMoveCurveUp, QStringLiteral("resource/move-up.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonMoveCurveDown, QStringLiteral("resource/move-down.svg"), QSize(16, 16));
 
   ui_->pushButtonEditCurve->setEnabled(false);
   ui_->pushButtonRemoveCurves->setEnabled(false);
+  ui_->pushButtonMoveCurveUp->setEnabled(false);
+  ui_->pushButtonMoveCurveDown->setEnabled(false);
 
   setThemeIcon(ui_->pushButtonCopyCurves, QStringLiteral("resource/copy.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonPasteCurves, QStringLiteral("resource/paste.svg"), QSize(16, 16));
@@ -68,6 +72,8 @@ PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new U
   connect(ui_->pushButtonAddCurve, SIGNAL(clicked()), this, SLOT(pushButtonAddCurveClicked()));
   connect(ui_->pushButtonEditCurve, SIGNAL(clicked()), this, SLOT(pushButtonEditCurveClicked()));
   connect(ui_->pushButtonRemoveCurves, SIGNAL(clicked()), this, SLOT(pushButtonRemoveCurvesClicked()));
+  connect(ui_->pushButtonMoveCurveUp, SIGNAL(clicked()), this, SLOT(pushButtonMoveCurveUpClicked()));
+  connect(ui_->pushButtonMoveCurveDown, SIGNAL(clicked()), this, SLOT(pushButtonMoveCurveDownClicked()));
 
   connect(ui_->pushButtonCopyCurves, SIGNAL(clicked()), this, SLOT(pushButtonCopyCurvesClicked()));
   connect(ui_->pushButtonPasteCurves, SIGNAL(clicked()), this, SLOT(pushButtonPasteCurvesClicked()));
@@ -104,6 +110,7 @@ void PlotConfigWidget::setConfig(const PlotConfig& config) {
     ui_->curveListWidget->addCurve(config_->getCurveConfig(index));
   }
 
+  updateCurveMoveButtons();
   configTimeWindowEnabledChanged(config_->isTimeWindowEnabled());
   configTimeWindowLengthChanged(config_->getTimeWindowLength());
   updateTimeWindowControls();
@@ -260,6 +267,71 @@ void PlotConfigWidget::pushButtonRemoveCurvesClicked() {
   }
 }
 
+void PlotConfigWidget::pushButtonMoveCurveUpClicked() {
+  QListWidgetItem* item = ui_->curveListWidget->currentItem();
+  if (item == nullptr) {
+    return;
+  }
+
+  const int row = ui_->curveListWidget->row(item);
+  if (row <= 0) {
+    return;
+  }
+
+  auto* widget = dynamic_cast<CurveItemWidget*>(ui_->curveListWidget->itemWidget(item));
+  if (widget == nullptr) {
+    return;
+  }
+
+  CurveConfig* curveConfig = widget->getConfig();
+  config_->moveCurve(static_cast<size_t>(row), -1);
+  syncCurveListWithConfig(curveConfig);
+  updateCurveMoveButtons();
+}
+
+void PlotConfigWidget::pushButtonMoveCurveDownClicked() {
+  QListWidgetItem* item = ui_->curveListWidget->currentItem();
+  if (item == nullptr) {
+    return;
+  }
+
+  const int row = ui_->curveListWidget->row(item);
+  if (row < 0 || row >= ui_->curveListWidget->count() - 1) {
+    return;
+  }
+
+  auto* widget = dynamic_cast<CurveItemWidget*>(ui_->curveListWidget->itemWidget(item));
+  if (widget == nullptr) {
+    return;
+  }
+
+  CurveConfig* curveConfig = widget->getConfig();
+  config_->moveCurve(static_cast<size_t>(row), 1);
+  syncCurveListWithConfig(curveConfig);
+  updateCurveMoveButtons();
+}
+
+void PlotConfigWidget::syncCurveListWithConfig(CurveConfig* selectedConfig) {
+  ui_->curveListWidget->clear();
+
+  for (size_t index = 0; index < config_->getNumCurves(); ++index) {
+    ui_->curveListWidget->addCurve(config_->getCurveConfig(index));
+  }
+
+  if (selectedConfig == nullptr) {
+    return;
+  }
+
+  for (int row = 0; row < ui_->curveListWidget->count(); ++row) {
+    CurveItemWidget* curveWidget = ui_->curveListWidget->getCurveItem(static_cast<size_t>(row));
+    if ((curveWidget != nullptr) && (curveWidget->getConfig() == selectedConfig)) {
+      ui_->curveListWidget->setCurrentRow(row);
+      ui_->curveListWidget->item(row)->setSelected(true);
+      return;
+    }
+  }
+}
+
 void PlotConfigWidget::pushButtonCopyCurvesClicked() {
   copySelectedCurves();
 }
@@ -275,6 +347,22 @@ void PlotConfigWidget::curveListWidgetItemSelectionChanged() {
   ui_->pushButtonRemoveCurves->setEnabled(!items.isEmpty());
 
   ui_->pushButtonCopyCurves->setEnabled(!items.isEmpty());
+  updateCurveMoveButtons();
+}
+
+void PlotConfigWidget::updateCurveMoveButtons() {
+  QList<QListWidgetItem*> items = ui_->curveListWidget->selectedItems();
+  const bool singleSelection = items.count() == 1;
+  if (!singleSelection) {
+    ui_->pushButtonMoveCurveUp->setEnabled(false);
+    ui_->pushButtonMoveCurveDown->setEnabled(false);
+    return;
+  }
+
+  const int row = ui_->curveListWidget->row(items.front());
+  const int count = ui_->curveListWidget->count();
+  ui_->pushButtonMoveCurveUp->setEnabled(row > 0);
+  ui_->pushButtonMoveCurveDown->setEnabled(row >= 0 && row < count - 1);
 }
 
 void PlotConfigWidget::curveListWidgetItemDoubleClicked(QListWidgetItem*

@@ -52,6 +52,7 @@ class PlotConfig : public Config {
   CurveConfig* addCurve();
   void removeCurve(CurveConfig* curveConfig);
   void removeCurve(size_t index);
+  void moveCurve(size_t index, int offset);
   void clearCurves();
 
   QVector<CurveConfig*> findCurves(const QString& title) const;
