@@ -1,14 +1,19 @@
 #include <cstdlib>
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QApplication>
+#include <QComboBox>
 #include <QDockWidget>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QPoint>
 #include <QPointF>
 #include <QPushButton>
 #include <QSettings>
+#include <QSizePolicy>
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QWidget>
@@ -18,6 +23,7 @@
 #include "rqt_multiplot/MultiplotConfig.hpp"
 #include "rqt_multiplot/MultiplotWidget.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/XmlSettings.hpp"
 
 namespace {
@@ -102,6 +108,123 @@ TEST(MultiplotWidget, startsUnmodifiedAfterShow) {
   QApplication::processEvents();
 
   EXPECT_FALSE(windowTitleShowsModified(widget));
+}
+
+TEST(MultiplotWidget, topicBrowserToggleFollowsConfig) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  widget.resize(900, 480);
+  widget.show();
+  QApplication::processEvents();
+
+  auto* browser = widget.findChild<rqt_multiplot::TopicBrowserWidget*>();
+  auto* button = widget.findChild<QPushButton*>(QStringLiteral("pushButtonTopicBrowser"));
+  ASSERT_NE(browser, nullptr);
+  ASSERT_NE(button, nullptr);
+  EXPECT_FALSE(browser->isVisible());
+  EXPECT_FALSE(button->isChecked());
+
+  button->click();
+  QApplication::processEvents();
+
+  EXPECT_TRUE(widget.getConfig()->isTopicBrowserVisible());
+  EXPECT_TRUE(browser->isVisible());
+
+  widget.getConfig()->setTopicBrowserVisible(false);
+  QApplication::processEvents();
+
+  EXPECT_FALSE(button->isChecked());
+  EXPECT_FALSE(browser->isVisible());
+}
+
+TEST(MultiplotWidget, topicBrowserMenuActionStaysUnchecked) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  widget.resize(900, 480);
+  widget.show();
+  QApplication::processEvents();
+
+  auto* action = widget.findChild<QAction*>(QStringLiteral("actionTopicBrowser"));
+  ASSERT_NE(action, nullptr);
+  EXPECT_FALSE(action->isCheckable());
+
+  action->trigger();
+  QApplication::processEvents();
+  EXPECT_TRUE(widget.getConfig()->isTopicBrowserVisible());
+  EXPECT_FALSE(action->isChecked());
+
+  action->trigger();
+  QApplication::processEvents();
+  EXPECT_FALSE(widget.getConfig()->isTopicBrowserVisible());
+  EXPECT_FALSE(action->isChecked());
+}
+
+TEST(MultiplotWidget, topicBrowserButtonIsCheckedOnlyWhileShown) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  widget.resize(900, 480);
+  widget.show();
+  QApplication::processEvents();
+
+  auto* button = widget.findChild<QPushButton*>(QStringLiteral("pushButtonTopicBrowser"));
+  auto* plotsLabel = widget.findChild<QLabel*>(QStringLiteral("labelPlots"));
+  auto* configLabel = widget.findChild<QLabel*>(QStringLiteral("labelConfig"));
+  auto* plotsToolbar = widget.findChild<QWidget*>(QStringLiteral("plotTableConfigWidget"));
+  auto* configCombo = widget.findChild<QComboBox*>(QStringLiteral("configComboBox"));
+  ASSERT_NE(button, nullptr);
+  ASSERT_NE(plotsLabel, nullptr);
+  ASSERT_NE(configLabel, nullptr);
+  ASSERT_NE(plotsToolbar, nullptr);
+  ASSERT_NE(configCombo, nullptr);
+
+  EXPECT_TRUE(button->isFlat());
+  EXPECT_FALSE(button->isChecked());
+  EXPECT_EQ(button->sizePolicy().horizontalPolicy(), QSizePolicy::Fixed);
+  EXPECT_EQ(button->sizePolicy().verticalPolicy(), QSizePolicy::Fixed);
+
+  const QPoint plotsBefore = plotsLabel->mapTo(&widget, QPoint(0, 0));
+  const QPoint configBefore = configLabel->mapTo(&widget, QPoint(0, 0));
+  const QPoint toolbarBefore = plotsToolbar->mapTo(&widget, QPoint(0, 0));
+  const QSize toolbarSizeBefore = plotsToolbar->size();
+  const QPoint buttonBefore = button->mapTo(&widget, QPoint(0, 0));
+  const QSize buttonSizeBefore = button->size();
+  const int comboWidthBefore = configCombo->width();
+
+  button->click();
+  QApplication::processEvents();
+
+  EXPECT_TRUE(button->isChecked());
+  EXPECT_EQ(plotsLabel->mapTo(&widget, QPoint(0, 0)), plotsBefore);
+  EXPECT_EQ(configLabel->mapTo(&widget, QPoint(0, 0)), configBefore);
+  EXPECT_EQ(plotsToolbar->mapTo(&widget, QPoint(0, 0)), toolbarBefore);
+  EXPECT_EQ(plotsToolbar->size(), toolbarSizeBefore);
+  EXPECT_EQ(button->mapTo(&widget, QPoint(0, 0)), buttonBefore);
+  EXPECT_EQ(button->size(), buttonSizeBefore);
+  EXPECT_EQ(configCombo->width(), comboWidthBefore);
+
+  button->click();
+  QApplication::processEvents();
+
+  EXPECT_FALSE(button->isChecked());
+  EXPECT_FALSE(widget.findChild<rqt_multiplot::TopicBrowserWidget*>()->isVisible());
+}
+
+TEST(MultiplotWidget, topicBrowserUsesConfiguredWidth) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  widget.resize(900, 480);
+  widget.show();
+  widget.getConfig()->setTopicBrowserWidth(310);
+  widget.getConfig()->setTopicBrowserVisible(true);
+  QApplication::processEvents();
+
+  auto* browser = widget.findChild<rqt_multiplot::TopicBrowserWidget*>();
+  ASSERT_NE(browser, nullptr);
+  EXPECT_EQ(browser->width(), 310);
 }
 
 TEST(MultiplotWidget, staysUnmodifiedAfterLoadingConfig) {

@@ -59,6 +59,7 @@ class PlotTabWidget : public QWidget {
   void jobProgressChanged(double progress);
   void jobFinished(const QString& toolTip);
   void jobFailed(const QString& toolTip);
+  void bagFileImported(const QString& fileName);
 
  private:
   QTabWidget* tabWidget_;

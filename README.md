@@ -24,6 +24,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import a bag; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 - **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
+- **[Topic browser](#topic-browser)** — browse live and bag topics, then drag'n'drop a field onto a plot
 
 Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
 
@@ -247,6 +248,20 @@ All on `/diagnostics` (`diagnostic_msgs/DiagnosticArray`). X: `header/stamp` or 
 | `/GPS` | `Satellites` | | absent between publishes |
 | `/Sensors/Range` | `Distance` | `front` or `rear` | same status name and key |
 
+## Topic browser
+
+A sidebar lists live topics and, after a bag import, the topics in that bag. Check a topic to show its fields. Drag a numeric field, a message, or an array onto a plot to add curves.
+
+The tree-view button on the main toolbar, or **View → Topic browser**, shows or hides the sidebar. Drag the splitter to set the width. Visibility and width are stored in the XML.
+
+![Topic browser](images/topic_browser.png)
+
+- **Filter** matches the topic name or the type. The refresh button reloads live topics.
+- **Live** lists topics that are publishing. A checked topic stays listed after it stops.
+- **Bag** lists topics from the imported file, under **Bag:** and the file name. Those field roots end with `[bag]`.
+- A drop sets Y to the field and X to message receipt time. A wildcard array (`position/*`) uses array index on X. Dropping a message or an array adds one curve per numeric field. More than 10 curves asks first.
+- A dynamic array lists elements after one message arrives, up to 100.
+
 ## Bugs and feature requests
 
 Use the [issue tracker](https://github.com/samuelba/rqt_multiplot_plugin/issues).
@@ -279,7 +294,7 @@ Fix formatting issues:
 
 ```bash
 find src include test \( -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0 \
-  | xargs -0 clang-format -i
+  | xargs -0 clang-format-23 -i
 ```
 
 ### Linting

@@ -15,6 +15,7 @@
 
 namespace {
 
+using rqt_multiplot::collectArrayLengths;
 using rqt_multiplot::createMessagePrototype;
 using rqt_multiplot::deserializeMessage;
 using rqt_multiplot::DiagnosticStatusKey;
@@ -369,6 +370,38 @@ TEST(MessageFieldAccess, matchesDiagnosticHardwareIdOnlyWhenSet) {
   ASSERT_NE(rearReading, readings.end());
   EXPECT_EQ(rearReading->name, "Range");
   EXPECT_EQ(rearReading->key, "Distance");
+}
+
+TEST(MessageFieldAccess, collectsTopLevelArrayLengths) {
+  auto message = createMessagePrototype("sensor_msgs/msg/JointState");
+  ASSERT_NE(message, nullptr);
+  auto& position = (*message)["position"].as<ros_babel_fish::ArrayMessage<double>>();
+  position.push_back(1.0);
+  position.push_back(2.0);
+
+  const QHash<QString, int> lengths = collectArrayLengths(*message, 100);
+
+  EXPECT_EQ(lengths.value("position", -1), 2);
+  EXPECT_EQ(lengths.value("name", -1), 0);
+  EXPECT_FALSE(lengths.contains("header"));
+}
+
+TEST(MessageFieldAccess, collectsNestedArrayLengthsPerElementUpToLimit) {
+  auto message = createMessagePrototype("diagnostic_msgs/msg/DiagnosticArray");
+  ASSERT_NE(message, nullptr);
+  auto& first = appendStatus(*message, "A");
+  appendKeyValue(first, "k1", "1");
+  appendKeyValue(first, "k2", "2");
+  auto& second = appendStatus(*message, "B");
+  appendKeyValue(second, "k1", "1");
+  appendStatus(*message, "C");
+
+  const QHash<QString, int> lengths = collectArrayLengths(*message, 2);
+
+  EXPECT_EQ(lengths.value("status", -1), 3);
+  EXPECT_EQ(lengths.value("status/0/values", -1), 2);
+  EXPECT_EQ(lengths.value("status/1/values", -1), 1);
+  EXPECT_FALSE(lengths.contains("status/2/values"));
 }
 
 TEST(MessageFieldAccess, deserializesSerializedMessage) {

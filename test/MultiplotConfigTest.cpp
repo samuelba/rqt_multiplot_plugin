@@ -298,6 +298,77 @@ TEST(MultiplotConfig, roundTripsTwoTabsThroughDataStream) {
   EXPECT_EQ(loaded.getCurrentTabIndex(), 1u);
 }
 
+TEST(MultiplotConfig, topicBrowserIsHiddenByDefault) {
+  MultiplotConfig config(nullptr);
+
+  EXPECT_FALSE(config.isTopicBrowserVisible());
+  EXPECT_EQ(config.getTopicBrowserWidth(), MultiplotConfig::kDefaultTopicBrowserWidth);
+}
+
+TEST(MultiplotConfig, savesAndLoadsTopicBrowserState) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "topic_browser.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setTopicBrowserVisible(true);
+    config.setTopicBrowserWidth(333);
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_TRUE(loaded.isTopicBrowserVisible());
+  EXPECT_EQ(loaded.getTopicBrowserWidth(), 333);
+}
+
+TEST(MultiplotConfig, roundTripsTopicBrowserStateThroughDataStream) {
+  MultiplotConfig source(nullptr);
+  source.setTopicBrowserVisible(true);
+  source.setTopicBrowserWidth(321);
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  source.write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.read(in);
+
+  EXPECT_TRUE(loaded.isTopicBrowserVisible());
+  EXPECT_EQ(loaded.getTopicBrowserWidth(), 321);
+}
+
+TEST(MultiplotConfig, streamWithoutTopicBrowserStateResetsToDefaults) {
+  MultiplotConfig source(nullptr);
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream out(&buffer);
+  out << quint32(0x52544D31) << quint64(1) << quint64(0);
+  source.getTableConfig(0)->write(out);
+
+  buffer.seek(0);
+  QDataStream in(&buffer);
+  MultiplotConfig loaded(nullptr);
+  loaded.setTopicBrowserVisible(true);
+  loaded.setTopicBrowserWidth(500);
+  loaded.read(in);
+
+  EXPECT_FALSE(loaded.isTopicBrowserVisible());
+  EXPECT_EQ(loaded.getTopicBrowserWidth(), MultiplotConfig::kDefaultTopicBrowserWidth);
+}
+
 TEST(MultiplotConfig, loadsLegacyTableStreamOntoSingleTab) {
   PlotTableConfig table(nullptr);
   table.setTitle("should not persist");

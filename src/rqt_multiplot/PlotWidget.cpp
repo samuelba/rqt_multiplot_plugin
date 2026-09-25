@@ -31,6 +31,7 @@
 #include <QFontMetrics>
 #include <QGridLayout>
 #include <QKeyEvent>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QMimeData>
 #include <QPainter>
@@ -975,7 +976,7 @@ void PlotWidget::saveToTextFile(const QString& fileName) {
 }
 
 void PlotWidget::dragEnterEvent(QDragEnterEvent* event) {
-  if (event->mimeData()->hasFormat(CurveConfig::MimeType) && (event->source() != legend_) && (config_ != nullptr)) {
+  if (acceptsDrop(event->mimeData(), event->source())) {
     event->acceptProposedAction();
   } else {
     event->ignore();
@@ -983,20 +984,53 @@ void PlotWidget::dragEnterEvent(QDragEnterEvent* event) {
 }
 
 void PlotWidget::dropEvent(QDropEvent* event) {
-  if (event->mimeData()->hasFormat(CurveConfig::MimeType) && (event->source() != legend_) && (config_ != nullptr)) {
-    QByteArray data = event->mimeData()->data(CurveConfig::MimeType);
+  const QMimeData* mimeData = event->mimeData();
+  if (!acceptsDrop(mimeData, event->source())) {
+    event->ignore();
+    return;
+  }
+
+  if (mimeData->hasFormat(CurveConfig::MimeType)) {
+    QByteArray data = mimeData->data(CurveConfig::MimeType);
     QDataStream stream(&data, QIODevice::ReadOnly);
 
     CurveConfig* curveConfig = config_->addCurve();
     stream >> *curveConfig;
-
-    while (config_->findCurves(curveConfig->getTitle()).count() > 1) {
-      curveConfig->setTitle("Copy of " + curveConfig->getTitle());
-    }
-
-    event->acceptProposedAction();
+    makeCurveTitleUnique(curveConfig);
   } else {
-    event->ignore();
+    const QVector<TopicFieldRef> refs = decodeTopicFields(mimeData->data(kTopicFieldsMimeType));
+    if (requiresDropConfirmation(static_cast<int>(refs.count())) &&
+        (QMessageBox::question(this, tr("Add curves"), tr("Add %1 curves to this plot?").arg(refs.count())) != QMessageBox::Yes)) {
+      event->ignore();
+      return;
+    }
+    addTopicFieldCurves(refs);
+  }
+
+  event->acceptProposedAction();
+}
+
+bool PlotWidget::acceptsDrop(const QMimeData* mimeData, const QObject* source) const {
+  if ((config_ == nullptr) || (mimeData == nullptr)) {
+    return false;
+  }
+  if (mimeData->hasFormat(CurveConfig::MimeType)) {
+    return source != legend_;
+  }
+  return mimeData->hasFormat(kTopicFieldsMimeType);
+}
+
+void PlotWidget::addTopicFieldCurves(const QVector<TopicFieldRef>& refs) {
+  for (const auto& ref : refs) {
+    CurveConfig* curveConfig = config_->addCurve();
+    fillCurveFromTopicField(*curveConfig, ref);
+    makeCurveTitleUnique(curveConfig);
+  }
+}
+
+void PlotWidget::makeCurveTitleUnique(CurveConfig* curveConfig) const {
+  while (config_->findCurves(curveConfig->getTitle()).count() > 1) {
+    curveConfig->setTitle("Copy of " + curveConfig->getTitle());
   }
 }
 

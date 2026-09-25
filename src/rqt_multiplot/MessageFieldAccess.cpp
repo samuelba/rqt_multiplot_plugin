@@ -702,6 +702,44 @@ MessageFieldType fieldTypeFromMessage(const ros_babel_fish::Message& message) {
   return fieldType;
 }
 
+namespace {
+
+void collectArrayLengthsInto(const ros_babel_fish::Message& message, const QString& path, int maxElements, QHash<QString, int>& lengths) {
+  if (message.type() == ros_babel_fish::MessageTypes::Compound) {
+    const auto& compound = message.as<ros_babel_fish::CompoundMessage>();
+    for (const auto& key : compound.keys()) {
+      const QString name = QString::fromStdString(key);
+      collectArrayLengthsInto(compound[key], path.isEmpty() ? name : path + "/" + name, maxElements, lengths);
+    }
+    return;
+  }
+
+  if (message.type() != ros_babel_fish::MessageTypes::Array) {
+    return;
+  }
+
+  const auto& array = message.as<ros_babel_fish::ArrayMessageBase>();
+  lengths.insert(path, static_cast<int>(array.size()));
+  if (array.elementType() != ros_babel_fish::MessageTypes::Compound) {
+    return;
+  }
+  const size_t count = std::min(array.size(), static_cast<size_t>(std::max(0, maxElements)));
+  for (size_t i = 0; i < count; ++i) {
+    const auto* element = compoundArrayAt(message, i);
+    if (element != nullptr) {
+      collectArrayLengthsInto(*element, path + "/" + QString::number(i), maxElements, lengths);
+    }
+  }
+}
+
+}  // namespace
+
+QHash<QString, int> collectArrayLengths(const ros_babel_fish::Message& message, int maxElements) {
+  QHash<QString, int> lengths;
+  collectArrayLengthsInto(message, QString(), maxElements, lengths);
+  return lengths;
+}
+
 ros_babel_fish::CompoundMessage::SharedPtr createMessagePrototype(const std::string& typeName) {
   return RosContext::fish().create_message_shared(normalizeTypeName(typeName));
 }

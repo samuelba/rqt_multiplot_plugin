@@ -30,6 +30,9 @@
 #include "rqt_multiplot/MultiplotConfig.hpp"
 #include "rqt_multiplot/PackageRegistry.hpp"
 
+class QAction;
+class QSplitter;
+
 namespace Ui {
 
 class MultiplotWidget;
@@ -39,6 +42,7 @@ class MultiplotWidget;
 namespace rqt_multiplot {
 
 class PlotTableWidget;
+class TopicBrowserWidget;
 
 class MultiplotWidget : public QWidget {
   Q_OBJECT
@@ -71,6 +75,8 @@ class MultiplotWidget : public QWidget {
   void installCloseGuard();
   void installStandaloneMenu();
   bool isCloseButtonActivation(QObject* object, QEvent* event) const;
+  void setupTopicBrowser();
+  void applyTopicBrowserState();
 
   Ui::MultiplotWidget* ui_;
 
@@ -78,6 +84,10 @@ class MultiplotWidget : public QWidget {
 
   MessageTypeRegistry* messageTypeRegistry_;
   PackageRegistry* packageRegistry_;
+
+  TopicBrowserWidget* topicBrowser_;
+  QSplitter* topicBrowserSplitter_;
+  QAction* actionTopicBrowser_;
 
   QObject* guardedDock_;
   QAbstractButton* guardedCloseButton_;
@@ -91,6 +101,7 @@ class MultiplotWidget : public QWidget {
   void plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable);
   void openPreferences();
   void configThemeChanged(const QString& themeId);
+  void topicBrowserSplitterMoved(int pos, int index);
 };
 
 }  // namespace rqt_multiplot

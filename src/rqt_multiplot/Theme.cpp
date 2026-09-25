@@ -29,8 +29,50 @@ namespace {
 
 constexpr auto kThemeFilterProperty = "rqt_multiplot_theme_filter";
 
+bool isTopicBrowserList(const QWidget* widget) {
+  for (const QWidget* current = widget; current != nullptr; current = current->parentWidget()) {
+    if (current->objectName() == QLatin1String("topicBrowserList")) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Fusion builds the checkbox outline from window.darker(), which sits on the dark list background.
+void drawVisibleCheckBorder(const QStyleOption* option, QPainter* painter) {
+  const bool keyboardFocus = ((option->state & QStyle::State_HasFocus) != 0) && ((option->state & QStyle::State_KeyboardFocusChange) != 0);
+  if (keyboardFocus) {
+    return;
+  }
+
+  const QPalette::ColorGroup group = ((option->state & QStyle::State_Enabled) != 0) ? QPalette::Normal : QPalette::Disabled;
+  const QColor border = option->palette.color(group, QPalette::Text);
+  const QRect rect = option->rect.adjusted(0, 0, -1, -1);
+  painter->setPen(Qt::NoPen);
+  painter->fillRect(rect.left(), rect.top(), rect.width(), 1, border);
+  painter->fillRect(rect.left(), rect.bottom(), rect.width(), 1, border);
+  painter->fillRect(rect.left(), rect.top(), 1, rect.height(), border);
+  painter->fillRect(rect.right(), rect.top(), 1, rect.height(), border);
+}
+
+class FusionThemeStyle : public QProxyStyle {
+ public:
+  FusionThemeStyle() : QProxyStyle(QStringLiteral("fusion")) { setObjectName(QStringLiteral("Fusion")); }
+
+  void drawPrimitive(PrimitiveElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget) const override {
+    QProxyStyle::drawPrimitive(element, option, painter, widget);
+    const bool isItemCheck = (element == PE_IndicatorItemViewItemCheck) && (option != nullptr) && (painter != nullptr);
+    if (!isItemCheck || (Theme::currentId() != Theme::Id::Dark) || !isTopicBrowserList(widget)) {
+      return;
+    }
+    painter->save();
+    drawVisibleCheckBorder(option, painter);
+    painter->restore();
+  }
+};
+
 QStyle* fusionStyle() {
-  static QStyle* style = QStyleFactory::create(QStringLiteral("Fusion"));
+  static QStyle* style = new FusionThemeStyle();
   return style;
 }
 
