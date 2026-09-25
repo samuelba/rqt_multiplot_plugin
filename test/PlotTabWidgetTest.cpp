@@ -392,8 +392,9 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
 
   tabs.loadFromBagFile("/this/path/does/not/exist.mcap");
 
-  EXPECT_EQ(tabs.getPlotTable(0)->getBagReader()->getFileName(), QString("/this/path/does/not/exist.mcap"));
-  EXPECT_EQ(tabs.getPlotTable(1)->getBagReader()->getFileName(), QString("/this/path/does/not/exist.mcap"));
+  EXPECT_EQ(tabs.getBagReader()->getFileName(), QString("/this/path/does/not/exist.mcap"));
+  EXPECT_TRUE(tabs.getPlotTable(0)->getBagReader()->getFileName().isEmpty());
+  EXPECT_TRUE(tabs.getPlotTable(1)->getBagReader()->getFileName().isEmpty());
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(0)));
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
 }

@@ -77,6 +77,8 @@ class PlotTableWidget : public QWidget {
   void writeFormattedCurveData(QList<QStringList>& formattedData);
 
   void loadFromBagFile(const QString& fileName);
+  void playFromBroker(MessageBroker* broker);
+  void restoreLiveBroker();
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
   void storeSplitterRatios();

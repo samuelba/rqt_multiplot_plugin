@@ -28,6 +28,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/Theme.hpp"
@@ -35,7 +36,11 @@
 namespace rqt_multiplot {
 
 PlotTabWidget::PlotTabWidget(QWidget* parent)
-    : QWidget(parent), tabWidget_(new QTabWidget(this)), addButton_(new QToolButton(this)), config_(nullptr) {
+    : QWidget(parent),
+      tabWidget_(new QTabWidget(this)),
+      addButton_(new QToolButton(this)),
+      config_(nullptr),
+      bagReader_(new BagReader(this)) {
   auto* layout = new QVBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->addWidget(tabWidget_);
@@ -52,6 +57,10 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
   connect(tabWidget_, SIGNAL(tabCloseRequested(int)), this, SLOT(tabCloseRequested(int)));
   connect(tabWidget_->tabBar(), SIGNAL(tabBarDoubleClicked(int)), this, SLOT(tabBarDoubleClicked(int)));
   connect(addButton_, SIGNAL(clicked()), this, SLOT(addButtonClicked()));
+  connect(bagReader_, SIGNAL(readingStarted()), this, SLOT(bagReadingStarted()));
+  connect(bagReader_, SIGNAL(readingProgressChanged(double)), this, SLOT(bagReadingProgressChanged(double)));
+  connect(bagReader_, SIGNAL(readingFinished()), this, SLOT(bagReadingFinished()));
+  connect(bagReader_, SIGNAL(readingFailed(const QString&)), this, SLOT(bagReadingFailed(const QString&)));
 }
 
 PlotTabWidget::~PlotTabWidget() = default;
@@ -103,6 +112,10 @@ PlotTableWidget* PlotTabWidget::getCurrentPlotTable() const {
   return qobject_cast<PlotTableWidget*>(tabWidget_->currentWidget());
 }
 
+BagReader* PlotTabWidget::getBagReader() const {
+  return bagReader_;
+}
+
 QString PlotTabWidget::getTabText(size_t index) const {
   return tabWidget_->tabText(static_cast<int>(index));
 }
@@ -132,7 +145,13 @@ void PlotTabWidget::clearPlots() {
 }
 
 void PlotTabWidget::loadFromBagFile(const QString& fileName) {
-  forEachPlotTable(&PlotTableWidget::loadFromBagFile, fileName);
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
+      plotTable->playFromBroker(bagReader_);
+    }
+  }
+
+  bagReader_->read(fileName);
   emit bagFileImported(fileName);
 }
 
@@ -265,14 +284,6 @@ void PlotTabWidget::forEachPlotTable(void (PlotTableWidget::*method)()) {
   for (int index = 0; index < tabWidget_->count(); ++index) {
     if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
       (plotTable->*method)();
-    }
-  }
-}
-
-void PlotTabWidget::forEachPlotTable(void (PlotTableWidget::*method)(const QString&), const QString& argument) {
-  for (int index = 0; index < tabWidget_->count(); ++index) {
-    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
-      (plotTable->*method)(argument);
     }
   }
 }
@@ -424,6 +435,24 @@ void PlotTabWidget::plotTableJobFailed(const QString& toolTip) {
   completeTableJob(qobject_cast<PlotTableWidget*>(sender()));
   emitAggregatedProgress();
   emit jobFailed(toolTip);
+}
+
+void PlotTabWidget::bagReadingStarted() {
+  emit jobStarted("Reading bag from [file://" + bagReader_->getFileName() + "]...");
+}
+
+void PlotTabWidget::bagReadingProgressChanged(double progress) {
+  emit jobProgressChanged(progress);
+}
+
+void PlotTabWidget::bagReadingFinished() {
+  forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
+  emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
+}
+
+void PlotTabWidget::bagReadingFailed(const QString& /*error*/) {
+  forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
+  emit jobFailed("Failed to read bag from [file://" + bagReader_->getFileName() + "]");
 }
 
 }  // namespace rqt_multiplot
