@@ -709,8 +709,8 @@ void PlotWidget::buildSplitMenu() {
                                         const char* slot) {
     auto* button = new QToolButton();
     button->setObjectName(objectName);
-    setThemeIcon(button, iconPath, QSize(16, 16));
-    button->setFixedSize(22, 22);
+    setThemeIcon(button, iconPath, QSize(18, 18));
+    button->setFixedSize(24, 24);
     button->setToolTip(toolTip);
     button->setAutoRaise(true);
     button->setCursor(Qt::PointingHandCursor);
