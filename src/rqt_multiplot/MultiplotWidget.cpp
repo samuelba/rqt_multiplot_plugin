@@ -90,6 +90,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       closePromptOpen_(false),
       standaloneMenuInstalled_(false) {
   ui_->setupUi(this);
+  setWindowIcon(applicationIcon());
 
   ui_->menuBar->setNativeMenuBar(false);
   QMenu* fileMenu = ui_->menuBar->addMenu(tr("&File"));

@@ -6,6 +6,8 @@
 #include <QComboBox>
 #include <QDockWidget>
 #include <QHBoxLayout>
+#include <QIcon>
+#include <QImage>
 #include <QLabel>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -22,6 +24,7 @@
 
 #include "rqt_multiplot/MultiplotConfig.hpp"
 #include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/XmlSettings.hpp"
@@ -97,6 +100,16 @@ QDockWidget* makeDockedWidget(MultiplotWidget** widgetOut, QPushButton** closeBu
   *widgetOut = widget;
   *closeButtonOut = closeButton;
   return dock;
+}
+
+TEST(MultiplotWidget, usesLogoAsWindowIcon) {
+  ensureApplication();
+
+  MultiplotWidget widget;
+  const QImage actual = widget.windowIcon().pixmap(QSize(32, 32)).toImage().convertToFormat(QImage::Format_ARGB32);
+  const QImage expected = rqt_multiplot::applicationIcon().pixmap(QSize(32, 32)).toImage().convertToFormat(QImage::Format_ARGB32);
+  ASSERT_FALSE(actual.isNull());
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(MultiplotWidget, startsUnmodifiedAfterShow) {

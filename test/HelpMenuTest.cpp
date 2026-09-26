@@ -3,8 +3,12 @@
 #include <QAction>
 #include <QApplication>
 #include <QKeySequence>
+#include <QLabel>
+#include <QLayout>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPixmap>
+#include <QSize>
 #include <QTableWidget>
 
 #include <gtest/gtest.h>
@@ -12,12 +16,16 @@
 #include "rqt_multiplot/AboutDialog.hpp"
 #include "rqt_multiplot/CheatsheetDialog.hpp"
 #include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 namespace {
 
 using rqt_multiplot::AboutDialog;
 using rqt_multiplot::CheatsheetDialog;
 using rqt_multiplot::MultiplotWidget;
+using rqt_multiplot::packagePixmap;
+using rqt_multiplot::Theme;
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -57,6 +65,14 @@ QStringList menuActionTexts(const QMenu& menu) {
     }
   }
   return texts;
+}
+
+QPixmap labelPixmap(const QLabel& label) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  return label.pixmap();
+#else
+  return label.pixmap(Qt::ReturnByValue);
+#endif
 }
 
 bool tableContainsText(const QTableWidget& table, const QString& substring) {
@@ -118,6 +134,39 @@ TEST(AboutDialog, showsVersionLicenseAndProjectUrl) {
   EXPECT_TRUE(body.contains(QStringLiteral("LGPL")));
   EXPECT_TRUE(body.contains(QStringLiteral("Qwt License, Version 1.0")));
   EXPECT_TRUE(body.contains(QStringLiteral("https://github.com/samuelba/rqt_multiplot_plugin")));
+
+  auto* logo = dialog.findChild<QLabel*>(QStringLiteral("aboutLogoLabel"));
+  ASSERT_NE(logo, nullptr);
+  EXPECT_EQ(dialog.layout()->indexOf(logo), 0);
+  EXPECT_EQ(dialog.layout()->itemAt(0)->alignment(), Qt::AlignHCenter);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+  const QPixmap pixmap = logo->pixmap();
+#else
+  const QPixmap pixmap = logo->pixmap(Qt::ReturnByValue);
+#endif
+  EXPECT_EQ(pixmap.size(), QSize(256, 256));
+  EXPECT_FALSE(pixmap.isNull());
+}
+
+TEST(AboutDialog, usesBlackLogoOnLightThemeAndWhiteLogoOnDarkTheme) {
+  ensureApplication();
+  const Theme::Id previousTheme = Theme::currentId();
+
+  const auto expectLogo = [](Theme::Id theme, const char* path) {
+    Theme::apply(nullptr, theme);
+    AboutDialog dialog;
+    const auto* logo = dialog.findChild<QLabel*>(QStringLiteral("aboutLogoLabel"));
+    ASSERT_NE(logo, nullptr);
+    const QPixmap actual = labelPixmap(*logo);
+    const QPixmap expected = packagePixmap(QString::fromLatin1(path), actual.size());
+    EXPECT_FALSE(actual.isNull());
+    EXPECT_EQ(actual.toImage(), expected.toImage());
+  };
+
+  expectLogo(Theme::Id::Light, "resource/multiplot-logo-with-text-black.svg");
+  expectLogo(Theme::Id::Dark, "resource/multiplot-logo-with-text-white.svg");
+  Theme::apply(nullptr, previousTheme);
 }
 
 TEST(CheatsheetDialog, tablesIncludePlotInteractions) {

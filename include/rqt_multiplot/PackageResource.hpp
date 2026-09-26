@@ -35,7 +35,8 @@ inline QString packageResourcePath(const QString& relativePath) {
 }
 
 inline bool shouldTintPackageIcon(const QString& relativePath) {
-  return !relativePath.contains(QLatin1String("status-okay")) && !relativePath.contains(QLatin1String("status-error"));
+  return !relativePath.contains(QLatin1String("status-okay")) && !relativePath.contains(QLatin1String("status-error")) &&
+         !relativePath.contains(QLatin1String("multiplot-logo"));
 }
 
 inline QPixmap packagePixmap(const QString& relativePath, const QSize& size = QSize(32, 32), const QColor& tint = QColor()) {
@@ -77,6 +78,19 @@ inline QIcon packageIcon(const QString& relativePath, const QSize& size = QSize(
   icon.addPixmap(pixmap, QIcon::Normal);
   if (shouldTintPackageIcon(relativePath)) {
     icon.addPixmap(packagePixmap(relativePath, size, Theme::disabledIconColor()), QIcon::Disabled);
+  }
+  return icon;
+}
+
+inline QIcon applicationIcon() {
+  QIcon icon;
+  const QString path = QStringLiteral("resource/multiplot-logo.svg");
+  constexpr int kSizes[] = {16, 24, 32, 48, 64, 128, 256};
+  for (const int size : kSizes) {
+    const QPixmap pixmap = packagePixmap(path, QSize(size, size));
+    if (!pixmap.isNull()) {
+      icon.addPixmap(pixmap);
+    }
   }
   return icon;
 }

@@ -4,6 +4,8 @@
 
 Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourceforge.io)). Nested splits and tabs give a layout that is not a strict grid. Subscribe to live topics or import a rosbag2, then inspect values with a linked cursor and a curve-values sidebar. Runs as its own window or as an rqt plugin.
 
+![Rqt Multiplot](images/multiplot-banner.svg)
+
 **Authors:** Ralf Kaestner, Samuel Bachmann
 
 **Maintainer:** Samuel Bachmann

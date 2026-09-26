@@ -7,8 +7,10 @@
 
 #include <QLabel>
 #include <QPushButton>
+#include <QSize>
 #include <QVBoxLayout>
 
+#include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
@@ -25,6 +27,13 @@ constexpr auto kProjectUrl = "https://github.com/samuelba/rqt_multiplot_plugin";
 constexpr auto kLgplUrl = "https://www.gnu.org/licenses/lgpl-3.0.html";
 constexpr auto kQwtUrl = "https://qwt.sourceforge.io";
 constexpr auto kQwtLicenseUrl = "https://qwt.sourceforge.io/qwtlicense.html";
+constexpr auto kLogoPathLight = "resource/multiplot-logo-with-text-black.svg";
+constexpr auto kLogoPathDark = "resource/multiplot-logo-with-text-white.svg";
+constexpr QSize kAboutLogoSize(256, 256);
+
+QString logoPathForTheme(Theme::Id themeId) {
+  return QString::fromLatin1(themeId == Theme::Id::Dark ? kLogoPathDark : kLogoPathLight);
+}
 
 QString styledLink(const QString& href, const QString& label, const QString& linkColor) {
   return QStringLiteral("<a href=\"%1\" style=\"color:%2; text-decoration:underline;\">%3</a>").arg(href, linkColor, label);
@@ -62,6 +71,11 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
 
   auto* layout = new QVBoxLayout(this);
 
+  auto* logoLabel = new QLabel(this);
+  logoLabel->setObjectName(QStringLiteral("aboutLogoLabel"));
+  logoLabel->setAlignment(Qt::AlignCenter);
+  layout->addWidget(logoLabel, 0, Qt::AlignHCenter);
+
   auto* label = new QLabel(this);
   label->setObjectName(QStringLiteral("aboutBodyLabel"));
   label->setTextFormat(Qt::RichText);
@@ -76,6 +90,7 @@ AboutDialog::AboutDialog(QWidget* parent) : QDialog(parent) {
 
   Theme::apply(this);
   const Theme::Id themeId = Theme::currentId();
+  logoLabel->setPixmap(packagePixmap(logoPathForTheme(themeId), kAboutLogoSize));
   const QPalette themePalette = Theme::palette(themeId);
   const QString textColor = themePalette.color(QPalette::WindowText).name(QColor::HexRgb);
   const QString linkColor = linkColorForTheme(themeId, themePalette);
