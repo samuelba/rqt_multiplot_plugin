@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <QColor>
 #include <QFont>
 #include <QPointF>
 #include <QRect>
@@ -12,14 +13,18 @@
 
 namespace {
 
+using rqt_multiplot::kTrackedReadoutSwatchSize;
 using rqt_multiplot::kTrackPointSnapPixels;
 using rqt_multiplot::nearestPointByX;
 using rqt_multiplot::trackedPointLabel;
 using rqt_multiplot::trackedPointLabels;
 using rqt_multiplot::trackedPointsReadoutRect;
 using rqt_multiplot::trackedReadoutLayout;
+using rqt_multiplot::TrackedReadoutLayout;
 using rqt_multiplot::TrackedReadoutRow;
 using rqt_multiplot::trackedReadoutSize;
+using rqt_multiplot::trackedReadoutSwatchExtent;
+using rqt_multiplot::trackedReadoutSwatchRect;
 using rqt_multiplot::trackPointSnapDistance;
 
 TEST(PlotCursorLabel, snapDistanceScalesUnitsPerPixel) {
@@ -47,17 +52,32 @@ TEST(PlotCursorLabel, joinsOneLinePerCurve) {
 
 TEST(PlotCursorLabel, sizesColumnsFromLongestValueInEachColumn) {
   const QFont font;
-  const QVector<TrackedReadoutRow> rows{{QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")},
-                                        {QStringLiteral("VeryLongName"), QStringLiteral("12.34"), QStringLiteral("-0.5")}};
+  const QVector<TrackedReadoutRow> rows{{Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")},
+                                        {Qt::blue, QStringLiteral("VeryLongName"), QStringLiteral("12.34"), QStringLiteral("-0.5")}};
   const auto layout = trackedReadoutLayout(rows, font);
 
+  EXPECT_EQ(layout.swatchSize, trackedReadoutSwatchExtent(layout.rowHeight));
   EXPECT_GT(layout.titleWidth, 0);
   EXPECT_GT(layout.xWidth, 0);
   EXPECT_GT(layout.yWidth, 0);
   EXPECT_EQ(layout.rowHeight, QFontMetrics(font).height());
   EXPECT_EQ(trackedReadoutSize(layout, rows.size()).width(),
-            layout.titleWidth + layout.columnGap + layout.xWidth + layout.columnGap + layout.yWidth);
+            layout.swatchSize + layout.columnGap + layout.titleWidth + layout.columnGap + layout.xWidth + layout.columnGap + layout.yWidth);
   EXPECT_EQ(trackedReadoutSize(layout, rows.size()).height(), layout.rowHeight * rows.size());
+}
+
+TEST(PlotCursorLabel, colorSwatchFitsInsideTheRow) {
+  EXPECT_EQ(kTrackedReadoutSwatchSize, 10);
+  EXPECT_EQ(trackedReadoutSwatchExtent(16), 10);
+  EXPECT_EQ(trackedReadoutSwatchExtent(8), 6);
+  EXPECT_EQ(trackedReadoutSwatchExtent(0), 0);
+
+  const TrackedReadoutLayout layout{10, 40, 20, 20, 8, 16};
+  const QRect swatch = trackedReadoutSwatchRect(layout, 4, 20);
+
+  EXPECT_EQ(swatch, QRect(4, 23, 10, 10));
+  EXPECT_GE(swatch.top(), 20);
+  EXPECT_LE(swatch.bottom(), 20 + layout.rowHeight - 1);
 }
 
 TEST(PlotCursorLabel, placesReadoutAboveRightOfCursor) {
