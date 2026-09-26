@@ -27,6 +27,8 @@ namespace {
 
 constexpr auto kWaitTimeout = std::chrono::seconds(10);
 constexpr auto kPollInterval = std::chrono::milliseconds(20);
+// rmw_cyclonedds_cpp can drop the guard-condition wakeup from cancel(), leaving spin() blocked in rmw_wait.
+constexpr auto kSpinSlice = std::chrono::milliseconds(50);
 
 // rmw_zenoh_cpp aborts when its session is still open during static destruction.
 class RclcppShutdownEnvironment : public ::testing::Environment {
@@ -49,18 +51,26 @@ class RuntimeTypeSupportProviderTest : public ::testing::Test {
     }
     publisherNode_ = std::make_shared<rclcpp::Node>("runtime_types_publisher");
     listenerNode_ = std::make_shared<rclcpp::Node>("runtime_types_listener");
-    executor_ = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
+    executor_ = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
     executor_->add_node(publisherNode_);
     executor_->add_node(listenerNode_);
-    spinThread_ = std::thread([this] { executor_->spin(); });
+    keepSpinning_.store(true);
+    spinThread_ = std::thread([this] {
+      while (keepSpinning_.load() && rclcpp::ok()) {
+        executor_->spin_once(kSpinSlice);
+      }
+    });
     auto listener = listenerNode_;
     provider_ = std::make_shared<rt::RuntimeTypeSupportProvider>([listener] { return listener; }, false);
     fish_ = std::make_shared<ros_babel_fish::BabelFish>(std::vector<ros_babel_fish::TypeSupportProvider::SharedPtr>{provider_});
   }
 
   void TearDown() override {
+    keepSpinning_.store(false);
     executor_->cancel();
     spinThread_.join();
+    executor_->remove_node(publisherNode_);
+    executor_->remove_node(listenerNode_);
   }
 
   template <typename Predicate>
@@ -77,7 +87,8 @@ class RuntimeTypeSupportProviderTest : public ::testing::Test {
 
   rclcpp::Node::SharedPtr publisherNode_;
   rclcpp::Node::SharedPtr listenerNode_;
-  std::shared_ptr<rclcpp::executors::MultiThreadedExecutor> executor_;
+  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> executor_;
+  std::atomic<bool> keepSpinning_{false};
   std::thread spinThread_;
   std::shared_ptr<rt::RuntimeTypeSupportProvider> provider_;
   std::shared_ptr<ros_babel_fish::BabelFish> fish_;
