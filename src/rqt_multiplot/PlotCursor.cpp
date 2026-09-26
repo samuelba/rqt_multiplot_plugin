@@ -198,6 +198,7 @@ QVector<TrackedReadoutRow> PlotCursor::trackedReadoutRows() const {
   QVector<TrackedReadoutRow> rows;
   for (const auto& tracked : trackedPoints_) {
     TrackedReadoutRow row;
+    row.color = tracked.color;
     row.title = tracked.title;
     row.x = formatCoordinate(tracked.position.x(), true);
     row.y = formatCoordinate(tracked.position.y(), false);
@@ -398,13 +399,15 @@ void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
   const QRect content = background.adjusted(4, 4, -4, -4);
   const TrackedReadoutLayout layout = trackedReadoutLayout(rows, painter->font());
   const QColor textColor = trackerTextColor();
-  const int xColumn = content.left() + layout.titleWidth + layout.columnGap;
+  const int titleColumn = content.left() + layout.swatchSize + layout.columnGap;
+  const int xColumn = titleColumn + layout.titleWidth + layout.columnGap;
   const int yColumn = xColumn + layout.xWidth + layout.columnGap;
   int y = content.top();
 
   painter->setPen(textColor);
   for (const TrackedReadoutRow& row : rows) {
-    painter->drawText(content.left(), y, layout.titleWidth, layout.rowHeight, Qt::AlignLeft | Qt::AlignVCenter, row.title);
+    painter->fillRect(trackedReadoutSwatchRect(layout, content.left(), y), row.color);
+    painter->drawText(titleColumn, y, layout.titleWidth, layout.rowHeight, Qt::AlignLeft | Qt::AlignVCenter, row.title);
     painter->drawText(xColumn, y, layout.xWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.x);
     painter->drawText(yColumn, y, layout.yWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.y);
     y += layout.rowHeight;
