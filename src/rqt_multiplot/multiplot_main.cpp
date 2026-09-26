@@ -11,6 +11,7 @@
 
 #include <QApplication>
 #include <QCoreApplication>
+#include <QStandardPaths>
 #include <QTimer>
 
 #include <rclcpp/executors/single_threaded_executor.hpp>
@@ -19,6 +20,7 @@
 #include "rqt_multiplot/LaunchOptions.hpp"
 #include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/MultiplotWidget.hpp"
+#include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/RosContext.hpp"
 #include "rqt_multiplot/StandaloneWindowSettings.hpp"
 
@@ -52,6 +54,8 @@ int main(int argc, char** argv) {
   QApplication app(argc, argv);
   QApplication::setApplicationName(QStringLiteral("multiplot"));
   QApplication::setOrganizationName(QStringLiteral("rqt_multiplot"));
+  QApplication::setDesktopFileName(QStringLiteral("rqt_multiplot"));
+  QApplication::setWindowIcon(rqt_multiplot::applicationIcon());
 
   rqt_multiplot::LaunchOptions options;
   const rqt_multiplot::LaunchParseStatus status = rqt_multiplot::parseLaunchOptions(QCoreApplication::arguments(), options, true);

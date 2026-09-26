@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
 #include <QIcon>
 #include <QImage>
 #include <QPixmap>
@@ -25,9 +26,11 @@
 
 namespace {
 
+using rqt_multiplot::applicationIcon;
 using rqt_multiplot::CurveConfigWidget;
 using rqt_multiplot::packageIcon;
 using rqt_multiplot::packagePixmap;
+using rqt_multiplot::packageResourcePath;
 using rqt_multiplot::packageShareDirectory;
 using rqt_multiplot::PlotConfigWidget;
 using rqt_multiplot::PlotTableConfigWidget;
@@ -80,6 +83,24 @@ TEST(PackageResource, returnsNullIconForMissingSvg) {
 
   EXPECT_TRUE(packageIcon("resource/not-a-real-icon.svg").isNull());
   EXPECT_TRUE(packagePixmap("resource/not-a-real-icon.svg").isNull());
+}
+
+TEST(PackageResource, applicationIconUsesUntintedLogoAtSeveralSizes) {
+  ensureApplication();
+
+  const QIcon icon = applicationIcon();
+  expectVisibleIcon(icon, QSize(32, 32));
+  EXPECT_FALSE(icon.pixmap(QSize(256, 256)).isNull());
+  EXPECT_EQ(icon.pixmap(QSize(32, 32)).toImage(), packagePixmap(QStringLiteral("resource/multiplot-logo.svg"), QSize(32, 32)).toImage());
+}
+
+TEST(PackageResource, logoPngLoadsAsFileIcon) {
+  ensureApplication();
+
+  const QString path = packageResourcePath(QStringLiteral("resource/multiplot-logo.png"));
+  ASSERT_TRUE(QFileInfo::exists(path));
+  const QIcon icon(path);
+  expectVisibleIcon(icon, QSize(32, 32));
 }
 
 TEST(PackageResource, rasterizesBundledSvgsToVisiblePixels) {

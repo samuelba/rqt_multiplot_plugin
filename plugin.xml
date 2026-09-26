@@ -13,7 +13,7 @@
         <statustip>Plugins related to visualization.</statustip>
       </group>
       <label>Multiplot</label>
-      <icon type="theme">utilities-system-monitor</icon>
+      <icon type="file">resource/multiplot-logo.png</icon>
       <statustip>
         A plugin for visualizing numeric values in multiple 2D plots using
         the Qwt plotting backend.
