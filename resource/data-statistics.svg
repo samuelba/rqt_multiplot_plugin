@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   id="icon"
+   x="0px"
+   y="0px"
+   width="32"
+   height="32"
+   viewBox="3 3 26 26"
+   xml:space="preserve"
+   sodipodi:docname="data-statistics.svg"
+   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"><defs
+   id="defs4" /><sodipodi:namedview
+   id="namedview4"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="36.375"
+   inkscape:cx="15.986254"
+   inkscape:cy="23.587629"
+   inkscape:window-width="2560"
+   inkscape:window-height="1375"
+   inkscape:window-x="0"
+   inkscape:window-y="0"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="icon" />
+<style
+   type="text/css"
+   id="style1">
+	.st0{fill:none;}
+</style>
+<title
+   id="title1">data-statistics</title>
+
+
+
+<path
+   d="M 28,27 H 4 V 5 h 2 v 20 h 22 z"
+   id="path1" /><rect
+   x="8"
+   y="17"
+   width="4"
+   height="6"
+   id="rect1" /><rect
+   x="14"
+   y="11"
+   width="4"
+   height="12"
+   id="rect2" /><rect
+   x="20"
+   y="14"
+   width="4"
+   height="9"
+   id="rect3" />
+<rect
+   class="st0"
+   width="32"
+   height="32"
+   id="rect4"
+   x="0"
+   y="0" />
+<metadata
+   id="metadata4"><rdf:RDF><cc:Work
+       rdf:about=""><dc:title>data-statistics</dc:title></cc:Work></rdf:RDF></metadata></svg>

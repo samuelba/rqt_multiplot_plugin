@@ -58,6 +58,7 @@
 #include "rqt_multiplot/AxisTimeFormat.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/DataStatisticsDialog.hpp"
 #include "rqt_multiplot/OffsetScaleDraw.hpp"
 #include "rqt_multiplot/OffsetScaleEngine.hpp"
 #include "rqt_multiplot/PlotCanvasPolicy.hpp"
@@ -138,6 +139,8 @@ PlotWidget::PlotWidget(QWidget* parent)
       actionContextCopyImage_(nullptr),
       actionContextSaveImage_(nullptr),
       actionContextSaveData_(nullptr),
+      actionContextDataStatistics_(nullptr),
+      dataStatisticsDialog_(nullptr),
       config_(nullptr),
       broker_(nullptr),
       legend_(nullptr),
@@ -794,6 +797,10 @@ void PlotWidget::buildContextMenu() {
   actionContextSaveData_ = menuContext_->addAction(tr("Save data..."), this, SLOT(menuExportTextFileTriggered()));
   actionContextSaveData_->setObjectName(QStringLiteral("actionContextSaveData"));
   setContextMenuIcon(actionContextSaveData_, QStringLiteral("resource/data-export.svg"));
+
+  actionContextDataStatistics_ = menuContext_->addAction(tr("Data statistics..."), this, SLOT(menuDataStatisticsTriggered()));
+  actionContextDataStatistics_->setObjectName(QStringLiteral("actionContextDataStatistics"));
+  setContextMenuIcon(actionContextDataStatistics_, QStringLiteral("resource/data-statistics.svg"));
 }
 
 void PlotWidget::updateContextMenuState() {
@@ -1562,6 +1569,16 @@ void PlotWidget::menuCopyImageTriggered() {
   pixmap.fill(ui_->plot->canvasBackground().color());
   renderToPixmap(pixmap);
   QApplication::clipboard()->setPixmap(pixmap);
+}
+
+void PlotWidget::menuDataStatisticsTriggered() {
+  if (dataStatisticsDialog_ == nullptr) {
+    dataStatisticsDialog_ = new DataStatisticsDialog(this);
+  }
+  dataStatisticsDialog_->setPlot(this);
+  dataStatisticsDialog_->show();
+  dataStatisticsDialog_->raise();
+  dataStatisticsDialog_->activateWindow();
 }
 
 void PlotWidget::plotXBottomScaleDivChanged() {

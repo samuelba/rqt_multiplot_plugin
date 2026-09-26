@@ -53,6 +53,7 @@ class PlotWidget;
 
 namespace rqt_multiplot {
 
+class DataStatisticsDialog;
 class PlotCursor;
 class PlotCurve;
 class PlotLegend;
@@ -167,6 +168,8 @@ class PlotWidget : public QWidget {
   QAction* actionContextCopyImage_;
   QAction* actionContextSaveImage_;
   QAction* actionContextSaveData_;
+  QAction* actionContextDataStatistics_;
+  DataStatisticsDialog* dataStatisticsDialog_;
 
   PlotConfig* config_;
 
@@ -260,6 +263,7 @@ class PlotWidget : public QWidget {
   void menuResetZoomVerticalTriggered();
   void menuToggleLegendTriggered();
   void menuCopyImageTriggered();
+  void menuDataStatisticsTriggered();
   void showPlotContextMenu(const QPoint& globalPos);
   void configDestroyed();
 
