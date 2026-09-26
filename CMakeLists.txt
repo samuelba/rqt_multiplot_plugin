@@ -108,11 +108,13 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CurveDataListTimeFrame.cpp
   src/rqt_multiplot/CurveDataSequencer.cpp
   src/rqt_multiplot/CurveDataVector.cpp
+  src/rqt_multiplot/CurveStatistics.cpp
   src/rqt_multiplot/CurveItemWidget.cpp
   src/rqt_multiplot/CurveListWidget.cpp
   src/rqt_multiplot/CurveStyleConfig.cpp
   src/rqt_multiplot/CurveStyleConfigWidget.cpp
   src/rqt_multiplot/CurveValuesWidget.cpp
+  src/rqt_multiplot/DataStatisticsDialog.cpp
   src/rqt_multiplot/DataTypeRegistry.cpp
   src/rqt_multiplot/FileScheme.cpp
   src/rqt_multiplot/MatchFilterComboBox.cpp
@@ -476,7 +478,9 @@ if(BUILD_TESTING)
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
+    test/CurveStatisticsTest.cpp
     test/CurveValuesWidgetTest.cpp
+    test/DataStatisticsDialogTest.cpp
     test/MessageFieldAccessTest.cpp
     test/MessageSubscriberTest.cpp
     test/MessageTopicRegistryTest.cpp

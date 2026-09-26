@@ -83,6 +83,7 @@ TEST(PlotWidget, contextMenuContainsExpectedActions) {
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextCopyImage")), nullptr);
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextSaveImage")), nullptr);
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextSaveData")), nullptr);
+  EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextDataStatistics")), nullptr);
 }
 
 TEST(PlotWidget, contextMenuActionsHaveIconsForAvailableResources) {
@@ -103,6 +104,7 @@ TEST(PlotWidget, contextMenuActionsHaveIconsForAvailableResources) {
   expectIcon("actionContextCopyImage", "resource/copy.svg");
   expectIcon("actionContextSaveImage", "resource/data-export.svg");
   expectIcon("actionContextSaveData", "resource/data-export.svg");
+  expectIcon("actionContextDataStatistics", "resource/data-statistics.svg");
   expectIcon("actionContextResetZoom", "resource/zoom-reset.svg");
   expectIcon("actionContextResetZoomHorizontal", "resource/zoom-reset-horizontally.svg");
   expectIcon("actionContextResetZoomVertical", "resource/zoom-reset-vertically.svg");
