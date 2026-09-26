@@ -35,6 +35,8 @@
 #include <QSplitter>
 #include <QTimer>
 
+#include "rqt_multiplot/AboutDialog.hpp"
+#include "rqt_multiplot/CheatsheetDialog.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotSplitter.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
@@ -113,6 +115,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->plotTableConfigWidget->setPlotTabs(ui_->plotTabWidget);
   plotTabCurrentPlotTableChanged(ui_->plotTabWidget->getCurrentPlotTable());
   setupTopicBrowser();
+  setupHelpMenu();
 
   connect(ui_->configWidget, SIGNAL(currentConfigModifiedChanged(bool)), this, SLOT(configWidgetCurrentConfigModifiedChanged(bool)));
   connect(ui_->configWidget, SIGNAL(currentConfigUrlChanged(const QString&)), this,
@@ -364,6 +367,30 @@ void MultiplotWidget::setupTopicBrowser() {
   connect(ui_->plotTabWidget, &PlotTabWidget::bagFileImported, topicBrowser_, &TopicBrowserWidget::setBagFile);
 
   applyTopicBrowserState();
+}
+
+void MultiplotWidget::setupHelpMenu() {
+  QMenu* helpMenu = ui_->menuBar->addMenu(tr("&Help"));
+  helpMenu->setObjectName(QStringLiteral("menuHelp"));
+
+  QAction* shortcutsAction = helpMenu->addAction(tr("Keyboard shortcuts..."));
+  shortcutsAction->setObjectName(QStringLiteral("actionKeyboardShortcuts"));
+  shortcutsAction->setShortcut(QKeySequence::HelpContents);
+  connect(shortcutsAction, &QAction::triggered, this, &MultiplotWidget::openKeyboardShortcuts);
+
+  QAction* aboutAction = helpMenu->addAction(tr("About Multiplot..."));
+  aboutAction->setObjectName(QStringLiteral("actionAbout"));
+  connect(aboutAction, &QAction::triggered, this, &MultiplotWidget::openAbout);
+}
+
+void MultiplotWidget::openKeyboardShortcuts() {
+  CheatsheetDialog dialog(this);
+  dialog.exec();
+}
+
+void MultiplotWidget::openAbout() {
+  AboutDialog dialog(this);
+  dialog.exec();
 }
 
 void MultiplotWidget::applyTopicBrowserState() {
