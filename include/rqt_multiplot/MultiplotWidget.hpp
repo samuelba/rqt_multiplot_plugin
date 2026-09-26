@@ -76,6 +76,7 @@ class MultiplotWidget : public QWidget {
   void installStandaloneMenu();
   bool isCloseButtonActivation(QObject* object, QEvent* event) const;
   void setupTopicBrowser();
+  void setupHelpMenu();
   void applyTopicBrowserState();
 
   Ui::MultiplotWidget* ui_;
@@ -100,6 +101,8 @@ class MultiplotWidget : public QWidget {
   void configWidgetCurrentConfigUrlChanged(const QString& url);
   void plotTabCurrentPlotTableChanged(PlotTableWidget* plotTable);
   void openPreferences();
+  void openKeyboardShortcuts();
+  void openAbout();
   void configThemeChanged(const QString& themeId);
   void topicBrowserSplitterMoved(int pos, int index);
 };

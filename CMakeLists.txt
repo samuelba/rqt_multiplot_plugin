@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 project(rqt_multiplot)
 
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/package.xml" _rqt_multiplot_package_xml)
+string(REGEX MATCH "<version>[0-9]+\\.[0-9]+\\.[0-9]+</version>" _rqt_multiplot_version_tag "${_rqt_multiplot_package_xml}")
+string(REGEX REPLACE "<version>(.*)</version>" "\\1" RQT_MULTIPLOT_PACKAGE_VERSION "${_rqt_multiplot_version_tag}")
+if(NOT RQT_MULTIPLOT_PACKAGE_VERSION)
+  message(FATAL_ERROR "Could not read <version> from package.xml")
+endif()
+
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 17)
 endif()
@@ -81,6 +88,7 @@ else()
 endif()
 
 set(rqt_multiplot_SRCS
+  src/rqt_multiplot/AboutDialog.cpp
   src/rqt_multiplot/AxisTimeFormat.cpp
   src/rqt_multiplot/BagOpen.cpp
   src/rqt_multiplot/BagQuery.cpp
@@ -114,6 +122,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CurveStyleConfig.cpp
   src/rqt_multiplot/CurveStyleConfigWidget.cpp
   src/rqt_multiplot/CurveValuesWidget.cpp
+  src/rqt_multiplot/CheatsheetDialog.cpp
   src/rqt_multiplot/DataStatisticsDialog.cpp
   src/rqt_multiplot/DataTypeRegistry.cpp
   src/rqt_multiplot/FileScheme.cpp
@@ -209,6 +218,7 @@ set(rqt_multiplot_SRCS
 )
 
 set(rqt_multiplot_HDRS
+  include/rqt_multiplot/AboutDialog.hpp
   include/rqt_multiplot/AxisTimeFormat.hpp
   include/rqt_multiplot/BagOpen.hpp
   include/rqt_multiplot/BagQuery.hpp
@@ -241,6 +251,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/CurveStyleConfig.hpp
   include/rqt_multiplot/CurveStyleConfigWidget.hpp
   include/rqt_multiplot/CurveValuesWidget.hpp
+  include/rqt_multiplot/CheatsheetDialog.hpp
   include/rqt_multiplot/DataTypeRegistry.hpp
   include/rqt_multiplot/FileScheme.hpp
   include/rqt_multiplot/MatchFilterComboBox.hpp
@@ -368,6 +379,10 @@ add_library(${PROJECT_NAME} SHARED
   ${rqt_multiplot_UIS_H}
 )
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  "RQT_MULTIPLOT_VERSION=\"${RQT_MULTIPLOT_PACKAGE_VERSION}\""
+)
+
 target_include_directories(${PROJECT_NAME} PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
@@ -481,6 +496,7 @@ if(BUILD_TESTING)
     test/CurveStatisticsTest.cpp
     test/CurveValuesWidgetTest.cpp
     test/DataStatisticsDialogTest.cpp
+    test/HelpMenuTest.cpp
     test/MessageFieldAccessTest.cpp
     test/MessageSubscriberTest.cpp
     test/MessageTopicRegistryTest.cpp
@@ -528,6 +544,9 @@ if(BUILD_TESTING)
   )
   set_tests_properties(test_${PROJECT_NAME} PROPERTIES LABELS "unit_testing")
   if(TARGET test_${PROJECT_NAME})
+    target_compile_definitions(test_${PROJECT_NAME} PRIVATE
+      "RQT_MULTIPLOT_VERSION=\"${RQT_MULTIPLOT_PACKAGE_VERSION}\""
+    )
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
       Qt${QT_VERSION_MAJOR}::Core
