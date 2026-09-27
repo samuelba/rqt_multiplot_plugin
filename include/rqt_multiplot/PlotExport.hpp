@@ -49,6 +49,14 @@ CurveTableHeaderStyle headerStyleFromPath(const QString& fileName);
 QString suffixFromNameFilter(const QString& nameFilter);
 QString ensureFileSuffix(const QString& fileName, const QString& suffix);
 
+QString initialBagDialogDirectory(const QString& lastDirectory);
+QString bagDirectoryToRemember(const QStringList& selectedPaths);
+
+QString initialExportDialogDirectory();
+QString exportDirectoryToRemember(const QString& savedFilePath);
+void rememberSessionExportDirectory(const QString& savedFilePath);
+void setSessionLastExportDirectory(const QString& directory);
+
 bool renderExportImage(const QString& fileName, const std::function<void(QPainter&, const QRectF&)>& render);
 
 }  // namespace rqt_multiplot

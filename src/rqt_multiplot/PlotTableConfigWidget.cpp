@@ -47,7 +47,8 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
       plotTabs_(nullptr),
       plotTable_(nullptr),
       playbackJobCount_(0),
-      lastJobFailure_() {
+      lastJobFailure_(),
+      lastBagDirectory_() {
   ui_->setupUi(this);
 
   actionImportBagFile_->setObjectName(QStringLiteral("actionImportBagFile"));
@@ -362,6 +363,11 @@ void PlotTableConfigWidget::loadBagPaths(const QStringList& paths, bool replace)
     return;
   }
 
+  const QString remembered = bagDirectoryToRemember(paths);
+  if (!remembered.isEmpty()) {
+    lastBagDirectory_ = remembered;
+  }
+
   if (plotTabs_ != nullptr) {
     plotTabs_->loadFromBagFiles(paths, replace);
   } else if (plotTable_ != nullptr) {
@@ -370,7 +376,7 @@ void PlotTableConfigWidget::loadBagPaths(const QStringList& paths, bool replace)
 }
 
 void PlotTableConfigWidget::menuImportBagFileTriggered() {
-  QFileDialog dialog(this, "Open Bag Files", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+  QFileDialog dialog(this, "Open Bag Files", initialBagDialogDirectory(lastBagDirectory_), "ROS 2 bags (*.mcap *.db3);;All files (*)");
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::ExistingFiles);
@@ -381,7 +387,7 @@ void PlotTableConfigWidget::menuImportBagFileTriggered() {
 }
 
 void PlotTableConfigWidget::menuAddBagFilesTriggered() {
-  QFileDialog dialog(this, "Add Bag Files", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+  QFileDialog dialog(this, "Add Bag Files", initialBagDialogDirectory(lastBagDirectory_), "ROS 2 bags (*.mcap *.db3);;All files (*)");
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::ExistingFiles);
@@ -392,7 +398,7 @@ void PlotTableConfigWidget::menuAddBagFilesTriggered() {
 }
 
 void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
-  QFileDialog dialog(this, "Open Bag Directory", QDir::homePath());
+  QFileDialog dialog(this, "Open Bag Directory", initialBagDialogDirectory(lastBagDirectory_));
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::Directory);
@@ -404,7 +410,7 @@ void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
 }
 
 void PlotTableConfigWidget::menuAddBagDirectoryTriggered() {
-  QFileDialog dialog(this, "Add Bag Directory", QDir::homePath());
+  QFileDialog dialog(this, "Add Bag Directory", initialBagDialogDirectory(lastBagDirectory_));
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
   dialog.setFileMode(QFileDialog::Directory);
@@ -416,7 +422,7 @@ void PlotTableConfigWidget::menuAddBagDirectoryTriggered() {
 }
 
 void PlotTableConfigWidget::menuExportImageFileTriggered() {
-  QFileDialog dialog(this, "Save Image File", QDir::homePath(),
+  QFileDialog dialog(this, "Save Image File", initialExportDialogDirectory(),
                      "Portable Network Graphics (*.png);;Scalable Vector Graphics (*.svg);;Portable Document Format (*.pdf)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
@@ -426,13 +432,15 @@ void PlotTableConfigWidget::menuExportImageFileTriggered() {
   if ((dialog.exec() == QDialog::Accepted) && (plotTable_ != nullptr)) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      plotTable_->saveToImageFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+      const QString fileName = ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter()));
+      plotTable_->saveToImageFile(fileName);
+      rememberSessionExportDirectory(fileName);
     }
   }
 }
 
 void PlotTableConfigWidget::menuExportTextFileTriggered() {
-  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt);;CSV (*.csv)");
+  QFileDialog dialog(this, "Save Text File", initialExportDialogDirectory(), "Text file (*.txt);;CSV (*.csv)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
@@ -441,7 +449,9 @@ void PlotTableConfigWidget::menuExportTextFileTriggered() {
   if ((dialog.exec() == QDialog::Accepted) && (plotTable_ != nullptr)) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      plotTable_->saveToTextFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+      const QString fileName = ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter()));
+      plotTable_->saveToTextFile(fileName);
+      rememberSessionExportDirectory(fileName);
     }
   }
 }
