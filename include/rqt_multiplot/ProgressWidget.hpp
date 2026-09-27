@@ -35,6 +35,7 @@ class ProgressWidget : public QWidget {
   ~ProgressWidget() override;
 
   void setCurrentProgress(double progress);
+  void setStatusToolTip(const QString& toolTip);
   double getCurrentProgress() const;
   bool isStarted() const;
 

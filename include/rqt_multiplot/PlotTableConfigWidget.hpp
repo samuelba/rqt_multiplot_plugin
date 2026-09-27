@@ -19,6 +19,7 @@
 #pragma once
 
 #include <QAction>
+#include <QStringList>
 #include <QWidget>
 
 #include "rqt_multiplot/PlotTableConfig.hpp"
@@ -49,7 +50,9 @@ class PlotTableConfigWidget : public QWidget {
   void runPlots();
 
   QAction* getActionImportBagFile() const;
+  QAction* getActionAddBagFiles() const;
   QAction* getActionImportBagDirectory() const;
+  QAction* getActionAddBagDirectory() const;
   QAction* getActionExportImageFile() const;
   QAction* getActionExportTextFile() const;
 
@@ -57,7 +60,9 @@ class PlotTableConfigWidget : public QWidget {
   Ui::PlotTableConfigWidget* ui_;
 
   QAction* actionImportBagFile_;
+  QAction* actionAddBagFiles_;
   QAction* actionImportBagDirectory_;
+  QAction* actionAddBagDirectory_;
   QAction* actionExportImageFile_;
   QAction* actionExportTextFile_;
 
@@ -70,6 +75,7 @@ class PlotTableConfigWidget : public QWidget {
   void unbindPlaybackSignals();
   void bindPlaybackSignals();
   void completePlaybackJob(const QString& toolTip, bool failed);
+  void loadBagPaths(const QStringList& paths, bool replace);
 
  private slots:
   void configLinkScaleChanged(bool link);
@@ -94,7 +100,9 @@ class PlotTableConfigWidget : public QWidget {
   void pushButtonResetLayoutClicked();
   void updateResetLayoutButtonState();
   void menuImportBagFileTriggered();
+  void menuAddBagFilesTriggered();
   void menuImportBagDirectoryTriggered();
+  void menuAddBagDirectoryTriggered();
   void menuExportImageFileTriggered();
   void menuExportTextFileTriggered();
 

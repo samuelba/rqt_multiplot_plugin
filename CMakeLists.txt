@@ -482,9 +482,12 @@ if(BUILD_TESTING)
   find_package(std_msgs REQUIRED)
   find_package(test_msgs REQUIRED)
 
+  qt_wrap_cpp(rqt_multiplot_test_MOCS test/BagMessageCollector.hpp)
+
   ament_add_gtest(test_${PROJECT_NAME}
     test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
+    ${rqt_multiplot_test_MOCS}
     test/BagTopicLoaderTest.cpp
     test/CurveAxisConfigTest.cpp
     test/CurveStyleConfigTest.cpp

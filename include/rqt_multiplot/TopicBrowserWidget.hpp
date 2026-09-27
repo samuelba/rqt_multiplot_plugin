@@ -8,6 +8,7 @@
 #include <QMap>
 #include <QShowEvent>
 #include <QString>
+#include <QStringList>
 #include <QWidget>
 
 class QLineEdit;
@@ -29,8 +30,8 @@ class TopicBrowserWidget : public QWidget {
   ~TopicBrowserWidget() override;
 
   void setLiveTopics(const QMap<QString, QString>& topics);
-  void setBagTopics(const QString& fileName, const QMap<QString, QString>& topics);
-  void setBagFile(const QString& fileName);
+  void setBagTopics(const QStringList& fileNames, const QMap<QString, QString>& topics, bool replace = true);
+  void setBagFiles(const QStringList& fileNames, bool replace);
   void setFilterText(const QString& text);
   void refreshLiveTopics();
 
@@ -59,9 +60,12 @@ class TopicBrowserWidget : public QWidget {
   BagTopicLoader* bagTopicLoader_;
   QMap<QString, TopicEntry> checkedTopics_;
   QMap<QString, TopicSampleLoader*> samplers_;
+  QStringList bagFileNames_;
+  bool replaceBagTopics_ = true;
   bool populating_;
 
   void populateGroup(QTreeWidgetItem* group, bool fromBag, const QMap<QString, QString>& topics);
+  static QMap<QString, QString> topicsInGroup(QTreeWidgetItem* group);
   void addTopicItem(QTreeWidgetItem* group, const TopicEntry& entry);
   void applyFilter();
   void checkTopic(const QString& key, const TopicEntry& entry);
@@ -74,7 +78,7 @@ class TopicBrowserWidget : public QWidget {
   void topicListItemChanged(QTreeWidgetItem* item, int column);
   void topicRegistryUpdateFinished();
   void bagTopicLoaderFinished();
-  void bagTopicLoaderFailed(const QString& error);
+  static void bagTopicLoaderFailed(const QString& error);
 };
 
 }  // namespace rqt_multiplot

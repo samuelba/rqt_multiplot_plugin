@@ -36,10 +36,14 @@ class BagReader : public MessageBroker {
   ~BagReader() override;
 
   QString getFileName() const;
+  QStringList getFileNames() const;
+  int getFileCount() const;
+  int getCurrentFileNumber() const;
+  QString readingLabel() const;
   QString getError() const;
   bool isReading() const;
 
-  void read(const QString& fileName);
+  void read(const QStringList& fileNames);
   void wait();
 
   bool subscribe(const QString& topic, QObject* receiver, const char* method, const PropertyMap& properties,
@@ -63,8 +67,10 @@ class BagReader : public MessageBroker {
 
     void run() override;
 
-    QMutex mutex_;
+    mutable QMutex mutex_;
+    QStringList fileNames_;
     QString fileName_;
+    int currentFileNumber_ = 0;
     QString error_;
 
     QMap<QString, BagQuery*> queries_;

@@ -144,15 +144,23 @@ void PlotTabWidget::clearPlots() {
   forEachPlotTable(&PlotTableWidget::clearPlots);
 }
 
-void PlotTabWidget::loadFromBagFile(const QString& fileName) {
+void PlotTabWidget::loadFromBagFiles(const QStringList& fileNames, bool replace) {
+  if (fileNames.isEmpty()) {
+    return;
+  }
+
   for (int index = 0; index < tabWidget_->count(); ++index) {
     if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
-      plotTable->playFromBroker(bagReader_);
+      if (replace) {
+        plotTable->playFromBroker(bagReader_);
+      } else {
+        plotTable->appendFromBroker(bagReader_);
+      }
     }
   }
 
-  bagReader_->read(fileName);
-  emit bagFileImported(fileName);
+  bagReader_->read(fileNames);
+  emit bagFilesImported(fileNames, replace);
 }
 
 void PlotTabWidget::rebuildTabs() {
@@ -438,7 +446,7 @@ void PlotTabWidget::plotTableJobFailed(const QString& toolTip) {
 }
 
 void PlotTabWidget::bagReadingStarted() {
-  emit jobStarted("Reading bag from [file://" + bagReader_->getFileName() + "]...");
+  emit jobStarted(bagReader_->readingLabel());
 }
 
 void PlotTabWidget::bagReadingProgressChanged(double progress) {
@@ -447,12 +455,17 @@ void PlotTabWidget::bagReadingProgressChanged(double progress) {
 
 void PlotTabWidget::bagReadingFinished() {
   forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
-  emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
+  const int count = bagReader_->getFileCount();
+  if (count > 1) {
+    emit jobFinished(QString("Read %1 bags").arg(count));
+  } else {
+    emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
+  }
 }
 
-void PlotTabWidget::bagReadingFailed(const QString& /*error*/) {
+void PlotTabWidget::bagReadingFailed(const QString& error) {
   forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
-  emit jobFailed("Failed to read bag from [file://" + bagReader_->getFileName() + "]");
+  emit jobFailed(error.isEmpty() ? QString("Failed to read bag from [file://%1]").arg(bagReader_->getFileName()) : error);
 }
 
 }  // namespace rqt_multiplot

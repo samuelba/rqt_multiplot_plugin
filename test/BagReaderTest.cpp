@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <unordered_map>
@@ -14,10 +15,15 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/float64.hpp>
 
+#include <QApplication>
+#include <QStringList>
+
 #include <gtest/gtest.h>
 
+#include "BagMessageCollector.hpp"
 #include "MessageDefinitionSource.hpp"
 #include "rqt_multiplot/BagOpen.hpp"
+#include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/MessageFieldAccess.hpp"
 #include "rqt_multiplot/RosContext.hpp"
 
@@ -200,6 +206,98 @@ TEST(BagReader, decodesTypeThatIsNotInstalledFromMcapSchema) {
   double value = 0.0;
   ASSERT_TRUE(rqt_multiplot::tryGetNumericValue(*decoded, "position/1", value));
   EXPECT_DOUBLE_EQ(-1.75, value);
+  std::filesystem::remove_all(root);
+}
+
+void writeFloatBag(const std::string& uri, int64_t stampSec, double data) {
+  rosbag2_storage::StorageOptions options;
+  options.uri = uri;
+  options.storage_id = "mcap";
+
+  rosbag2_cpp::Writer writer;
+  writer.open(options);
+  std_msgs::msg::Float64 value;
+  value.data = data;
+  writer.write(value, "/float", rclcpp::Time(stampSec, 0, RCL_ROS_TIME));
+  writer.close();
+}
+
+QApplication* ensureApplication() {
+  if (QApplication::instance() != nullptr) {
+    return qobject_cast<QApplication*>(QApplication::instance());
+  }
+  qputenv("QT_QPA_PLATFORM", "offscreen");
+  static int argc = 1;
+  static char arg0[] = "test_rqt_multiplot";
+  static char* argv[] = {arg0, nullptr};
+  return new QApplication(argc, argv);
+}
+
+void readFloatBags(const QStringList& paths, rqt_multiplot::BagMessageCollector& collector) {
+  rqt_multiplot::BagReader reader;
+  ASSERT_TRUE(
+      reader.subscribe(QStringLiteral("/float"), &collector, SLOT(onMessage(const QString&, const Message&)), {}, Qt::AutoConnection));
+  QObject::connect(&reader, &rqt_multiplot::BagReader::readingProgressChanged, &collector, &rqt_multiplot::BagMessageCollector::onProgress);
+  QObject::connect(&reader, &rqt_multiplot::BagReader::readingFinished, &collector, &rqt_multiplot::BagMessageCollector::onFinished);
+  QObject::connect(&reader, &rqt_multiplot::BagReader::readingFailed, &collector, &rqt_multiplot::BagMessageCollector::onFailed);
+  reader.read(paths);
+  reader.wait();
+  QApplication::processEvents();
+}
+
+TEST(BagReader, readsSeveralBagsInStartTimeOrder) {
+  ensureApplication();
+  const auto root = makeTempDir();
+  const auto late = root / "late";
+  const auto early = root / "early";
+  writeFloatBag(late.string(), 10, 10.0);
+  writeFloatBag(early.string(), 1, 1.0);
+
+  rqt_multiplot::BagMessageCollector collector;
+  readFloatBags(QStringList{QString::fromStdString(late.string()), QString::fromStdString(early.string())}, collector);
+
+  ASSERT_EQ(collector.samples.size(), 2);
+  EXPECT_DOUBLE_EQ(collector.samples[0].value, 1.0);
+  EXPECT_DOUBLE_EQ(collector.samples[1].value, 10.0);
+  EXPECT_LT(collector.samples[0].timeNs, collector.samples[1].timeNs);
+  EXPECT_EQ(collector.finished, 1);
+  EXPECT_EQ(collector.failed, 0);
+  EXPECT_GE(collector.maxProgress, 1.0);
+  std::filesystem::remove_all(root);
+}
+
+TEST(BagReader, dropsDuplicateBagPaths) {
+  ensureApplication();
+  const auto root = makeTempDir();
+  const auto uri = (root / "once").string();
+  writeFloatBag(uri, 1, 3.0);
+  const QString path = QString::fromStdString(uri);
+
+  rqt_multiplot::BagMessageCollector collector;
+  readFloatBags(QStringList{path, path}, collector);
+
+  ASSERT_EQ(collector.samples.size(), 1);
+  EXPECT_DOUBLE_EQ(collector.samples[0].value, 3.0);
+  EXPECT_EQ(collector.finished, 1);
+  std::filesystem::remove_all(root);
+}
+
+TEST(BagReader, keepsMessagesWhenOneFileFails) {
+  ensureApplication();
+  const auto root = makeTempDir();
+  const auto uri = (root / "good").string();
+  writeFloatBag(uri, 2, 4.0);
+  const QString missing = QStringLiteral("/this/path/does/not/exist.mcap");
+
+  rqt_multiplot::BagMessageCollector collector;
+  readFloatBags(QStringList{QString::fromStdString(uri), missing}, collector);
+
+  ASSERT_EQ(collector.samples.size(), 1);
+  EXPECT_DOUBLE_EQ(collector.samples[0].value, 4.0);
+  EXPECT_EQ(collector.failed, 1);
+  EXPECT_EQ(collector.finished, 0);
+  EXPECT_TRUE(collector.error.contains(missing));
+  EXPECT_GE(collector.maxProgress, 1.0);
   std::filesystem::remove_all(root);
 }
 

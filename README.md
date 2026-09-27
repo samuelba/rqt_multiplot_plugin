@@ -23,7 +23,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Curve values** — collapsible per-tab list of each curve's latest X and Y, grouped by plot
 - **Time axes** — message receipt time, start from zero, date-time labels, or raw stamps. Time zone in **File → Preferences** (local, UTC, or IANA). Optional plot-level **Time window** (last *N* seconds)
 - **Light and dark** — theme and plot-title size, weight, and color under **File → Preferences**. Changes apply to the open plots
-- **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import a bag; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
+- **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import or add bags; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
 - **Data statistics** — right click on a plot to open the data statistics dialog, showing the mean, std, min, max, median, mode, range, count, RMS, and sum of the data
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 - **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
@@ -129,7 +129,7 @@ Use the plot toolbar to run, pause, clear, configure, split (left / right / top 
 
 The timer and calendar toggles set the X-axis time labels for the active tab: start from zero (default), date and time (`HH:mm:ss.z` / `yyyy MMM dd`), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged. Set the date-time zone in **File → Preferences** (local system zone by default, UTC, or a named IANA zone). The choice is stored in the plot XML.
 
-**File** — new / open / save / save as XML; import a bag file or directory; export image or text; preferences. Closing with unsaved layout changes asks to save.
+**File** — new / open / save / save as XML; import or add bag files or a bag directory; export image or text; preferences. Closing with unsaved layout changes asks to save.
 
 ### Preferences
 
@@ -157,9 +157,9 @@ Whole-array fields use a different curve mode. See [Array curves](#array-curves)
 
 ### Import a bag
 
-Configure the curves first (topics and fields must match the bag). Then **Import from bag file…** or **Import from bag directory…**.
+Configure the curves first (topics and fields must match the bag). **Import from bag files…** reads every selected file in start-time order and replaces the curves. **Add bag files…** appends more files without clearing. **Import from bag directory…** and **Add bag directory…** do the same for one rosbag2 directory.
 
-Supported storage: `.mcap`, `.db3`, and a rosbag2 directory.
+Supported storage: `.mcap`, `.db3`, and a rosbag2 directory. Adding a file again appends its points again. Clear, then Import, to start over.
 
 ### Export
 
@@ -261,7 +261,7 @@ The tree-view button on the main toolbar, or **View → Topic browser**, shows o
 
 - **Filter** matches the topic name or the type. The refresh button reloads live topics.
 - **Live** lists topics that are publishing. A checked topic stays listed after it stops.
-- **Bag** lists topics from the imported file, under **Bag:** and the file name. Those field roots end with `[bag]`.
+- **Bag** lists topics from the imported files, under **Bags (N)**. Those field roots end with `[bag]`. Adding a bag keeps topics that were only in an earlier file.
 - A drop sets Y to the field and X to message receipt time. A wildcard array (`position/*`) uses array index on X. Dropping a message or an array adds one curve per numeric field. More than 10 curves asks first.
 - A dynamic array lists elements after one message arrives, up to 100.
 

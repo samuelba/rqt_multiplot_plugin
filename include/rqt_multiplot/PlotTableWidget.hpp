@@ -22,6 +22,7 @@
 #include <QList>
 #include <QPainter>
 #include <QRectF>
+#include <QStringList>
 #include <QTimeZone>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -76,8 +77,9 @@ class PlotTableWidget : public QWidget {
   void writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles);
   void writeFormattedCurveData(QList<QStringList>& formattedData);
 
-  void loadFromBagFile(const QString& fileName);
+  void loadFromBagFiles(const QStringList& fileNames, bool replace);
   void playFromBroker(MessageBroker* broker);
+  void appendFromBroker(MessageBroker* broker);
   void restoreLiveBroker();
   void saveToImageFile(const QString& fileName);
   void saveToTextFile(const QString& fileName);
