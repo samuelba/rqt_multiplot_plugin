@@ -23,6 +23,7 @@
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotExport.hpp"
 
+#include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
@@ -36,8 +37,10 @@ namespace rqt_multiplot {
 PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
     : QWidget(parent),
       ui_(new Ui::PlotTableConfigWidget()),
-      actionImportBagFile_(new QAction(tr("Import from bag file..."), this)),
+      actionImportBagFile_(new QAction(tr("Import from bag files..."), this)),
+      actionAddBagFiles_(new QAction(tr("Add bag files..."), this)),
       actionImportBagDirectory_(new QAction(tr("Import from bag directory..."), this)),
+      actionAddBagDirectory_(new QAction(tr("Add bag directory..."), this)),
       actionExportImageFile_(new QAction(tr("Export to image file..."), this)),
       actionExportTextFile_(new QAction(tr("Export to text file..."), this)),
       config_(nullptr),
@@ -48,12 +51,16 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->setupUi(this);
 
   actionImportBagFile_->setObjectName(QStringLiteral("actionImportBagFile"));
+  actionAddBagFiles_->setObjectName(QStringLiteral("actionAddBagFiles"));
   actionImportBagDirectory_->setObjectName(QStringLiteral("actionImportBagDirectory"));
+  actionAddBagDirectory_->setObjectName(QStringLiteral("actionAddBagDirectory"));
   actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
   actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
 
   setThemeIcon(actionImportBagFile_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
+  setThemeIcon(actionAddBagFiles_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionImportBagDirectory_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
+  setThemeIcon(actionAddBagDirectory_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionExportImageFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
   setThemeIcon(actionExportTextFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
 
@@ -73,7 +80,9 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   ui_->pushButtonResetLayout->setEnabled(false);
 
   connect(actionImportBagFile_, SIGNAL(triggered()), this, SLOT(menuImportBagFileTriggered()));
+  connect(actionAddBagFiles_, SIGNAL(triggered()), this, SLOT(menuAddBagFilesTriggered()));
   connect(actionImportBagDirectory_, SIGNAL(triggered()), this, SLOT(menuImportBagDirectoryTriggered()));
+  connect(actionAddBagDirectory_, SIGNAL(triggered()), this, SLOT(menuAddBagDirectoryTriggered()));
   connect(actionExportImageFile_, SIGNAL(triggered()), this, SLOT(menuExportImageFileTriggered()));
   connect(actionExportTextFile_, SIGNAL(triggered()), this, SLOT(menuExportTextFileTriggered()));
 
@@ -180,8 +189,16 @@ QAction* PlotTableConfigWidget::getActionImportBagFile() const {
   return actionImportBagFile_;
 }
 
+QAction* PlotTableConfigWidget::getActionAddBagFiles() const {
+  return actionAddBagFiles_;
+}
+
 QAction* PlotTableConfigWidget::getActionImportBagDirectory() const {
   return actionImportBagDirectory_;
+}
+
+QAction* PlotTableConfigWidget::getActionAddBagDirectory() const {
+  return actionAddBagDirectory_;
 }
 
 QAction* PlotTableConfigWidget::getActionExportImageFile() const {
@@ -340,21 +357,37 @@ void PlotTableConfigWidget::updateResetLayoutButtonState() {
   ui_->pushButtonResetLayout->setEnabled(config_ != nullptr && config_->plotCount() >= 2);
 }
 
+void PlotTableConfigWidget::loadBagPaths(const QStringList& paths, bool replace) {
+  if (paths.isEmpty()) {
+    return;
+  }
+
+  if (plotTabs_ != nullptr) {
+    plotTabs_->loadFromBagFiles(paths, replace);
+  } else if (plotTable_ != nullptr) {
+    plotTable_->loadFromBagFiles(paths, replace);
+  }
+}
+
 void PlotTableConfigWidget::menuImportBagFileTriggered() {
-  QFileDialog dialog(this, "Open Bag File", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+  QFileDialog dialog(this, "Open Bag Files", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
 
   dialog.setAcceptMode(QFileDialog::AcceptOpen);
-  dialog.setFileMode(QFileDialog::ExistingFile);
+  dialog.setFileMode(QFileDialog::ExistingFiles);
 
   if (dialog.exec() == QDialog::Accepted) {
-    const auto files = dialog.selectedFiles();
-    if (!files.isEmpty()) {
-      if (plotTabs_ != nullptr) {
-        plotTabs_->loadFromBagFile(files.first());
-      } else if (plotTable_ != nullptr) {
-        plotTable_->loadFromBagFile(files.first());
-      }
-    }
+    loadBagPaths(dialog.selectedFiles(), true);
+  }
+}
+
+void PlotTableConfigWidget::menuAddBagFilesTriggered() {
+  QFileDialog dialog(this, "Add Bag Files", QDir::homePath(), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+
+  dialog.setAcceptMode(QFileDialog::AcceptOpen);
+  dialog.setFileMode(QFileDialog::ExistingFiles);
+
+  if (dialog.exec() == QDialog::Accepted) {
+    loadBagPaths(dialog.selectedFiles(), false);
   }
 }
 
@@ -366,14 +399,19 @@ void PlotTableConfigWidget::menuImportBagDirectoryTriggered() {
   dialog.setOption(QFileDialog::ShowDirsOnly);
 
   if (dialog.exec() == QDialog::Accepted) {
-    const auto files = dialog.selectedFiles();
-    if (!files.isEmpty()) {
-      if (plotTabs_ != nullptr) {
-        plotTabs_->loadFromBagFile(files.first());
-      } else if (plotTable_ != nullptr) {
-        plotTable_->loadFromBagFile(files.first());
-      }
-    }
+    loadBagPaths(dialog.selectedFiles(), true);
+  }
+}
+
+void PlotTableConfigWidget::menuAddBagDirectoryTriggered() {
+  QFileDialog dialog(this, "Add Bag Directory", QDir::homePath());
+
+  dialog.setAcceptMode(QFileDialog::AcceptOpen);
+  dialog.setFileMode(QFileDialog::Directory);
+  dialog.setOption(QFileDialog::ShowDirsOnly);
+
+  if (dialog.exec() == QDialog::Accepted) {
+    loadBagPaths(dialog.selectedFiles(), false);
   }
 }
 
@@ -450,6 +488,16 @@ void PlotTableConfigWidget::plotTableJobStarted(const QString& toolTip) {
 
 void PlotTableConfigWidget::plotTableJobProgressChanged(double progress) {
   ui_->widgetProgress->setCurrentProgress(progress);
+
+  BagReader* reader = nullptr;
+  if (plotTabs_ != nullptr) {
+    reader = plotTabs_->getBagReader();
+  } else if (plotTable_ != nullptr) {
+    reader = plotTable_->getBagReader();
+  }
+  if ((reader != nullptr) && reader->isReading()) {
+    ui_->widgetProgress->setStatusToolTip(reader->readingLabel());
+  }
 }
 
 void PlotTableConfigWidget::plotTableJobFinished(const QString& toolTip) {

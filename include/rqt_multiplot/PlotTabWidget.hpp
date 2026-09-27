@@ -20,6 +20,7 @@
 
 #include <QHash>
 #include <QString>
+#include <QStringList>
 #include <QWidget>
 
 #include "rqt_multiplot/MultiplotConfig.hpp"
@@ -52,7 +53,7 @@ class PlotTabWidget : public QWidget {
   void runPlots();
   void pausePlots();
   void clearPlots();
-  void loadFromBagFile(const QString& fileName);
+  void loadFromBagFiles(const QStringList& fileNames, bool replace);
 
  signals:
   void currentPlotTableChanged(PlotTableWidget* plotTable);
@@ -61,7 +62,7 @@ class PlotTabWidget : public QWidget {
   void jobProgressChanged(double progress);
   void jobFinished(const QString& toolTip);
   void jobFailed(const QString& toolTip);
-  void bagFileImported(const QString& fileName);
+  void bagFilesImported(const QStringList& fileNames, bool replace);
 
  private:
   QTabWidget* tabWidget_;

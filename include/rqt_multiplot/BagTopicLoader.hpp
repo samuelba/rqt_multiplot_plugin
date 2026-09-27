@@ -9,6 +9,7 @@
 #include <QMutex>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QThread>
 
 namespace rqt_multiplot {
@@ -20,11 +21,13 @@ class BagTopicLoader : public QObject {
   ~BagTopicLoader() override;
 
   QString getFileName() const;
+  QStringList getFileNames() const;
   QMap<QString, QString> getTopics() const;
   QString getError() const;
   bool isLoading() const;
 
   void load(const QString& fileName);
+  void load(const QStringList& fileNames);
   void wait();
 
  signals:
@@ -40,7 +43,7 @@ class BagTopicLoader : public QObject {
     void run() override;
 
     mutable QMutex mutex_;
-    QString fileName_;
+    QStringList fileNames_;
     QMap<QString, QString> topics_;
     QString error_;
   };

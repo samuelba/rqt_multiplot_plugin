@@ -289,14 +289,30 @@ void PlotTableWidget::writeFormattedCurveData(QList<QStringList>& formattedData)
   }
 }
 
-void PlotTableWidget::loadFromBagFile(const QString& fileName) {
-  playFromBroker(bagReader_);
-  bagReader_->read(fileName);
+void PlotTableWidget::loadFromBagFiles(const QStringList& fileNames, bool replace) {
+  if (fileNames.isEmpty()) {
+    return;
+  }
+
+  if (replace) {
+    playFromBroker(bagReader_);
+  } else {
+    appendFromBroker(bagReader_);
+  }
+  bagReader_->read(fileNames);
 }
 
 void PlotTableWidget::playFromBroker(MessageBroker* broker) {
   clearPlots();
 
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setBroker(broker);
+  }
+
+  runPlots();
+}
+
+void PlotTableWidget::appendFromBroker(MessageBroker* broker) {
   for (PlotWidget* plot : plotWidgets_) {
     plot->setBroker(broker);
   }
@@ -671,7 +687,7 @@ void PlotTableWidget::configGridVisibleChanged(bool visible) {
 }
 
 void PlotTableWidget::bagReaderReadingStarted() {
-  emit jobStarted("Reading bag from [file://" + bagReader_->getFileName() + "]...");
+  emit jobStarted(bagReader_->readingLabel());
 }
 
 void PlotTableWidget::bagReaderReadingProgressChanged(double progress) {
@@ -681,13 +697,18 @@ void PlotTableWidget::bagReaderReadingProgressChanged(double progress) {
 void PlotTableWidget::bagReaderReadingFinished() {
   restoreLiveBroker();
 
-  emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
+  const int count = bagReader_->getFileCount();
+  if (count > 1) {
+    emit jobFinished(QString("Read %1 bags").arg(count));
+  } else {
+    emit jobFinished("Read bag from [file://" + bagReader_->getFileName() + "]");
+  }
 }
 
-void PlotTableWidget::bagReaderReadingFailed(const QString& /*error*/) {
+void PlotTableWidget::bagReaderReadingFailed(const QString& error) {
   restoreLiveBroker();
 
-  emit jobFailed("Failed to read bag from [file://" + bagReader_->getFileName() + "]");
+  emit jobFailed(error.isEmpty() ? QString("Failed to read bag from [file://%1]").arg(bagReader_->getFileName()) : error);
 }
 
 void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds) {

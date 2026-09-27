@@ -3,6 +3,7 @@
 #include <string>
 
 #include <QApplication>
+#include <QStringList>
 
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/time.hpp>
@@ -53,14 +54,18 @@ struct SignalCounts {
   int failed = 0;
 };
 
-SignalCounts loadAndWait(BagTopicLoader& loader, const QString& fileName) {
+SignalCounts loadAndWait(BagTopicLoader& loader, const QStringList& fileNames) {
   SignalCounts counts;
   QObject::connect(&loader, &BagTopicLoader::loadingFinished, [&counts]() { ++counts.finished; });
   QObject::connect(&loader, &BagTopicLoader::loadingFailed, [&counts](const QString&) { ++counts.failed; });
-  loader.load(fileName);
+  loader.load(fileNames);
   loader.wait();
   QApplication::processEvents();
   return counts;
+}
+
+SignalCounts loadAndWait(BagTopicLoader& loader, const QString& fileName) {
+  return loadAndWait(loader, QStringList{fileName});
 }
 
 TEST(BagTopicLoader, loadsTopicsAndTypesFromBag) {
@@ -76,6 +81,41 @@ TEST(BagTopicLoader, loadsTopicsAndTypesFromBag) {
   const QMap<QString, QString> topics = loader.getTopics();
   EXPECT_EQ(topics.value("/float"), QString("std_msgs/msg/Float64"));
   EXPECT_EQ(topics.value("/twist"), QString("geometry_msgs/msg/Twist"));
+  std::filesystem::remove_all(root);
+}
+
+void writeSingleTopicBag(const std::string& uri, bool floatTopic) {
+  rosbag2_storage::StorageOptions options;
+  options.uri = uri;
+  options.storage_id = "mcap";
+
+  rosbag2_cpp::Writer writer;
+  writer.open(options);
+  if (floatTopic) {
+    writer.write(std_msgs::msg::Float64(), "/float", rclcpp::Time(1, 0, RCL_ROS_TIME));
+  } else {
+    writer.write(geometry_msgs::msg::Twist(), "/twist", rclcpp::Time(2, 0, RCL_ROS_TIME));
+  }
+  writer.close();
+}
+
+TEST(BagTopicLoader, unionsTopicsFromSeveralBags) {
+  ensureApplication();
+  const auto root = makeTempDir();
+  const auto floatBag = (root / "float_bag").string();
+  const auto twistBag = (root / "twist_bag").string();
+  writeSingleTopicBag(floatBag, true);
+  writeSingleTopicBag(twistBag, false);
+
+  BagTopicLoader loader;
+  const SignalCounts counts = loadAndWait(loader, QStringList{QString::fromStdString(twistBag), QString::fromStdString(floatBag)});
+
+  EXPECT_EQ(counts.finished, 1);
+  EXPECT_EQ(counts.failed, 0);
+  const QMap<QString, QString> topics = loader.getTopics();
+  EXPECT_EQ(topics.value("/float"), QString("std_msgs/msg/Float64"));
+  EXPECT_EQ(topics.value("/twist"), QString("geometry_msgs/msg/Twist"));
+  EXPECT_EQ(loader.getFileNames().size(), 2);
   std::filesystem::remove_all(root);
 }
 

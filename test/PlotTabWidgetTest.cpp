@@ -1,20 +1,33 @@
+#include <chrono>
+#include <cstdint>
 #include <cstdlib>
+#include <filesystem>
+#include <string>
+
+#include <rclcpp/time.hpp>
+#include <rosbag2_cpp/writer.hpp>
+#include <rosbag2_storage/storage_options.hpp>
+#include <std_msgs/msg/float64.hpp>
 
 #include <QAbstractButton>
 #include <QApplication>
 #include <QCheckBox>
 #include <QColor>
+#include <QEventLoop>
 #include <QFrame>
 #include <QGridLayout>
 #include <QIcon>
 #include <QImage>
 #include <QMetaObject>
+#include <QPointF>
 #include <QPushButton>
 #include <QSettings>
+#include <QStringList>
 #include <QTabBar>
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QTimeZone>
+#include <QTimer>
 
 #include <gtest/gtest.h>
 
@@ -23,12 +36,15 @@
 #include <qwt/qwt_scale_widget.h>
 
 #include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveData.hpp"
 #include "rqt_multiplot/MultiplotConfig.hpp"
 #include "rqt_multiplot/OffsetScaleDraw.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotCurve.hpp"
 #include "rqt_multiplot/PlotLayoutConfig.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
@@ -382,7 +398,7 @@ TEST(PlotTabWidget, toolbarRunPauseAndClearAffectEveryTab) {
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
 }
 
-TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
+TEST(PlotTabWidget, loadFromBagFilesStartsEveryTab) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
@@ -390,7 +406,7 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
   tabs.setConfig(&config);
   tabs.addTab();
 
-  tabs.loadFromBagFile("/this/path/does/not/exist.mcap");
+  tabs.loadFromBagFiles(QStringList{QStringLiteral("/this/path/does/not/exist.mcap")}, true);
 
   EXPECT_EQ(tabs.getBagReader()->getFileName(), QString("/this/path/does/not/exist.mcap"));
   EXPECT_TRUE(tabs.getPlotTable(0)->getBagReader()->getFileName().isEmpty());
@@ -399,18 +415,69 @@ TEST(PlotTabWidget, loadFromBagFileStartsEveryTab) {
   EXPECT_FALSE(plotTablePaused(tabs.getPlotTable(1)));
 }
 
-TEST(PlotTabWidget, loadFromBagFileEmitsBagFileImported) {
+TEST(PlotTabWidget, loadFromBagFilesEmitsBagFilesImported) {
   ensureApplication();
 
   MultiplotConfig config(nullptr);
   PlotTabWidget tabs;
   tabs.setConfig(&config);
   QStringList imported;
-  QObject::connect(&tabs, &PlotTabWidget::bagFileImported, [&imported](const QString& fileName) { imported.append(fileName); });
+  bool replaced = false;
+  QObject::connect(&tabs, &PlotTabWidget::bagFilesImported, [&imported, &replaced](const QStringList& fileNames, bool replace) {
+    imported = fileNames;
+    replaced = replace;
+  });
 
-  tabs.loadFromBagFile("/this/path/does/not/exist.mcap");
+  const QStringList files{QStringLiteral("/tmp/a.mcap"), QStringLiteral("/tmp/b.mcap")};
+  tabs.loadFromBagFiles(files, false);
 
-  EXPECT_EQ(imported, QStringList({"/this/path/does/not/exist.mcap"}));
+  EXPECT_EQ(imported, files);
+  EXPECT_FALSE(replaced);
+}
+
+TEST(PlotTabWidget, importClearsPlotsOnceForSeveralFiles) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+
+  int clears = 0;
+  int plots = 0;
+  for (size_t index = 0; index < tabs.getNumPlotTables(); ++index) {
+    for (PlotWidget* plot : tabs.getPlotTable(index)->getPlotWidgets()) {
+      ++plots;
+      QObject::connect(plot, &PlotWidget::cleared, [&clears]() { ++clears; });
+    }
+  }
+
+  tabs.loadFromBagFiles(QStringList{QStringLiteral("/tmp/a.mcap"), QStringLiteral("/tmp/b.mcap")}, true);
+
+  EXPECT_EQ(plots, 1);
+  EXPECT_EQ(clears, 1);
+}
+
+TEST(PlotTabWidget, addBagFilesKeepsExistingPoints) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+
+  PlotWidget* plot = tabs.getPlotTable(0)->getPlotWidgets().front();
+  plot->getConfig()->addCurve();
+  ASSERT_EQ(plot->getCurves().size(), 1);
+  plot->getCurves().front()->getData()->appendPoint(QPointF(4.0, 5.0));
+
+  int clears = 0;
+  QObject::connect(plot, &PlotWidget::cleared, [&clears]() { ++clears; });
+
+  tabs.loadFromBagFiles(QStringList{QStringLiteral("/tmp/later.mcap")}, false);
+
+  EXPECT_EQ(clears, 0);
+  EXPECT_EQ(plot->getCurves().front()->getData()->getNumPoints(), 1u);
+  EXPECT_DOUBLE_EQ(plot->getCurves().front()->getData()->getPoint(0).x(), 4.0);
+  EXPECT_DOUBLE_EQ(plot->getCurves().front()->getData()->getPoint(0).y(), 5.0);
 }
 
 TEST(PlotTabWidget, progressRowHiddenWhenIdle) {
@@ -897,6 +964,90 @@ TEST(PlotTabWidget, sidebarToggleSwapsOpenCloseIconWithConfig) {
   EXPECT_EQ(sidebar->toolTip(), QString("Hide curve values"));
   const QIcon closeIcon = rqt_multiplot::packageIcon("resource/side-panel-close.svg", QSize(16, 16));
   EXPECT_EQ(sidebar->icon().pixmap(16, 16).toImage(), closeIcon.pixmap(16, 16).toImage());
+}
+
+std::filesystem::path writeFloatBag(const std::filesystem::path& directory, int64_t stampSec, double data) {
+  rosbag2_storage::StorageOptions options;
+  options.uri = directory.string();
+  options.storage_id = "mcap";
+
+  rosbag2_cpp::Writer writer;
+  writer.open(options);
+  std_msgs::msg::Float64 value;
+  value.data = data;
+  writer.write(value, "/float", rclcpp::Time(stampSec, 0, RCL_ROS_TIME));
+  writer.close();
+
+  for (const auto& entry : std::filesystem::directory_iterator(directory)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".mcap") {
+      return entry.path();
+    }
+  }
+  return {};
+}
+
+void configureScalarCurve(CurveConfig* curve, const QString& topic, const QString& type, const QString& field) {
+  CurveAxisConfig* xAxis = curve->getAxisConfig(CurveConfig::X);
+  xAxis->setTopic(topic);
+  xAxis->setType(type);
+  xAxis->setFieldType(CurveAxisConfig::MessageReceiptTime);
+
+  CurveAxisConfig* yAxis = curve->getAxisConfig(CurveConfig::Y);
+  yAxis->setTopic(topic);
+  yAxis->setType(type);
+  yAxis->setFieldType(CurveAxisConfig::MessageData);
+  yAxis->setField(field);
+}
+
+void waitUntilBagRead(rqt_multiplot::BagReader* reader) {
+  QEventLoop loop;
+  QTimer timer;
+  timer.setSingleShot(true);
+  QObject::connect(reader, &rqt_multiplot::BagReader::readingFinished, &loop, &QEventLoop::quit);
+  QObject::connect(reader, &rqt_multiplot::BagReader::readingFailed, &loop, &QEventLoop::quit);
+  QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+  timer.start(10000);
+  if (reader->isReading()) {
+    loop.exec();
+  }
+  QApplication::processEvents();
+}
+
+TEST(PlotTabWidget, addBagKeepsPointsFromEarlierBag) {
+  ensureApplication();
+
+  const auto root = std::filesystem::temp_directory_path() /
+                    ("rqt_multiplot_add_bag_" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
+  std::filesystem::create_directories(root);
+  const QString earlyBag = QString::fromStdString(writeFloatBag(root / "early", 5, 1.25).string());
+  const QString lateBag = QString::fromStdString(writeFloatBag(root / "late", 20, 4.5).string());
+
+  MultiplotConfig config(nullptr);
+  configureScalarCurve(config.getTableConfig(0)->getPlotConfig(0, 0)->addCurve(), QStringLiteral("/float"),
+                       QStringLiteral("std_msgs/msg/Float64"), QStringLiteral("data"));
+
+  PlotTabWidget tabs;
+  tabs.setConfig(&config);
+  tabs.loadFromBagFiles(QStringList{earlyBag}, true);
+  waitUntilBagRead(tabs.getBagReader());
+
+  PlotWidget* plot = tabs.getPlotTable(0)->getPlotWidgets().front();
+  ASSERT_EQ(plot->getCurves().size(), 1);
+  rqt_multiplot::CurveData* data = plot->getCurves().front()->getData();
+  ASSERT_EQ(data->getNumPoints(), 1u);
+  EXPECT_DOUBLE_EQ(data->getPoint(0).y(), 1.25);
+  EXPECT_TRUE(tabs.getBagReader()->getError().isEmpty());
+
+  tabs.loadFromBagFiles(QStringList{lateBag}, false);
+  waitUntilBagRead(tabs.getBagReader());
+
+  ASSERT_EQ(data->getNumPoints(), 2u);
+  EXPECT_DOUBLE_EQ(data->getPoint(0).y(), 1.25);
+  EXPECT_DOUBLE_EQ(data->getPoint(1).y(), 4.5);
+  EXPECT_LT(data->getPoint(0).x(), data->getPoint(1).x());
+  EXPECT_TRUE(tabs.getBagReader()->getError().isEmpty());
+
+  std::filesystem::remove_all(root);
 }
 
 }  // namespace

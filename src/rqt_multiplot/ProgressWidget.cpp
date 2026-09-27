@@ -46,6 +46,12 @@ void ProgressWidget::setCurrentProgress(double progress) {
   }
 }
 
+void ProgressWidget::setStatusToolTip(const QString& toolTip) {
+  if (started_) {
+    ui_->widgetStatus->setCurrentRole(StatusWidget::Busy, toolTip);
+  }
+}
+
 double ProgressWidget::getCurrentProgress() const {
   if (started_) {
     return ui_->progressBar->value() * 1e-2;

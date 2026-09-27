@@ -102,7 +102,9 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   fileMenu->addAction(ui_->configWidget->getActionClearHistory());
   fileMenu->addSeparator();
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionImportBagFile());
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionAddBagFiles());
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionImportBagDirectory());
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionAddBagDirectory());
   fileMenu->addSeparator();
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportImageFile());
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportTextFile());
@@ -194,7 +196,7 @@ void MultiplotWidget::loadConfig(const QString& url) {
 }
 
 void MultiplotWidget::readBag(const QString& url) {
-  ui_->plotTabWidget->loadFromBagFile(url);
+  ui_->plotTabWidget->loadFromBagFiles(QStringList{url}, true);
 }
 
 bool MultiplotWidget::confirmClose() {
@@ -365,7 +367,7 @@ void MultiplotWidget::setupTopicBrowser() {
     }
   });
   connect(topicBrowserSplitter_, &QSplitter::splitterMoved, this, &MultiplotWidget::topicBrowserSplitterMoved);
-  connect(ui_->plotTabWidget, &PlotTabWidget::bagFileImported, topicBrowser_, &TopicBrowserWidget::setBagFile);
+  connect(ui_->plotTabWidget, &PlotTabWidget::bagFilesImported, topicBrowser_, &TopicBrowserWidget::setBagFiles);
 
   applyTopicBrowserState();
 }

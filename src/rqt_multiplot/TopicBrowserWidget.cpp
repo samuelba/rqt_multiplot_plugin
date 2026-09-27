@@ -6,7 +6,6 @@
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
 
 #include <QDebug>
-#include <QFileInfo>
 #include <QFont>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -140,14 +139,48 @@ void TopicBrowserWidget::setLiveTopics(const QMap<QString, QString>& topics) {
   populateGroup(liveGroup_, false, topics);
 }
 
-void TopicBrowserWidget::setBagTopics(const QString& fileName, const QMap<QString, QString>& topics) {
-  bagGroup_->setText(0, tr("Bag: %1").arg(QFileInfo(fileName).fileName()));
-  bagGroup_->setToolTip(0, fileName);
-  populateGroup(bagGroup_, true, topics);
+QMap<QString, QString> TopicBrowserWidget::topicsInGroup(QTreeWidgetItem* group) {
+  QMap<QString, QString> topics;
+  if (group == nullptr) {
+    return topics;
+  }
+  for (int index = 0; index < group->childCount(); ++index) {
+    QTreeWidgetItem* item = group->child(index);
+    topics.insert(item->data(0, kTopicRole).toString(), item->data(0, kTypeRole).toString());
+  }
+  return topics;
 }
 
-void TopicBrowserWidget::setBagFile(const QString& fileName) {
-  bagTopicLoader_->load(fileName);
+void TopicBrowserWidget::setBagTopics(const QStringList& fileNames, const QMap<QString, QString>& topics, bool replace) {
+  QMap<QString, QString> merged = topics;
+  if (!replace) {
+    const QMap<QString, QString> existing = topicsInGroup(bagGroup_);
+    for (auto it = existing.cbegin(); it != existing.cend(); ++it) {
+      const auto incoming = merged.constFind(it.key());
+      if (incoming == merged.constEnd()) {
+        merged.insert(it.key(), it.value());
+      } else if (incoming.value() != it.value()) {
+        qWarning() << "Bag topic" << it.key() << "type" << incoming.value() << "differs from" << it.value() << "; keeping the first";
+        merged.insert(it.key(), it.value());
+      }
+    }
+    for (const QString& fileName : fileNames) {
+      if (!bagFileNames_.contains(fileName)) {
+        bagFileNames_.append(fileName);
+      }
+    }
+  } else {
+    bagFileNames_ = fileNames;
+  }
+
+  bagGroup_->setText(0, tr("Bags (%1)").arg(bagFileNames_.size()));
+  bagGroup_->setToolTip(0, bagFileNames_.join(QStringLiteral("\n")));
+  populateGroup(bagGroup_, true, merged);
+}
+
+void TopicBrowserWidget::setBagFiles(const QStringList& fileNames, bool replace) {
+  replaceBagTopics_ = replace;
+  bagTopicLoader_->load(fileNames);
 }
 
 void TopicBrowserWidget::setFilterText(const QString& text) {
@@ -325,11 +358,11 @@ void TopicBrowserWidget::topicRegistryUpdateFinished() {
 }
 
 void TopicBrowserWidget::bagTopicLoaderFinished() {
-  setBagTopics(bagTopicLoader_->getFileName(), bagTopicLoader_->getTopics());
+  setBagTopics(bagTopicLoader_->getFileNames(), bagTopicLoader_->getTopics(), replaceBagTopics_);
 }
 
 void TopicBrowserWidget::bagTopicLoaderFailed(const QString& error) {
-  qWarning() << "Failed to read topics from bag [file://" << bagTopicLoader_->getFileName() << "]:" << error;
+  qWarning() << "Failed to read topics from bags:" << error;
 }
 
 }  // namespace rqt_multiplot

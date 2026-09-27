@@ -152,11 +152,12 @@ TEST_F(TopicBrowserWidgetTest, refreshKeepsCheckedTopicThatLeftTheGraph) {
 }
 
 TEST_F(TopicBrowserWidgetTest, bagTopicsGetOwnGroupAndTreeSuffix) {
-  browser_->setBagTopics("/tmp/run_042.mcap", {{"/imu", kImuType}});
+  browser_->setBagTopics({QStringLiteral("/tmp/run_042.mcap")}, {{"/imu", kImuType}});
 
   QTreeWidgetItem* bagItem = browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/imu"));
   ASSERT_NE(bagItem, nullptr);
-  EXPECT_EQ(bagItem->parent()->text(0), QString("Bag: run_042.mcap"));
+  EXPECT_EQ(bagItem->parent()->text(0), QString("Bags (1)"));
+  EXPECT_EQ(bagItem->parent()->toolTip(0), QString("/tmp/run_042.mcap"));
   EXPECT_FALSE(bagItem->parent()->isHidden());
 
   bagItem->setCheckState(0, Qt::Checked);
@@ -165,15 +166,26 @@ TEST_F(TopicBrowserWidgetTest, bagTopicsGetOwnGroupAndTreeSuffix) {
 }
 
 TEST_F(TopicBrowserWidgetTest, newBagDropsCheckedTopicsItDoesNotContain) {
-  browser_->setBagTopics("/tmp/a.mcap", {{"/imu", kImuType}, {"/odom", kOdomType}});
+  browser_->setBagTopics({QStringLiteral("/tmp/a.mcap")}, {{"/imu", kImuType}, {"/odom", kOdomType}});
   browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/imu"))->setCheckState(0, Qt::Checked);
   browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/odom"))->setCheckState(0, Qt::Checked);
 
-  browser_->setBagTopics("/tmp/b.mcap", {{"/odom", kOdomType}});
+  browser_->setBagTopics({QStringLiteral("/tmp/b.mcap")}, {{"/odom", kOdomType}});
 
   EXPECT_FALSE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/imu")));
   EXPECT_TRUE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/odom")));
   EXPECT_EQ(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/odom"))->checkState(0), Qt::Checked);
+}
+
+TEST_F(TopicBrowserWidgetTest, addBagKeepsTopicsFromEarlierFiles) {
+  browser_->setBagTopics({QStringLiteral("/tmp/a.mcap")}, {{"/imu", kImuType}});
+
+  browser_->setBagTopics({QStringLiteral("/tmp/b.mcap")}, {{"/odom", kOdomType}}, false);
+
+  EXPECT_NE(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/imu")), nullptr);
+  EXPECT_NE(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/odom")), nullptr);
+  EXPECT_EQ(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/imu"))->parent()->text(0), QString("Bags (2)"));
+  EXPECT_EQ(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/imu"))->parent()->toolTip(0), QString("/tmp/a.mcap\n/tmp/b.mcap"));
 }
 
 TEST(TopicFieldTreeWidget, nameColumnIsInteractiveAndAbsorbsWidthChanges) {
