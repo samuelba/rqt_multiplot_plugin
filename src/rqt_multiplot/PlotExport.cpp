@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <QDebug>
+#include <QDir>
 #include <QFileInfo>
 #include <QMarginsF>
 #include <QPageSize>
@@ -126,6 +127,56 @@ QString ensureFileSuffix(const QString& fileName, const QString& suffix) {
     return base + "." + normalized;
   }
   return info.path() + "/" + base + "." + normalized;
+}
+
+QString initialBagDialogDirectory(const QString& lastDirectory) {
+  if (lastDirectory.isEmpty()) {
+    return QDir::homePath();
+  }
+  return lastDirectory;
+}
+
+QString bagDirectoryToRemember(const QStringList& selectedPaths) {
+  if (selectedPaths.isEmpty()) {
+    return {};
+  }
+
+  const QFileInfo info(selectedPaths.first());
+  if (info.isDir()) {
+    return info.absoluteFilePath();
+  }
+  return info.absolutePath();
+}
+
+namespace {
+
+QString& sessionLastExportDirectoryStorage() {
+  static QString directory;
+  return directory;
+}
+
+}  // namespace
+
+QString initialExportDialogDirectory() {
+  return initialBagDialogDirectory(sessionLastExportDirectoryStorage());
+}
+
+QString exportDirectoryToRemember(const QString& savedFilePath) {
+  if (savedFilePath.isEmpty()) {
+    return {};
+  }
+  return QFileInfo(savedFilePath).absolutePath();
+}
+
+void rememberSessionExportDirectory(const QString& savedFilePath) {
+  const QString remembered = exportDirectoryToRemember(savedFilePath);
+  if (!remembered.isEmpty()) {
+    sessionLastExportDirectoryStorage() = remembered;
+  }
+}
+
+void setSessionLastExportDirectory(const QString& directory) {
+  sessionLastExportDirectoryStorage() = directory;
 }
 
 bool renderExportImage(const QString& fileName, const std::function<void(QPainter&, const QRectF&)>& render) {

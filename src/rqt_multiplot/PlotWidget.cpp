@@ -1511,7 +1511,7 @@ void PlotWidget::configDestroyed() {
 }
 
 void PlotWidget::menuExportImageFileTriggered() {
-  QFileDialog dialog(this, "Save Image File", QDir::homePath(),
+  QFileDialog dialog(this, "Save Image File", initialExportDialogDirectory(),
                      "Portable Network Graphics (*.png);;Scalable Vector Graphics (*.svg);;Portable Document Format (*.pdf)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
@@ -1521,13 +1521,15 @@ void PlotWidget::menuExportImageFileTriggered() {
   if (dialog.exec() == QDialog::Accepted) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      saveToImageFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+      const QString fileName = ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter()));
+      saveToImageFile(fileName);
+      rememberSessionExportDirectory(fileName);
     }
   }
 }
 
 void PlotWidget::menuExportTextFileTriggered() {
-  QFileDialog dialog(this, "Save Text File", QDir::homePath(), "Text file (*.txt);;CSV (*.csv)");
+  QFileDialog dialog(this, "Save Text File", initialExportDialogDirectory(), "Text file (*.txt);;CSV (*.csv)");
 
   dialog.setAcceptMode(QFileDialog::AcceptSave);
   dialog.setFileMode(QFileDialog::AnyFile);
@@ -1536,7 +1538,9 @@ void PlotWidget::menuExportTextFileTriggered() {
   if (dialog.exec() == QDialog::Accepted) {
     const auto files = dialog.selectedFiles();
     if (!files.isEmpty()) {
-      saveToTextFile(ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter())));
+      const QString fileName = ensureFileSuffix(files.first(), suffixFromNameFilter(dialog.selectedNameFilter()));
+      saveToTextFile(fileName);
+      rememberSessionExportDirectory(fileName);
     }
   }
 }

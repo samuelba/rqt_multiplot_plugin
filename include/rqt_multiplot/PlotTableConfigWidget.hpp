@@ -71,6 +71,7 @@ class PlotTableConfigWidget : public QWidget {
   PlotTableWidget* plotTable_;
   int playbackJobCount_;
   QString lastJobFailure_;
+  QString lastBagDirectory_;
 
   void unbindPlaybackSignals();
   void bindPlaybackSignals();
