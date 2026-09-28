@@ -19,8 +19,10 @@ using rqt_multiplot::nearestPointByX;
 using rqt_multiplot::trackedPointLabel;
 using rqt_multiplot::trackedPointLabels;
 using rqt_multiplot::trackedPointsReadoutRect;
+using rqt_multiplot::trackedReadoutCrosshairLines;
 using rqt_multiplot::trackedReadoutLayout;
 using rqt_multiplot::TrackedReadoutLayout;
+using rqt_multiplot::TrackedReadoutMark;
 using rqt_multiplot::TrackedReadoutRow;
 using rqt_multiplot::trackedReadoutSize;
 using rqt_multiplot::trackedReadoutSwatchExtent;
@@ -84,6 +86,54 @@ TEST(PlotCursorLabel, placesReadoutAboveRightOfCursor) {
   const QRect rect = trackedPointsReadoutRect(QPoint(50, 50), QSize(80, 20), QRect(0, 0, 200, 100));
 
   EXPECT_EQ(rect, QRect(55, 25, 80, 20));
+}
+
+TEST(PlotCursorLabel, crosshairRowDoesNotWidenTitleColumn) {
+  const QFont font;
+  const QVector<TrackedReadoutRow> curvesOnly{{Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+  const QVector<TrackedReadoutRow> withCrosshair{
+      {QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
+      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+  const auto layoutCurves = trackedReadoutLayout(curvesOnly, font);
+  const auto layoutBoth = trackedReadoutLayout(withCrosshair, font);
+
+  EXPECT_EQ(layoutBoth.titleWidth, layoutCurves.titleWidth);
+}
+
+TEST(PlotCursorLabel, crosshairRowWidensNumericColumns) {
+  const QFont font;
+  const QVector<TrackedReadoutRow> shortValues{
+      {QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
+      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+  const QVector<TrackedReadoutRow> longX{
+      {QColor(), QString(), QStringLiteral("123456.789"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
+      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+
+  EXPECT_GT(trackedReadoutLayout(longX, font).xWidth, trackedReadoutLayout(shortValues, font).xWidth);
+}
+
+TEST(PlotCursorLabel, readoutHeightIncludesCrosshairRow) {
+  const QFont font;
+  const QVector<TrackedReadoutRow> rows{{QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
+                                        {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+  const auto layout = trackedReadoutLayout(rows, font);
+
+  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).height(), layout.rowHeight * 2);
+}
+
+TEST(PlotCursorLabel, crosshairLinesMeetAtSwatchCenter) {
+  const TrackedReadoutLayout layout{10, 40, 20, 20, 8, 16};
+  const QRect swatch = trackedReadoutSwatchRect(layout, 4, 20);
+  const auto lines = trackedReadoutCrosshairLines(swatch);
+
+  EXPECT_EQ(lines.first.y1(), lines.first.y2());
+  EXPECT_EQ(lines.second.x1(), lines.second.x2());
+  EXPECT_EQ(lines.first.x1(), swatch.left());
+  EXPECT_EQ(lines.first.x2(), swatch.right());
+  EXPECT_EQ(lines.second.y1(), swatch.top());
+  EXPECT_EQ(lines.second.y2(), swatch.bottom());
+  EXPECT_EQ(lines.first.center(), swatch.center());
+  EXPECT_EQ(lines.second.center(), swatch.center());
 }
 
 TEST(PlotCursorLabel, flipsReadoutWhenItWouldLeaveTheCanvas) {

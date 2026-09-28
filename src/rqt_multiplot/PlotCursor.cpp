@@ -196,6 +196,16 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
 
 QVector<TrackedReadoutRow> PlotCursor::trackedReadoutRows() const {
   QVector<TrackedReadoutRow> rows;
+  if (trackedPoints_.isEmpty()) {
+    return rows;
+  }
+
+  TrackedReadoutRow crosshairRow;
+  crosshairRow.mark = TrackedReadoutMark::Crosshair;
+  crosshairRow.x = formatCoordinate(currentPosition_.x(), true);
+  crosshairRow.y = formatCoordinate(currentPosition_.y(), false);
+  rows.append(crosshairRow);
+
   for (const auto& tracked : trackedPoints_) {
     TrackedReadoutRow row;
     row.color = tracked.color;
@@ -406,7 +416,14 @@ void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
 
   painter->setPen(textColor);
   for (const TrackedReadoutRow& row : rows) {
-    painter->fillRect(trackedReadoutSwatchRect(layout, content.left(), y), row.color);
+    const QRect swatchRect = trackedReadoutSwatchRect(layout, content.left(), y);
+    if (row.mark == TrackedReadoutMark::Crosshair) {
+      const auto lines = trackedReadoutCrosshairLines(swatchRect);
+      painter->drawLine(lines.first);
+      painter->drawLine(lines.second);
+    } else {
+      painter->fillRect(swatchRect, row.color);
+    }
     painter->drawText(titleColumn, y, layout.titleWidth, layout.rowHeight, Qt::AlignLeft | Qt::AlignVCenter, row.title);
     painter->drawText(xColumn, y, layout.xWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.x);
     painter->drawText(yColumn, y, layout.yWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.y);

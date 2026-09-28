@@ -11,6 +11,7 @@
 #include <QColor>
 #include <QFont>
 #include <QFontMetrics>
+#include <QLine>
 #include <QPoint>
 #include <QPointF>
 #include <QRect>
@@ -55,11 +56,17 @@ inline QString trackedPointLabels(const QStringList& lines) {
 
 constexpr int kTrackedReadoutSwatchSize = 10;
 
+enum class TrackedReadoutMark {
+  Color,
+  Crosshair,
+};
+
 struct TrackedReadoutRow {
   QColor color;
   QString title;
   QString x;
   QString y;
+  TrackedReadoutMark mark = TrackedReadoutMark::Color;
 };
 
 struct TrackedReadoutLayout {
@@ -104,6 +111,12 @@ inline QSize trackedReadoutSize(const TrackedReadoutLayout& layout, int rowCount
 inline QRect trackedReadoutSwatchRect(const TrackedReadoutLayout& layout, int left, int rowTop) {
   const int top = rowTop + (layout.rowHeight - layout.swatchSize) / 2;
   return {left, top, layout.swatchSize, layout.swatchSize};
+}
+
+inline QPair<QLine, QLine> trackedReadoutCrosshairLines(const QRect& swatchRect) {
+  const QPoint center = swatchRect.center();
+  return {QLine(swatchRect.left(), center.y(), swatchRect.right(), center.y()),
+          QLine(center.x(), swatchRect.top(), center.x(), swatchRect.bottom())};
 }
 
 inline QRect trackedPointsReadoutRect(const QPoint& cursor, const QSize& size, const QRect& canvas, int margin = 5) {
