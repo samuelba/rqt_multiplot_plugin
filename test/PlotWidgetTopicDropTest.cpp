@@ -4,9 +4,12 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QPushButton>
+#include <QTimer>
 
 #include <gtest/gtest.h>
 
+#include "rqt_multiplot/ArrayDropDialog.hpp"
 #include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
@@ -14,6 +17,7 @@
 
 namespace {
 
+using rqt_multiplot::ArrayDropDialog;
 using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
 using rqt_multiplot::PlotConfig;
@@ -89,6 +93,89 @@ TEST(PlotWidgetTopicDrop, dropAddsOneCurvePerField) {
   EXPECT_EQ(config.getCurveConfig(0)->getAxisConfig(CurveConfig::X)->getFieldType(), CurveAxisConfig::MessageReceiptTime);
   EXPECT_EQ(config.getCurveConfig(1)->getAxisConfig(CurveConfig::Y)->getField(), QString("y"));
   EXPECT_EQ(config.getCurveConfig(2)->getAxisConfig(CurveConfig::X)->getFieldType(), CurveAxisConfig::ArrayIndex);
+}
+
+TEST(PlotWidgetTopicDrop, diagnosticKeyDropAddsDiagnosticValueCurve) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(
+      topicFieldsMime({{"/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", QString(), {"cpu", "host1", "load"}}}));
+
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 1U);
+  const CurveAxisConfig* y = config.getCurveConfig(0)->getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(y->getFieldType(), CurveAxisConfig::DiagnosticValue);
+  EXPECT_EQ(y->getDiagnosticStatus(), QString("cpu"));
+  EXPECT_EQ(y->getDiagnosticKey(), QString("load"));
+  EXPECT_EQ(y->getDiagnosticHardwareId(), QString("host1"));
+}
+
+QMimeData* arrayMime() {
+  QMimeData* mimeData = topicFieldsMime({{"/scan", "sensor_msgs/msg/LaserScan", "ranges/*"}});
+  mimeData->setData(rqt_multiplot::kTopicFieldsExpandedMimeType,
+                    rqt_multiplot::encodeTopicFields(
+                        {{"/scan", "sensor_msgs/msg/LaserScan", "ranges/0"}, {"/scan", "sensor_msgs/msg/LaserScan", "ranges/1"}}));
+  return mimeData;
+}
+
+void answerArrayDropDialog(const QString& buttonName) {
+  QTimer::singleShot(0, [buttonName]() {
+    auto* dialog = qobject_cast<ArrayDropDialog*>(QApplication::activeModalWidget());
+    ASSERT_NE(dialog, nullptr);
+    if (buttonName.isEmpty()) {
+      dialog->reject();
+      return;
+    }
+    auto* button = dialog->findChild<QPushButton*>(buttonName);
+    ASSERT_NE(button, nullptr);
+    button->click();
+  });
+}
+
+TEST(PlotWidgetTopicDrop, arrayDropDialogArrayIndexKeepsWildcardCurve) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(arrayMime());
+
+  answerArrayDropDialog("arrayDropArrayIndexButton");
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 1U);
+  EXPECT_EQ(config.getCurveConfig(0)->getAxisConfig(CurveConfig::Y)->getField(), QString("ranges/*"));
+  EXPECT_EQ(config.getCurveConfig(0)->getAxisConfig(CurveConfig::X)->getFieldType(), CurveAxisConfig::ArrayIndex);
+}
+
+TEST(PlotWidgetTopicDrop, arrayDropDialogIndividualAddsCurvePerElement) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(arrayMime());
+
+  answerArrayDropDialog("arrayDropIndividualButton");
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 2U);
+  EXPECT_EQ(config.getCurveConfig(1)->getAxisConfig(CurveConfig::Y)->getField(), QString("ranges/1"));
+  EXPECT_EQ(config.getCurveConfig(1)->getAxisConfig(CurveConfig::X)->getFieldType(), CurveAxisConfig::MessageReceiptTime);
+}
+
+TEST(PlotWidgetTopicDrop, arrayDropDialogCancelAddsNothing) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(arrayMime());
+
+  answerArrayDropDialog(QString());
+  EXPECT_FALSE(sendDrop(widget, mimeData.get()));
+
+  EXPECT_EQ(config.getNumCurves(), 0U);
 }
 
 TEST(PlotWidgetTopicDrop, droppingSameFieldTwiceKeepsTitlesUnique) {

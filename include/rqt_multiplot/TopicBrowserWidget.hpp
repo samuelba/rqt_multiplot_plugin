@@ -19,6 +19,7 @@ class QTreeWidgetItem;
 namespace rqt_multiplot {
 
 class BagTopicLoader;
+class DiagnosticKeySampler;
 class MessageTopicRegistry;
 class TopicFieldTreeWidget;
 class TopicSampleLoader;
@@ -60,6 +61,7 @@ class TopicBrowserWidget : public QWidget {
   BagTopicLoader* bagTopicLoader_;
   QMap<QString, TopicEntry> checkedTopics_;
   QMap<QString, TopicSampleLoader*> samplers_;
+  QMap<QString, DiagnosticKeySampler*> diagnosticSamplers_;
   QStringList bagFileNames_;
   bool replaceBagTopics_ = true;
   bool populating_;
@@ -73,6 +75,7 @@ class TopicBrowserWidget : public QWidget {
   void releaseTopic(const QString& key);
   void loadFields(const QString& key, const TopicEntry& entry);
   void sampleArrayLengths(const QString& key, const TopicEntry& entry);
+  void sampleDiagnosticKeys(const QString& key, const TopicEntry& entry);
 
  private slots:
   void topicListItemChanged(QTreeWidgetItem* item, int column);

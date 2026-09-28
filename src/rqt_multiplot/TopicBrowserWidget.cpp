@@ -17,7 +17,9 @@
 #include <QVBoxLayout>
 
 #include "rqt_multiplot/BagTopicLoader.hpp"
+#include "rqt_multiplot/DiagnosticKeySampler.hpp"
 #include "rqt_multiplot/MessageDefinitionLoader.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 #include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotSplitter.hpp"
@@ -297,6 +299,7 @@ void TopicBrowserWidget::uncheckTopic(const QString& key) {
 void TopicBrowserWidget::releaseTopic(const QString& key) {
   fieldTree_->removeTopic(key);
   delete samplers_.take(key);
+  delete diagnosticSamplers_.take(key);
 }
 
 void TopicBrowserWidget::loadFields(const QString& key, const TopicEntry& entry) {
@@ -306,6 +309,9 @@ void TopicBrowserWidget::loadFields(const QString& key, const TopicEntry& entry)
     fieldTree_->setTopicDefinition(key, definition);
     if (containsDynamicArray(definition)) {
       sampleArrayLengths(key, entry);
+    }
+    if (isDiagnosticArrayTypeName(entry.type.toStdString())) {
+      sampleDiagnosticKeys(key, entry);
     }
     loader->deleteLater();
   });
@@ -334,6 +340,29 @@ void TopicBrowserWidget::sampleArrayLengths(const QString& key, const TopicEntry
 
   if (entry.fromBag) {
     sampler->sampleBag(bagTopicLoader_->getFileName(), entry.topic, entry.type);
+  } else {
+    sampler->sampleLive(entry.topic);
+  }
+}
+
+void TopicBrowserWidget::sampleDiagnosticKeys(const QString& key, const TopicEntry& entry) {
+  if (!checkedTopics_.contains(key) || diagnosticSamplers_.contains(key)) {
+    return;
+  }
+
+  auto* sampler = new DiagnosticKeySampler(this);
+  diagnosticSamplers_.insert(key, sampler);
+  connect(sampler, &DiagnosticKeySampler::keysChanged, this,
+          [this, key](const QVector<DiagnosticKeyRef>& keys) { fieldTree_->setTopicDiagnosticKeys(key, keys); });
+  connect(sampler, &DiagnosticKeySampler::samplingFailed, this, [this, key, entry](const QString& error) {
+    qWarning() << "Failed to sample diagnostic keys of" << entry.topic << ":" << error;
+    if (entry.fromBag) {
+      fieldTree_->setTopicDiagnosticKeys(key, {});
+    }
+  });
+
+  if (entry.fromBag) {
+    sampler->sampleBag(bagFileNames_, entry.topic, entry.type);
   } else {
     sampler->sampleLive(entry.topic);
   }

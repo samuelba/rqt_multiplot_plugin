@@ -16,15 +16,29 @@ namespace rqt_multiplot {
 
 class CurveConfig;
 
+struct DiagnosticKeyRef {
+  QString status;
+  QString hardwareId;
+  QString key;
+
+  bool operator==(const DiagnosticKeyRef& other) const;
+};
+
 struct TopicFieldRef {
   QString topic;
   QString type;
   QString field;
+  DiagnosticKeyRef diagnostic;
 
+  TopicFieldRef() = default;
+  TopicFieldRef(QString topic, QString type, QString field, DiagnosticKeyRef diagnostic = {});
+
+  bool isDiagnostic() const;
   bool operator==(const TopicFieldRef& other) const;
 };
 
 extern const QString kTopicFieldsMimeType;
+extern const QString kTopicFieldsExpandedMimeType;
 inline constexpr int kMaxCurvesWithoutConfirm = 10;
 inline constexpr int kMaxArrayElementsShown = 100;
 
@@ -39,5 +53,7 @@ QStringList plottableLeaves(const MessageFieldType& fieldType, const QString& pr
 QStringList arrayWildcardFields(const MessageFieldType& arrayType, const QString& path);
 bool containsDynamicArray(const MessageFieldType& fieldType);
 void fillCurveFromTopicField(CurveConfig& config, const TopicFieldRef& ref);
+
+QVector<DiagnosticKeyRef> mergeDiagnosticKeys(const QVector<DiagnosticKeyRef>& existing, const QVector<DiagnosticKeyRef>& incoming);
 
 }  // namespace rqt_multiplot

@@ -205,6 +205,7 @@ class PlotWidget : public QWidget {
   PlotTitleStyle plotTitleStyle_;
 
   bool acceptsDrop(const QMimeData* mimeData, const QObject* source) const;
+  bool chooseDroppedTopicFields(const QMimeData* mimeData, QVector<TopicFieldRef>& refs);
   void addTopicFieldCurves(const QVector<TopicFieldRef>& refs);
   void makeCurveTitleUnique(CurveConfig* curveConfig) const;
   void updateAxisTitle(PlotAxesConfig::Axis axis);
