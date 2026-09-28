@@ -55,6 +55,7 @@
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotExport.hpp"
 
+#include "rqt_multiplot/ArrayDropDialog.hpp"
 #include "rqt_multiplot/AxisTimeFormat.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveData.hpp"
@@ -1005,9 +1006,8 @@ void PlotWidget::dropEvent(QDropEvent* event) {
     stream >> *curveConfig;
     makeCurveTitleUnique(curveConfig);
   } else {
-    const QVector<TopicFieldRef> refs = decodeTopicFields(mimeData->data(kTopicFieldsMimeType));
-    if (requiresDropConfirmation(static_cast<int>(refs.count())) &&
-        (QMessageBox::question(this, tr("Add curves"), tr("Add %1 curves to this plot?").arg(refs.count())) != QMessageBox::Yes)) {
+    QVector<TopicFieldRef> refs;
+    if (!chooseDroppedTopicFields(mimeData, refs)) {
       event->ignore();
       return;
     }
@@ -1015,6 +1015,28 @@ void PlotWidget::dropEvent(QDropEvent* event) {
   }
 
   event->acceptProposedAction();
+}
+
+bool PlotWidget::chooseDroppedTopicFields(const QMimeData* mimeData, QVector<TopicFieldRef>& refs) {
+  refs = decodeTopicFields(mimeData->data(kTopicFieldsMimeType));
+  const QVector<TopicFieldRef> expanded = mimeData->hasFormat(kTopicFieldsExpandedMimeType)
+                                              ? decodeTopicFields(mimeData->data(kTopicFieldsExpandedMimeType))
+                                              : QVector<TopicFieldRef>();
+
+  if (!expanded.isEmpty() && (expanded != refs)) {
+    switch (ArrayDropDialog::ask(this, static_cast<int>(refs.count()), static_cast<int>(expanded.count()))) {
+      case ArrayDropDialog::ArrayIndex:
+        return true;
+      case ArrayDropDialog::Individual:
+        refs = expanded;
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  return !requiresDropConfirmation(static_cast<int>(refs.count())) ||
+         (QMessageBox::question(this, tr("Add curves"), tr("Add %1 curves to this plot?").arg(refs.count())) == QMessageBox::Yes);
 }
 
 bool PlotWidget::acceptsDrop(const QMimeData* mimeData, const QObject* source) const {

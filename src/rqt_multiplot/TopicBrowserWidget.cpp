@@ -17,7 +17,9 @@
 #include <QVBoxLayout>
 
 #include "rqt_multiplot/BagTopicLoader.hpp"
+#include "rqt_multiplot/DiagnosticKeySampler.hpp"
 #include "rqt_multiplot/MessageDefinitionLoader.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 #include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotSplitter.hpp"
@@ -126,7 +128,11 @@ TopicBrowserWidget::TopicBrowserWidget(QWidget* parent)
   connect(refreshButton_, &QToolButton::clicked, this, &TopicBrowserWidget::refreshLiveTopics);
   connect(topicList_, &QTreeWidget::itemChanged, this, &TopicBrowserWidget::topicListItemChanged);
   connect(topicList_, &QTreeWidget::itemDoubleClicked, this, &toggleTopicCheckState);
-  connect(topicRegistry_, &MessageTopicRegistry::updateFinished, this, &TopicBrowserWidget::topicRegistryUpdateFinished);
+  connect(topicRegistry_, &MessageTopicRegistry::updateFinished, this, [this](bool refreshed) {
+    if (refreshed) {
+      topicRegistryUpdateFinished();
+    }
+  });
   connect(bagTopicLoader_, &BagTopicLoader::loadingFinished, this, &TopicBrowserWidget::bagTopicLoaderFinished);
   connect(bagTopicLoader_, &BagTopicLoader::loadingFailed, this, &TopicBrowserWidget::bagTopicLoaderFailed);
 
@@ -218,6 +224,12 @@ QString TopicBrowserWidget::topicKey(bool fromBag, const QString& topic) {
 void TopicBrowserWidget::showEvent(QShowEvent* event) {
   QWidget::showEvent(event);
   refreshLiveTopics();
+  resumeDiagnosticSampling();
+}
+
+void TopicBrowserWidget::hideEvent(QHideEvent* event) {
+  QWidget::hideEvent(event);
+  pauseDiagnosticSampling();
 }
 
 void TopicBrowserWidget::populateGroup(QTreeWidgetItem* group, bool fromBag, const QMap<QString, QString>& topics) {
@@ -297,6 +309,7 @@ void TopicBrowserWidget::uncheckTopic(const QString& key) {
 void TopicBrowserWidget::releaseTopic(const QString& key) {
   fieldTree_->removeTopic(key);
   delete samplers_.take(key);
+  delete diagnosticSamplers_.take(key);
 }
 
 void TopicBrowserWidget::loadFields(const QString& key, const TopicEntry& entry) {
@@ -306,6 +319,9 @@ void TopicBrowserWidget::loadFields(const QString& key, const TopicEntry& entry)
     fieldTree_->setTopicDefinition(key, definition);
     if (containsDynamicArray(definition)) {
       sampleArrayLengths(key, entry);
+    }
+    if (isDiagnosticArrayTypeName(entry.type.toStdString())) {
+      sampleDiagnosticKeys(key, entry);
     }
     loader->deleteLater();
   });
@@ -336,6 +352,47 @@ void TopicBrowserWidget::sampleArrayLengths(const QString& key, const TopicEntry
     sampler->sampleBag(bagTopicLoader_->getFileName(), entry.topic, entry.type);
   } else {
     sampler->sampleLive(entry.topic);
+  }
+}
+
+void TopicBrowserWidget::sampleDiagnosticKeys(const QString& key, const TopicEntry& entry) {
+  if (!checkedTopics_.contains(key) || diagnosticSamplers_.contains(key)) {
+    return;
+  }
+
+  auto* sampler = new DiagnosticKeySampler(this);
+  diagnosticSamplers_.insert(key, sampler);
+  connect(sampler, &DiagnosticKeySampler::keysChanged, this,
+          [this, key](const QVector<DiagnosticKeyRef>& keys) { fieldTree_->setTopicDiagnosticKeys(key, keys); });
+  connect(sampler, &DiagnosticKeySampler::samplingFailed, this, [this, key, entry](const QString& error) {
+    qWarning() << "Failed to sample diagnostic keys of" << entry.topic << ":" << error;
+    if (entry.fromBag) {
+      fieldTree_->setTopicDiagnosticKeys(key, {});
+    }
+  });
+
+  if (entry.fromBag) {
+    sampler->sampleBag(bagFileNames_, entry.topic, entry.type);
+  } else if (isVisible()) {
+    sampler->sampleLive(entry.topic);
+  }
+}
+
+void TopicBrowserWidget::pauseDiagnosticSampling() {
+  for (DiagnosticKeySampler* sampler : diagnosticSamplers_) {
+    sampler->stopLive();
+  }
+}
+
+void TopicBrowserWidget::resumeDiagnosticSampling() {
+  for (auto it = diagnosticSamplers_.cbegin(); it != diagnosticSamplers_.cend(); ++it) {
+    if (!checkedTopics_.contains(it.key())) {
+      continue;
+    }
+    const TopicEntry entry = checkedTopics_.value(it.key());
+    if (!entry.fromBag && !it.value()->isSamplingLive()) {
+      it.value()->sampleLive(entry.topic);
+    }
   }
 }
 

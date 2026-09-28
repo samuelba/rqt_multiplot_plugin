@@ -10,6 +10,7 @@ namespace {
 
 using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
+using rqt_multiplot::DiagnosticKeyRef;
 using rqt_multiplot::MessageFieldType;
 using rqt_multiplot::TopicFieldRef;
 
@@ -61,6 +62,57 @@ TEST(TopicFieldMime, encodeDecodeRoundTrip) {
   const QVector<TopicFieldRef> decoded = rqt_multiplot::decodeTopicFields(rqt_multiplot::encodeTopicFields(refs));
 
   EXPECT_EQ(decoded, refs);
+}
+
+TEST(TopicFieldMime, encodeDecodeRoundTripKeepsDiagnosticKey) {
+  const QVector<TopicFieldRef> refs = {{"/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", QString(), {"cpu", "host1", "load"}},
+                                       {"/imu", "sensor_msgs/msg/Imu", "orientation/x"}};
+
+  const QVector<TopicFieldRef> decoded = rqt_multiplot::decodeTopicFields(rqt_multiplot::encodeTopicFields(refs));
+
+  EXPECT_EQ(decoded, refs);
+  ASSERT_EQ(decoded.count(), 2);
+  EXPECT_TRUE(decoded[0].isDiagnostic());
+  EXPECT_FALSE(decoded[1].isDiagnostic());
+}
+
+TEST(TopicFieldMime, fillCurveForDiagnosticKeyUsesDiagnosticValueOnY) {
+  CurveConfig config;
+
+  rqt_multiplot::fillCurveFromTopicField(config,
+                                         {"/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", QString(), {"cpu", "host1", "load"}});
+
+  const CurveAxisConfig* x = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* y = config.getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(x->getTopic(), QString("/diagnostics"));
+  EXPECT_EQ(x->getFieldType(), CurveAxisConfig::MessageReceiptTime);
+  EXPECT_EQ(y->getTopic(), QString("/diagnostics"));
+  EXPECT_EQ(y->getType(), QString("diagnostic_msgs/msg/DiagnosticArray"));
+  EXPECT_EQ(y->getFieldType(), CurveAxisConfig::DiagnosticValue);
+  EXPECT_EQ(y->getDiagnosticStatus(), QString("cpu"));
+  EXPECT_EQ(y->getDiagnosticHardwareId(), QString("host1"));
+  EXPECT_EQ(y->getDiagnosticKey(), QString("load"));
+  EXPECT_EQ(config.getTitle(), QString("/diagnostics/cpu/load [host1]"));
+}
+
+TEST(TopicFieldMime, fillCurveForDiagnosticKeyWithoutHardwareIdOmitsSuffix) {
+  CurveConfig config;
+
+  rqt_multiplot::fillCurveFromTopicField(config,
+                                         {"/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", QString(), {"cpu", QString(), "load"}});
+
+  EXPECT_EQ(config.getTitle(), QString("/diagnostics/cpu/load"));
+}
+
+TEST(TopicFieldMime, mergeDiagnosticKeysAppendsOnlyUnknownKeys) {
+  const QVector<DiagnosticKeyRef> existing = {{"cpu", "host1", "load"}};
+
+  const QVector<DiagnosticKeyRef> merged =
+      rqt_multiplot::mergeDiagnosticKeys(existing, {{"cpu", "host1", "load"}, {"cpu", "host2", "load"}, {"cpu", "host1", "temp"}});
+
+  const QVector<DiagnosticKeyRef> expected = {{"cpu", "host1", "load"}, {"cpu", "host2", "load"}, {"cpu", "host1", "temp"}};
+  EXPECT_EQ(merged, expected);
+  EXPECT_EQ(rqt_multiplot::mergeDiagnosticKeys(merged, {{"cpu", "host2", "load"}}), merged);
 }
 
 TEST(TopicFieldMime, decodeOfGarbageReturnsEmpty) {

@@ -27,7 +27,7 @@ namespace rqt_multiplot {
 MessageTopicComboBox::MessageTopicComboBox(QWidget* parent)
     : MatchFilterComboBox(parent), registry_(new MessageTopicRegistry(this)), isUpdating_(false) {
   connect(registry_, SIGNAL(updateStarted()), this, SLOT(registryUpdateStarted()));
-  connect(registry_, SIGNAL(updateFinished()), this, SLOT(registryUpdateFinished()));
+  connect(registry_, SIGNAL(updateFinished(bool)), this, SLOT(registryUpdateFinished()));
 
   connect(this, SIGNAL(currentIndexChanged(int)), this, SLOT(currentIndexChanged(int)));
 

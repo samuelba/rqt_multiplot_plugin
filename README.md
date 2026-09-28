@@ -251,6 +251,8 @@ All on `/diagnostics` (`diagnostic_msgs/DiagnosticArray`). X: `header/stamp` or 
 | `/GPS` | `Satellites` | | absent between publishes |
 | `/Sensors/Range` | `Distance` | `front` or `rear` | same status name and key |
 
+In the [topic browser](#topic-browser), a `DiagnosticArray` topic has a **Diagnostic values** node. It lists each status (`name [hardware_id]`) and its keys. Drag a key, or a status for all its keys, onto a plot to add **Diagnostic value** curves. Live topics add new keys while checked. Bag topics scan up to 5000 messages.
+
 ## Topic browser
 
 A sidebar lists live topics and, after a bag import, the topics in that bag. Check a topic to show its fields. Drag a numeric field, a message, or an array onto a plot to add curves.
@@ -263,6 +265,7 @@ The tree-view button on the left of the plot area, or **View → Topic browser**
 - **Live** lists topics that are publishing. A checked topic stays listed after it stops.
 - **Bag** lists topics from the imported files, under **Bags (N)**. Those field roots end with `[bag]`. Adding a bag keeps topics that were only in an earlier file.
 - A drop sets Y to the field and X to message receipt time. A wildcard array (`position/*`) uses array index on X. Dropping a message or an array adds one curve per numeric field. More than 10 curves asks first.
+- A dropped array with listed elements asks for the curve mode: **Array vs index** (one wildcard curve per field, for example `poses/*/position/x`) or **Individual curves** (one curve over time per element and field, for example `poses/3/position/x`).
 - A dynamic array lists elements after one message arrives, up to 100.
 
 ## Bugs and feature requests

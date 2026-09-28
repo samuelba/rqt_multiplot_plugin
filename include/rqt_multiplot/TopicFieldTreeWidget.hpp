@@ -41,9 +41,12 @@ class TopicFieldTreeWidget : public QTreeWidget {
   QTreeWidgetItem* topicItem(const QString& key) const;
   void setTopicDefinition(const QString& key, const MessageFieldType& definition);
   void setTopicArrayLengths(const QString& key, const QHash<QString, int>& lengths);
+  void setTopicDiagnosticKeys(const QString& key, const QVector<DiagnosticKeyRef>& keys);
   void setTopicError(const QString& key, const QString& error);
 
   static QVector<TopicFieldRef> refsForItems(const QList<QTreeWidgetItem*>& items);
+  // Like refsForItems, but arrays give one ref per listed element instead of one wildcard ref per leaf.
+  static QVector<TopicFieldRef> expandedRefsForItems(const QList<QTreeWidgetItem*>& items);
 
  protected:
   QStringList mimeTypes() const override;
@@ -54,11 +57,16 @@ class TopicFieldTreeWidget : public QTreeWidget {
 #endif
 
  private:
-  enum ItemKind { Unplottable, Leaf, Array, Node };
+  enum ItemKind { Unplottable, Leaf, Array, Node, DiagnosticStatus, DiagnosticKey };
 
   QHash<QString, QHash<QString, int>> arrayLengths_;
+  QHash<QString, QVector<DiagnosticKeyRef>> diagnosticKeys_;
 
   void buildTopicFields(QTreeWidgetItem* root);
+  static void addDiagnosticValues(QTreeWidgetItem* root, const QVector<DiagnosticKeyRef>* keys);
+  static QVector<TopicFieldRef> collectRefs(const QList<QTreeWidgetItem*>& items, bool expandArrays);
+  static void appendItemRefs(QTreeWidgetItem* item, bool expandArrays, QVector<TopicFieldRef>& refs);
+  static void appendElementRefs(const QTreeWidgetItem* element, const QString& topic, const QString& type, QVector<TopicFieldRef>& refs);
   static void addField(QTreeWidgetItem* parent, const QString& name, const MessageFieldType& fieldType, const QString& path,
                        const QHash<QString, int>* lengths);
   static void addArrayElements(QTreeWidgetItem* item, const QString& name, const MessageFieldType& arrayType, const QString& path,

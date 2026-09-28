@@ -6,6 +6,7 @@
 #include "rqt_multiplot/TopicFieldMime.hpp"
 
 #include <algorithm>
+#include <utility>
 
 #include <QDataStream>
 #include <QIODevice>
@@ -16,7 +17,7 @@ namespace rqt_multiplot {
 
 namespace {
 
-constexpr quint32 kPayloadMagic = 0x54464d31;  // "TFM1"
+constexpr quint32 kPayloadMagic = 0x54464d32;  // "TFM2"
 
 QString joinPath(const QString& prefix, const QString& name) {
   return prefix.isEmpty() ? name : prefix + "/" + name;
@@ -29,9 +30,21 @@ bool isArrayWildcard(const QString& field) {
 }  // namespace
 
 const QString kTopicFieldsMimeType = QStringLiteral("application/rqt-multiplot-topic-fields");
+const QString kTopicFieldsExpandedMimeType = QStringLiteral("application/rqt-multiplot-topic-fields-expanded");
+
+bool DiagnosticKeyRef::operator==(const DiagnosticKeyRef& other) const {
+  return (status == other.status) && (hardwareId == other.hardwareId) && (key == other.key);
+}
+
+TopicFieldRef::TopicFieldRef(QString topic, QString type, QString field, DiagnosticKeyRef diagnostic)
+    : topic(std::move(topic)), type(std::move(type)), field(std::move(field)), diagnostic(std::move(diagnostic)) {}
+
+bool TopicFieldRef::isDiagnostic() const {
+  return !diagnostic.status.isEmpty() && !diagnostic.key.isEmpty();
+}
 
 bool TopicFieldRef::operator==(const TopicFieldRef& other) const {
-  return (topic == other.topic) && (type == other.type) && (field == other.field);
+  return (topic == other.topic) && (type == other.type) && (field == other.field) && (diagnostic == other.diagnostic);
 }
 
 QByteArray encodeTopicFields(const QVector<TopicFieldRef>& refs) {
@@ -39,7 +52,7 @@ QByteArray encodeTopicFields(const QVector<TopicFieldRef>& refs) {
   QDataStream stream(&data, QIODevice::WriteOnly);
   stream << kPayloadMagic << static_cast<quint32>(refs.count());
   for (const auto& ref : refs) {
-    stream << ref.topic << ref.type << ref.field;
+    stream << ref.topic << ref.type << ref.field << ref.diagnostic.status << ref.diagnostic.hardwareId << ref.diagnostic.key;
   }
   return data;
 }
@@ -56,7 +69,7 @@ QVector<TopicFieldRef> decodeTopicFields(const QByteArray& data) {
   QVector<TopicFieldRef> refs;
   for (quint32 i = 0; i < count; ++i) {
     TopicFieldRef ref;
-    stream >> ref.topic >> ref.type >> ref.field;
+    stream >> ref.topic >> ref.type >> ref.field >> ref.diagnostic.status >> ref.diagnostic.hardwareId >> ref.diagnostic.key;
     if (stream.status() != QDataStream::Ok) {
       return {};
     }
@@ -108,10 +121,30 @@ void fillCurveFromTopicField(CurveConfig& config, const TopicFieldRef& ref) {
   CurveAxisConfig* y = config.getAxisConfig(CurveConfig::Y);
   y->setTopic(ref.topic);
   y->setType(ref.type);
+
+  if (ref.isDiagnostic()) {
+    y->setFieldType(CurveAxisConfig::DiagnosticValue);
+    y->setDiagnosticStatus(ref.diagnostic.status);
+    y->setDiagnosticHardwareId(ref.diagnostic.hardwareId);
+    y->setDiagnosticKey(ref.diagnostic.key);
+    const QString title = joinPath(joinPath(ref.topic, ref.diagnostic.status), ref.diagnostic.key);
+    config.setTitle(ref.diagnostic.hardwareId.isEmpty() ? title : title + QStringLiteral(" [") + ref.diagnostic.hardwareId + ']');
+    return;
+  }
+
   y->setFieldType(CurveAxisConfig::MessageData);
   y->setField(ref.field);
-
   config.setTitle(joinPath(ref.topic, ref.field));
+}
+
+QVector<DiagnosticKeyRef> mergeDiagnosticKeys(const QVector<DiagnosticKeyRef>& existing, const QVector<DiagnosticKeyRef>& incoming) {
+  QVector<DiagnosticKeyRef> merged = existing;
+  for (const auto& key : incoming) {
+    if (!merged.contains(key)) {
+      merged.append(key);
+    }
+  }
+  return merged;
 }
 
 }  // namespace rqt_multiplot

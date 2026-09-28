@@ -41,7 +41,7 @@ class MessageTopicRegistry : public QObject {
 
  signals:
   void updateStarted();
-  void updateFinished();
+  void updateFinished(bool refreshed);
 
  private:
   class Impl : public QThread {
@@ -53,6 +53,7 @@ class MessageTopicRegistry : public QObject {
 
     mutable QMutex mutex_;
     QMap<QString, QString> topics_;
+    bool refreshed_{false};
   };
 
   static Impl impl_;

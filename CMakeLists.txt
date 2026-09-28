@@ -124,7 +124,9 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CurveValuesWidget.cpp
   src/rqt_multiplot/CheatsheetDialog.cpp
   src/rqt_multiplot/DataStatisticsDialog.cpp
+  src/rqt_multiplot/ArrayDropDialog.cpp
   src/rqt_multiplot/DataTypeRegistry.cpp
+  src/rqt_multiplot/DiagnosticKeySampler.cpp
   src/rqt_multiplot/FileScheme.cpp
   src/rqt_multiplot/MatchFilterComboBox.cpp
   src/rqt_multiplot/MatchFilterCompleter.cpp
@@ -252,7 +254,9 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/CurveStyleConfigWidget.hpp
   include/rqt_multiplot/CurveValuesWidget.hpp
   include/rqt_multiplot/CheatsheetDialog.hpp
+  include/rqt_multiplot/ArrayDropDialog.hpp
   include/rqt_multiplot/DataTypeRegistry.hpp
+  include/rqt_multiplot/DiagnosticKeySampler.hpp
   include/rqt_multiplot/FileScheme.hpp
   include/rqt_multiplot/MatchFilterComboBox.hpp
   include/rqt_multiplot/MatchFilterCompleter.hpp
@@ -499,6 +503,7 @@ if(BUILD_TESTING)
     test/CurveStatisticsTest.cpp
     test/CurveValuesWidgetTest.cpp
     test/DataStatisticsDialogTest.cpp
+    test/DiagnosticKeySamplerTest.cpp
     test/HelpMenuTest.cpp
     test/MessageFieldAccessTest.cpp
     test/MessageSubscriberTest.cpp

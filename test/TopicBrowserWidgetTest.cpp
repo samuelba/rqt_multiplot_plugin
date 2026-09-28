@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QHeaderView>
 #include <QImage>
+#include <QMimeData>
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOption>
@@ -12,7 +13,10 @@
 
 #include <gtest/gtest.h>
 
+#include "rqt_multiplot/DiagnosticKeySampler.hpp"
+#include "rqt_multiplot/MessageDefinitionLoader.hpp"
 #include "rqt_multiplot/MessageFieldType.hpp"
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/Theme.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/TopicFieldMime.hpp"
@@ -20,6 +24,8 @@
 
 namespace {
 
+using rqt_multiplot::DiagnosticKeySampler;
+using rqt_multiplot::MessageDefinitionLoader;
 using rqt_multiplot::MessageFieldType;
 using rqt_multiplot::Theme;
 using rqt_multiplot::TopicBrowserWidget;
@@ -28,6 +34,7 @@ using rqt_multiplot::TopicFieldTreeWidget;
 
 const QString kImuType = QStringLiteral("sensor_msgs/msg/Imu");
 const QString kOdomType = QStringLiteral("nav_msgs/msg/Odometry");
+const QString kDiagnosticType = QStringLiteral("diagnostic_msgs/msg/DiagnosticArray");
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -42,6 +49,16 @@ QApplication* ensureApplication() {
 
 QTreeWidgetItem* liveItem(const TopicBrowserWidget& browser, const QString& topic) {
   return browser.findTopicItem(TopicBrowserWidget::topicKey(false, topic));
+}
+
+DiagnosticKeySampler* diagnosticSamplerAfterLoad(TopicBrowserWidget* browser) {
+  auto* loader = browser->findChild<MessageDefinitionLoader*>();
+  if (loader == nullptr) {
+    return nullptr;
+  }
+  loader->wait();
+  QApplication::processEvents();
+  return browser->findChild<DiagnosticKeySampler*>();
 }
 
 MessageFieldType scalar(bool numeric) {
@@ -175,6 +192,59 @@ TEST_F(TopicBrowserWidgetTest, newBagDropsCheckedTopicsItDoesNotContain) {
   EXPECT_FALSE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/imu")));
   EXPECT_TRUE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/odom")));
   EXPECT_EQ(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/odom"))->checkState(0), Qt::Checked);
+}
+
+TEST_F(TopicBrowserWidgetTest, diagnosticSamplingFollowsBrowserVisibility) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+  browser_->resize(400, 300);
+  browser_->show();
+  rqt_multiplot::MessageTopicRegistry::wait();
+  QApplication::processEvents();
+
+  ASSERT_NE(liveItem(*browser_, "/diagnostics"), nullptr);
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  DiagnosticKeySampler* sampler = diagnosticSamplerAfterLoad(browser_.get());
+  ASSERT_NE(sampler, nullptr);
+  EXPECT_TRUE(sampler->isSamplingLive());
+
+  browser_->hide();
+  QApplication::processEvents();
+  EXPECT_FALSE(sampler->isSamplingLive());
+
+  browser_->show();
+  QApplication::processEvents();
+  EXPECT_TRUE(sampler->isSamplingLive());
+}
+
+TEST_F(TopicBrowserWidgetTest, hiddenDiagnosticTopicSubscribesWhenBrowserIsShown) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  DiagnosticKeySampler* sampler = diagnosticSamplerAfterLoad(browser_.get());
+  ASSERT_NE(sampler, nullptr);
+  EXPECT_FALSE(sampler->isSamplingLive());
+
+  browser_->resize(400, 300);
+  browser_->show();
+  QApplication::processEvents();
+  EXPECT_TRUE(sampler->isSamplingLive());
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Unchecked);
+  QApplication::processEvents();
+  EXPECT_EQ(browser_->findChild<DiagnosticKeySampler*>(), nullptr);
+}
+
+TEST_F(TopicBrowserWidgetTest, uncheckingHiddenDiagnosticTopicStaysUnsubscribed) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  ASSERT_NE(diagnosticSamplerAfterLoad(browser_.get()), nullptr);
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Unchecked);
+  browser_->resize(400, 300);
+  browser_->show();
+  QApplication::processEvents();
+
+  EXPECT_EQ(browser_->findChild<DiagnosticKeySampler*>(), nullptr);
 }
 
 TEST_F(TopicBrowserWidgetTest, addBagKeepsTopicsFromEarlierFiles) {
@@ -398,11 +468,137 @@ TEST_F(TopicFieldTreeArrayTest, sampledLengthsKeepExpandedItems) {
   EXPECT_FALSE(posesItem()->child(1)->isExpanded());
 }
 
+TEST_F(TopicFieldTreeArrayTest, expandedRefsListEachElementAndNestedArrayWildcards) {
+  tree_.setTopicArrayLengths("live:/poses", {{"poses", 2}});
+
+  EXPECT_EQ(fields(TopicFieldTreeWidget::expandedRefsForItems({posesItem()})),
+            QStringList({"poses/0/position/x", "poses/0/position/y", "poses/0/position/z", "poses/0/values/*", "poses/1/position/x",
+                         "poses/1/position/y", "poses/1/position/z", "poses/1/values/*"}));
+}
+
+TEST_F(TopicFieldTreeArrayTest, expandedRefsFallBackToWildcardsForUnsampledArray) {
+  EXPECT_EQ(TopicFieldTreeWidget::expandedRefsForItems({posesItem()}), TopicFieldTreeWidget::refsForItems({posesItem()}));
+}
+
+TEST_F(TopicFieldTreeArrayTest, mimeDataCarriesExpandedRefsOnlyForSampledArrays) {
+  class MimeTree : public TopicFieldTreeWidget {
+   public:
+    using TopicFieldTreeWidget::mimeData;
+  };
+  MimeTree tree;
+  MessageFieldType poses;
+  poses.kind = MessageFieldType::Array;
+  poses.isDynamicArray = true;
+  poses.elementType = std::make_shared<MessageFieldType>(pointMessage());
+  MessageFieldType message;
+  message.kind = MessageFieldType::Compound;
+  message.members = {{"poses", poses}};
+  tree.addTopic("live:/poses", "/poses", "test/msg/PointArray", false);
+  tree.setTopicDefinition("live:/poses", message);
+  QTreeWidgetItem* array = childByText(tree.topicItem("live:/poses"), "poses");
+
+  const std::unique_ptr<QMimeData> unsampled(tree.mimeData({array}));
+  tree.setTopicArrayLengths("live:/poses", {{"poses", 2}});
+  array = childByText(tree.topicItem("live:/poses"), "poses");
+  const std::unique_ptr<QMimeData> sampled(tree.mimeData({array}));
+
+  ASSERT_NE(unsampled, nullptr);
+  EXPECT_FALSE(unsampled->hasFormat(rqt_multiplot::kTopicFieldsExpandedMimeType));
+  ASSERT_NE(sampled, nullptr);
+  ASSERT_TRUE(sampled->hasFormat(rqt_multiplot::kTopicFieldsExpandedMimeType));
+  EXPECT_EQ(fields(rqt_multiplot::decodeTopicFields(sampled->data(rqt_multiplot::kTopicFieldsExpandedMimeType))),
+            QStringList({"poses/0/x", "poses/0/y", "poses/0/z", "poses/1/x", "poses/1/y", "poses/1/z"}));
+}
+
 TEST_F(TopicFieldTreeArrayTest, longArraysAreCappedWithHint) {
   tree_.setTopicArrayLengths("live:/poses", {{"poses", rqt_multiplot::kMaxArrayElementsShown + 5}});
 
   ASSERT_EQ(posesItem()->childCount(), rqt_multiplot::kMaxArrayElementsShown + 1);
   EXPECT_TRUE(posesItem()->child(rqt_multiplot::kMaxArrayElementsShown)->text(0).contains("5"));
+}
+
+class TopicFieldTreeDiagnosticsTest : public ::testing::Test {
+ protected:
+  static constexpr const char* kKey = "live:/diagnostics";
+
+  void SetUp() override {
+    ensureApplication();
+    MessageFieldType message;
+    message.kind = MessageFieldType::Compound;
+    message.members = {{"level", scalar(true)}};
+    tree_.addTopic(kKey, "/diagnostics", "diagnostic_msgs/msg/DiagnosticArray", false);
+    tree_.setTopicDefinition(kKey, message);
+  }
+
+  QTreeWidgetItem* diagnosticsItem() { return childByText(tree_.topicItem(kKey), "Diagnostic values"); }
+
+  TopicFieldTreeWidget tree_;
+};
+
+TEST_F(TopicFieldTreeDiagnosticsTest, nodeWaitsForKeysBeforeFirstMessage) {
+  ASSERT_NE(diagnosticsItem(), nullptr);
+  EXPECT_EQ(tree_.topicItem(kKey)->indexOfChild(diagnosticsItem()), 0);
+  ASSERT_EQ(diagnosticsItem()->childCount(), 1);
+  EXPECT_EQ(diagnosticsItem()->child(0)->text(0), QString("Waiting for a message..."));
+}
+
+TEST_F(TopicFieldTreeDiagnosticsTest, keysAreGroupedBySortedStatusAndHardwareId) {
+  tree_.setTopicDiagnosticKeys(kKey,
+                               {{"cpu", "host2", "load"}, {"cpu", "host1", "temp"}, {"cpu", "host1", "load"}, {"battery", "", "voltage"}});
+
+  ASSERT_EQ(diagnosticsItem()->childCount(), 3);
+  EXPECT_EQ(diagnosticsItem()->child(0)->text(0), QString("battery"));
+  EXPECT_EQ(diagnosticsItem()->child(1)->text(0), QString("cpu [host1]"));
+  EXPECT_EQ(diagnosticsItem()->child(2)->text(0), QString("cpu [host2]"));
+  QTreeWidgetItem* host1 = diagnosticsItem()->child(1);
+  ASSERT_EQ(host1->childCount(), 2);
+  EXPECT_EQ(host1->child(0)->text(0), QString("load"));
+  EXPECT_EQ(host1->child(1)->text(0), QString("temp"));
+  EXPECT_TRUE(host1->flags().testFlag(Qt::ItemIsDragEnabled));
+  EXPECT_TRUE(host1->child(0)->flags().testFlag(Qt::ItemIsDragEnabled));
+}
+
+TEST_F(TopicFieldTreeDiagnosticsTest, keyAndStatusItemsGiveDiagnosticRefs) {
+  tree_.setTopicDiagnosticKeys(kKey, {{"cpu", "host1", "load"}, {"cpu", "host1", "temp"}});
+  QTreeWidgetItem* status = diagnosticsItem()->child(0);
+
+  const QVector<TopicFieldRef> keyRefs = TopicFieldTreeWidget::refsForItems({status->child(1)});
+  const QVector<TopicFieldRef> statusRefs = TopicFieldTreeWidget::refsForItems({status, status->child(0)});
+
+  const QString type = "diagnostic_msgs/msg/DiagnosticArray";
+  const QVector<TopicFieldRef> expectedKey = {{"/diagnostics", type, QString(), {"cpu", "host1", "temp"}}};
+  const QVector<TopicFieldRef> expectedStatus = {{"/diagnostics", type, QString(), {"cpu", "host1", "load"}},
+                                                 {"/diagnostics", type, QString(), {"cpu", "host1", "temp"}}};
+  EXPECT_EQ(keyRefs, expectedKey);
+  EXPECT_EQ(statusRefs, expectedStatus);
+}
+
+TEST_F(TopicFieldTreeDiagnosticsTest, keysSurviveArrayLengthRebuild) {
+  tree_.setTopicDiagnosticKeys(kKey, {{"cpu", "", "load"}});
+  diagnosticsItem()->child(0)->setExpanded(true);
+
+  tree_.setTopicArrayLengths(kKey, {});
+
+  ASSERT_NE(diagnosticsItem(), nullptr);
+  ASSERT_EQ(diagnosticsItem()->childCount(), 1);
+  EXPECT_EQ(diagnosticsItem()->child(0)->text(0), QString("cpu"));
+  EXPECT_TRUE(diagnosticsItem()->child(0)->isExpanded());
+}
+
+TEST_F(TopicFieldTreeDiagnosticsTest, emptyKeySetShowsHint) {
+  tree_.setTopicDiagnosticKeys(kKey, {});
+
+  ASSERT_EQ(diagnosticsItem()->childCount(), 1);
+  EXPECT_EQ(diagnosticsItem()->child(0)->text(0), QString("No diagnostic values"));
+}
+
+TEST(TopicFieldTreeWidget, nonDiagnosticTopicHasNoDiagnosticNode) {
+  ensureApplication();
+  TopicFieldTreeWidget tree;
+  tree.addTopic("live:/pose", "/pose", "test/msg/Pose", false);
+  tree.setTopicDefinition("live:/pose", poseMessage());
+
+  EXPECT_EQ(childByText(tree.topicItem("live:/pose"), "Diagnostic values"), nullptr);
 }
 
 TEST(TopicFieldTreeWidget, errorReplacesLoadingChild) {
