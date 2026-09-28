@@ -16,6 +16,7 @@
 #include "rqt_multiplot/DiagnosticKeySampler.hpp"
 #include "rqt_multiplot/MessageDefinitionLoader.hpp"
 #include "rqt_multiplot/MessageFieldType.hpp"
+#include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/Theme.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/TopicFieldMime.hpp"
@@ -197,8 +198,10 @@ TEST_F(TopicBrowserWidgetTest, diagnosticSamplingFollowsBrowserVisibility) {
   browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
   browser_->resize(400, 300);
   browser_->show();
+  rqt_multiplot::MessageTopicRegistry::wait();
   QApplication::processEvents();
 
+  ASSERT_NE(liveItem(*browser_, "/diagnostics"), nullptr);
   liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
   DiagnosticKeySampler* sampler = diagnosticSamplerAfterLoad(browser_.get());
   ASSERT_NE(sampler, nullptr);

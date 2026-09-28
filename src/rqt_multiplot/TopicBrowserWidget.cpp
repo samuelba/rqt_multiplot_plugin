@@ -128,7 +128,11 @@ TopicBrowserWidget::TopicBrowserWidget(QWidget* parent)
   connect(refreshButton_, &QToolButton::clicked, this, &TopicBrowserWidget::refreshLiveTopics);
   connect(topicList_, &QTreeWidget::itemChanged, this, &TopicBrowserWidget::topicListItemChanged);
   connect(topicList_, &QTreeWidget::itemDoubleClicked, this, &toggleTopicCheckState);
-  connect(topicRegistry_, &MessageTopicRegistry::updateFinished, this, &TopicBrowserWidget::topicRegistryUpdateFinished);
+  connect(topicRegistry_, &MessageTopicRegistry::updateFinished, this, [this](bool refreshed) {
+    if (refreshed) {
+      topicRegistryUpdateFinished();
+    }
+  });
   connect(bagTopicLoader_, &BagTopicLoader::loadingFinished, this, &TopicBrowserWidget::bagTopicLoaderFinished);
   connect(bagTopicLoader_, &BagTopicLoader::loadingFailed, this, &TopicBrowserWidget::bagTopicLoaderFailed);
 

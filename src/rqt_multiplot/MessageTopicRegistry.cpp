@@ -69,11 +69,15 @@ void MessageTopicRegistry::wait() {
 void MessageTopicRegistry::Impl::run() {
   auto node = RosContext::node();
   if (!node || !rclcpp::ok()) {
+    QMutexLocker lock(&mutex_);
+    refreshed_ = false;
     return;
   }
 
   const auto context = node->get_node_base_interface()->get_context();
   if (!context || !context->is_valid()) {
+    QMutexLocker lock(&mutex_);
+    refreshed_ = false;
     return;
   }
 
@@ -86,9 +90,14 @@ void MessageTopicRegistry::Impl::run() {
         topics_[QString::fromStdString(name)] = QString::fromStdString(types.front());
       }
     }
+    refreshed_ = true;
   } catch (const std::exception& ex) {
+    QMutexLocker lock(&mutex_);
+    refreshed_ = false;
     qWarning("MessageTopicRegistry: failed to list topics: %s", ex.what());
   } catch (...) {
+    QMutexLocker lock(&mutex_);
+    refreshed_ = false;
     qWarning("MessageTopicRegistry: failed to list topics: unknown exception");
   }
 }
@@ -98,7 +107,10 @@ void MessageTopicRegistry::threadStarted() {
 }
 
 void MessageTopicRegistry::threadFinished() {
-  emit updateFinished();
+  QMutexLocker lock(&impl_.mutex_);
+  const bool refreshed = impl_.refreshed_;
+  lock.unlock();
+  emit updateFinished(refreshed);
 }
 
 }  // namespace rqt_multiplot
