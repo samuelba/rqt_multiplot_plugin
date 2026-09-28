@@ -90,6 +90,21 @@ SampleResult sampleBagAndWait(const std::string& uri, const QString& topic) {
   return result;
 }
 
+TEST(DiagnosticKeySampler, stopLiveEndsTheSubscriptionUntilSampleLive) {
+  ensureApplication();
+  DiagnosticKeySampler sampler;
+
+  EXPECT_FALSE(sampler.isSamplingLive());
+  sampler.sampleLive(QStringLiteral("/diagnostics"));
+  EXPECT_TRUE(sampler.isSamplingLive());
+
+  sampler.stopLive();
+  EXPECT_FALSE(sampler.isSamplingLive());
+
+  sampler.sampleLive(QStringLiteral("/diagnostics"));
+  EXPECT_TRUE(sampler.isSamplingLive());
+}
+
 TEST(DiagnosticKeySampler, bagScanAccumulatesKeysOfAllMessages) {
   ensureApplication();
   const auto root = makeTempDir();

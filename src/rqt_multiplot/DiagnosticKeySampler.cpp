@@ -58,6 +58,10 @@ void DiagnosticKeySampler::sampleLive(const QString& topic) {
   }
 }
 
+bool DiagnosticKeySampler::isSamplingLive() const {
+  return !liveTopic_.isEmpty();
+}
+
 void DiagnosticKeySampler::sampleBag(const QStringList& fileNames, const QString& topic, const QString& type) {
   impl_.wait();
   {

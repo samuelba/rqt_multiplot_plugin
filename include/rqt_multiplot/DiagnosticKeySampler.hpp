@@ -21,7 +21,8 @@ class MessageSubscriberRegistry;
 
 inline constexpr int kMaxDiagnosticMessagesScanned = 5000;
 
-// Collects the diagnostic status/key pairs of a DiagnosticArray topic: live topics while subscribed, bag topics over all messages.
+// Collects diagnostic status/key pairs. A live topic stays subscribed while the topic browser is shown and the topic stays checked. A bag
+// topic is scanned once.
 class DiagnosticKeySampler : public QObject {
   Q_OBJECT
  public:
@@ -29,8 +30,10 @@ class DiagnosticKeySampler : public QObject {
   ~DiagnosticKeySampler() override;
 
   void sampleLive(const QString& topic);
+  void stopLive();
   void sampleBag(const QStringList& fileNames, const QString& topic, const QString& type);
   void wait();
+  bool isSamplingLive() const;
   const QVector<DiagnosticKeyRef>& getKeys() const;
 
  signals:
@@ -58,7 +61,6 @@ class DiagnosticKeySampler : public QObject {
   QString liveTopic_;
   QVector<DiagnosticKeyRef> keys_;
 
-  void stopLive();
   void mergeKeys(const QVector<DiagnosticKeyRef>& incoming);
 
  private slots:

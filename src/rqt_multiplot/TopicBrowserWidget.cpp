@@ -220,6 +220,12 @@ QString TopicBrowserWidget::topicKey(bool fromBag, const QString& topic) {
 void TopicBrowserWidget::showEvent(QShowEvent* event) {
   QWidget::showEvent(event);
   refreshLiveTopics();
+  resumeDiagnosticSampling();
+}
+
+void TopicBrowserWidget::hideEvent(QHideEvent* event) {
+  QWidget::hideEvent(event);
+  pauseDiagnosticSampling();
 }
 
 void TopicBrowserWidget::populateGroup(QTreeWidgetItem* group, bool fromBag, const QMap<QString, QString>& topics) {
@@ -363,8 +369,26 @@ void TopicBrowserWidget::sampleDiagnosticKeys(const QString& key, const TopicEnt
 
   if (entry.fromBag) {
     sampler->sampleBag(bagFileNames_, entry.topic, entry.type);
-  } else {
+  } else if (isVisible()) {
     sampler->sampleLive(entry.topic);
+  }
+}
+
+void TopicBrowserWidget::pauseDiagnosticSampling() {
+  for (DiagnosticKeySampler* sampler : diagnosticSamplers_) {
+    sampler->stopLive();
+  }
+}
+
+void TopicBrowserWidget::resumeDiagnosticSampling() {
+  for (auto it = diagnosticSamplers_.cbegin(); it != diagnosticSamplers_.cend(); ++it) {
+    if (!checkedTopics_.contains(it.key())) {
+      continue;
+    }
+    const TopicEntry entry = checkedTopics_.value(it.key());
+    if (!entry.fromBag && !it.value()->isSamplingLive()) {
+      it.value()->sampleLive(entry.topic);
+    }
   }
 }
 

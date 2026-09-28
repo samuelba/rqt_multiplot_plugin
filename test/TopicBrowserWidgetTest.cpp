@@ -13,6 +13,8 @@
 
 #include <gtest/gtest.h>
 
+#include "rqt_multiplot/DiagnosticKeySampler.hpp"
+#include "rqt_multiplot/MessageDefinitionLoader.hpp"
 #include "rqt_multiplot/MessageFieldType.hpp"
 #include "rqt_multiplot/Theme.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
@@ -21,6 +23,8 @@
 
 namespace {
 
+using rqt_multiplot::DiagnosticKeySampler;
+using rqt_multiplot::MessageDefinitionLoader;
 using rqt_multiplot::MessageFieldType;
 using rqt_multiplot::Theme;
 using rqt_multiplot::TopicBrowserWidget;
@@ -29,6 +33,7 @@ using rqt_multiplot::TopicFieldTreeWidget;
 
 const QString kImuType = QStringLiteral("sensor_msgs/msg/Imu");
 const QString kOdomType = QStringLiteral("nav_msgs/msg/Odometry");
+const QString kDiagnosticType = QStringLiteral("diagnostic_msgs/msg/DiagnosticArray");
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -43,6 +48,16 @@ QApplication* ensureApplication() {
 
 QTreeWidgetItem* liveItem(const TopicBrowserWidget& browser, const QString& topic) {
   return browser.findTopicItem(TopicBrowserWidget::topicKey(false, topic));
+}
+
+DiagnosticKeySampler* diagnosticSamplerAfterLoad(TopicBrowserWidget* browser) {
+  auto* loader = browser->findChild<MessageDefinitionLoader*>();
+  if (loader == nullptr) {
+    return nullptr;
+  }
+  loader->wait();
+  QApplication::processEvents();
+  return browser->findChild<DiagnosticKeySampler*>();
 }
 
 MessageFieldType scalar(bool numeric) {
@@ -176,6 +191,57 @@ TEST_F(TopicBrowserWidgetTest, newBagDropsCheckedTopicsItDoesNotContain) {
   EXPECT_FALSE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/imu")));
   EXPECT_TRUE(browser_->getFieldTree()->hasTopic(TopicBrowserWidget::topicKey(true, "/odom")));
   EXPECT_EQ(browser_->findTopicItem(TopicBrowserWidget::topicKey(true, "/odom"))->checkState(0), Qt::Checked);
+}
+
+TEST_F(TopicBrowserWidgetTest, diagnosticSamplingFollowsBrowserVisibility) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+  browser_->resize(400, 300);
+  browser_->show();
+  QApplication::processEvents();
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  DiagnosticKeySampler* sampler = diagnosticSamplerAfterLoad(browser_.get());
+  ASSERT_NE(sampler, nullptr);
+  EXPECT_TRUE(sampler->isSamplingLive());
+
+  browser_->hide();
+  QApplication::processEvents();
+  EXPECT_FALSE(sampler->isSamplingLive());
+
+  browser_->show();
+  QApplication::processEvents();
+  EXPECT_TRUE(sampler->isSamplingLive());
+}
+
+TEST_F(TopicBrowserWidgetTest, hiddenDiagnosticTopicSubscribesWhenBrowserIsShown) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  DiagnosticKeySampler* sampler = diagnosticSamplerAfterLoad(browser_.get());
+  ASSERT_NE(sampler, nullptr);
+  EXPECT_FALSE(sampler->isSamplingLive());
+
+  browser_->resize(400, 300);
+  browser_->show();
+  QApplication::processEvents();
+  EXPECT_TRUE(sampler->isSamplingLive());
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Unchecked);
+  QApplication::processEvents();
+  EXPECT_EQ(browser_->findChild<DiagnosticKeySampler*>(), nullptr);
+}
+
+TEST_F(TopicBrowserWidgetTest, uncheckingHiddenDiagnosticTopicStaysUnsubscribed) {
+  browser_->setLiveTopics({{"/diagnostics", kDiagnosticType}});
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Checked);
+  ASSERT_NE(diagnosticSamplerAfterLoad(browser_.get()), nullptr);
+
+  liveItem(*browser_, "/diagnostics")->setCheckState(0, Qt::Unchecked);
+  browser_->resize(400, 300);
+  browser_->show();
+  QApplication::processEvents();
+
+  EXPECT_EQ(browser_->findChild<DiagnosticKeySampler*>(), nullptr);
 }
 
 TEST_F(TopicBrowserWidgetTest, addBagKeepsTopicsFromEarlierFiles) {

@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <QHideEvent>
 #include <QMap>
 #include <QShowEvent>
 #include <QString>
@@ -43,6 +44,7 @@ class TopicBrowserWidget : public QWidget {
 
  protected:
   void showEvent(QShowEvent* event) override;
+  void hideEvent(QHideEvent* event) override;
 
  private:
   struct TopicEntry {
@@ -76,6 +78,8 @@ class TopicBrowserWidget : public QWidget {
   void loadFields(const QString& key, const TopicEntry& entry);
   void sampleArrayLengths(const QString& key, const TopicEntry& entry);
   void sampleDiagnosticKeys(const QString& key, const TopicEntry& entry);
+  void pauseDiagnosticSampling();
+  void resumeDiagnosticSampling();
 
  private slots:
   void topicListItemChanged(QTreeWidgetItem* item, int column);
