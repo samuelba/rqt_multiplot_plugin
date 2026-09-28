@@ -255,7 +255,7 @@ All on `/diagnostics` (`diagnostic_msgs/DiagnosticArray`). X: `header/stamp` or 
 
 A sidebar lists live topics and, after a bag import, the topics in that bag. Check a topic to show its fields. Drag a numeric field, a message, or an array onto a plot to add curves.
 
-The tree-view button on the main toolbar, or **View → Topic browser**, shows or hides the sidebar. Drag the splitter to set the width. Visibility and width are stored in the XML.
+The tree-view button on the left of the plot area, or **View → Topic browser**, shows or hides the sidebar. Drag the splitter to set the width. Visibility and width are stored in the XML.
 
 ![Topic browser](images/topic_browser.png)
 

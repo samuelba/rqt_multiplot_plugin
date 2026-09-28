@@ -9,6 +9,7 @@
 #include <QIcon>
 #include <QImage>
 #include <QLabel>
+#include <QMargins>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QPoint>
@@ -197,6 +198,15 @@ TEST(MultiplotWidget, topicBrowserButtonIsCheckedOnlyWhileShown) {
   EXPECT_FALSE(button->isChecked());
   EXPECT_EQ(button->sizePolicy().horizontalPolicy(), QSizePolicy::Fixed);
   EXPECT_EQ(button->sizePolicy().verticalPolicy(), QSizePolicy::Fixed);
+  EXPECT_EQ(button->size(), QSize(32, 32));
+  EXPECT_EQ(button->iconSize(), QSize(24, 24));
+  EXPECT_EQ(button->contentsMargins(), QMargins(4, 4, 4, 4));
+  ASSERT_NE(button->parentWidget(), nullptr);
+  EXPECT_EQ(button->parentWidget()->objectName(), QStringLiteral("sideIconRail"));
+
+  auto* plotTabs = widget.findChild<QWidget*>(QStringLiteral("plotTabWidget"));
+  ASSERT_NE(plotTabs, nullptr);
+  EXPECT_LT(button->parentWidget()->mapTo(&widget, QPoint(0, 0)).x(), plotTabs->mapTo(&widget, QPoint(0, 0)).x());
 
   const QPoint plotsBefore = plotsLabel->mapTo(&widget, QPoint(0, 0));
   const QPoint configBefore = configLabel->mapTo(&widget, QPoint(0, 0));
@@ -223,6 +233,7 @@ TEST(MultiplotWidget, topicBrowserButtonIsCheckedOnlyWhileShown) {
 
   EXPECT_FALSE(button->isChecked());
   EXPECT_FALSE(widget.findChild<rqt_multiplot::TopicBrowserWidget*>()->isVisible());
+  EXPECT_TRUE(button->parentWidget()->isVisible());
 }
 
 TEST(MultiplotWidget, topicBrowserUsesConfiguredWidth) {

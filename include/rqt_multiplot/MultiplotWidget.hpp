@@ -31,6 +31,7 @@
 #include "rqt_multiplot/PackageRegistry.hpp"
 
 class QAction;
+class QPushButton;
 class QSplitter;
 
 namespace Ui {
@@ -88,6 +89,7 @@ class MultiplotWidget : public QWidget {
 
   TopicBrowserWidget* topicBrowser_;
   QSplitter* topicBrowserSplitter_;
+  QPushButton* topicBrowserButton_;
   QAction* actionTopicBrowser_;
 
   QObject* guardedDock_;

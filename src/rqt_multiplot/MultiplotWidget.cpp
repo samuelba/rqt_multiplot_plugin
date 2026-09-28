@@ -28,12 +28,15 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMouseEvent>
+#include <QProxyStyle>
 #include <QPushButton>
 #include <QShowEvent>
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QSplitter>
+#include <QStyle>
 #include <QTimer>
+#include <QVBoxLayout>
 
 #include "rqt_multiplot/AboutDialog.hpp"
 #include "rqt_multiplot/CheatsheetDialog.hpp"
@@ -53,6 +56,60 @@
 namespace rqt_multiplot {
 
 namespace {
+
+constexpr int kSideIconButtonSize = 32;
+constexpr int kSideIconMargin = 4;
+constexpr int kSideIconSize = kSideIconButtonSize - (2 * kSideIconMargin);
+
+class SideIconButtonStyle : public QProxyStyle {
+ public:
+  SideIconButtonStyle() : QProxyStyle(QStringLiteral("fusion")) { setObjectName(QStringLiteral("Fusion")); }
+
+  int pixelMetric(PixelMetric metric, const QStyleOption* option, const QWidget* widget) const override {
+    if ((metric == PM_ButtonMargin) || (metric == PM_DefaultFrameWidth) || (metric == PM_ButtonShiftHorizontal) ||
+        (metric == PM_ButtonShiftVertical)) {
+      return 0;
+    }
+    return QProxyStyle::pixelMetric(metric, option, widget);
+  }
+};
+
+QStyle* sideIconButtonStyle() {
+  static auto* style = new SideIconButtonStyle();
+  return style;
+}
+
+void applySideIconButton(QPushButton* button) {
+  if (button == nullptr) {
+    return;
+  }
+  button->setContentsMargins(kSideIconMargin, kSideIconMargin, kSideIconMargin, kSideIconMargin);
+  button->setStyle(sideIconButtonStyle());
+}
+
+QPushButton* createSideIconRail(QWidget* parent) {
+  auto* rail = new QWidget(parent);
+  rail->setObjectName(QStringLiteral("sideIconRail"));
+  rail->setFixedWidth(kSideIconButtonSize);
+  rail->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+
+  auto* layout = new QVBoxLayout(rail);
+  layout->setContentsMargins(0, 0, 0, 0);
+  layout->setSpacing(0);
+
+  auto* button = new QPushButton(rail);
+  button->setObjectName(QStringLiteral("pushButtonTopicBrowser"));
+  button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+  button->setFixedSize(kSideIconButtonSize, kSideIconButtonSize);
+  button->setCursor(Qt::PointingHandCursor);
+  button->setFlat(true);
+  button->setCheckable(true);
+  applySideIconButton(button);
+  setThemeIcon(button, QStringLiteral("resource/tree-view.svg"), QSize(kSideIconSize, kSideIconSize));
+  layout->addWidget(button, 0, Qt::AlignTop);
+  layout->addStretch(1);
+  return button;
+}
 
 QAbstractButton* findDockCloseButton(QWidget* titleBar) {
   if (titleBar == nullptr) {
@@ -83,6 +140,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       packageRegistry_(new PackageRegistry(this)),
       topicBrowser_(nullptr),
       topicBrowserSplitter_(nullptr),
+      topicBrowserButton_(nullptr),
       actionTopicBrowser_(nullptr),
       guardedDock_(nullptr),
       guardedCloseButton_(nullptr),
@@ -348,17 +406,23 @@ void MultiplotWidget::setupTopicBrowser() {
   topicBrowserSplitter_->setStretchFactor(1, 1);
   topicBrowserSplitter_->setCollapsible(0, true);
   topicBrowserSplitter_->setCollapsible(1, false);
-  ui_->gridLayout->addWidget(topicBrowserSplitter_, 0, 0);
+
+  topicBrowserButton_ = createSideIconRail(ui_->frame);
+  QWidget* sideIconRail = topicBrowserButton_->parentWidget();
+  ui_->gridLayout->setHorizontalSpacing(0);
+  ui_->gridLayout->addWidget(sideIconRail, 0, 0);
+  ui_->gridLayout->addWidget(topicBrowserSplitter_, 0, 1);
+  ui_->gridLayout->setColumnStretch(0, 0);
+  ui_->gridLayout->setColumnStretch(1, 1);
 
   actionTopicBrowser_ = new QAction(tr("Topic browser"), this);
   actionTopicBrowser_->setObjectName(QStringLiteral("actionTopicBrowser"));
   setThemeIcon(actionTopicBrowser_, QStringLiteral("resource/tree-view.svg"));
-  setThemeIcon(ui_->pushButtonTopicBrowser, QStringLiteral("resource/tree-view.svg"));
   QMenu* viewMenu = ui_->menuBar->addMenu(tr("&View"));
   viewMenu->addAction(actionTopicBrowser_);
 
   connect(actionTopicBrowser_, &QAction::triggered, this, [this]() { config_->setTopicBrowserVisible(!config_->isTopicBrowserVisible()); });
-  connect(ui_->pushButtonTopicBrowser, &QPushButton::toggled, config_, &MultiplotConfig::setTopicBrowserVisible);
+  connect(topicBrowserButton_, &QPushButton::toggled, config_, &MultiplotConfig::setTopicBrowserVisible);
   connect(config_, &MultiplotConfig::topicBrowserVisibleChanged, this, [this]() { applyTopicBrowserState(); });
   connect(config_, &MultiplotConfig::topicBrowserWidthChanged, this, [this](int width) {
     const QList<int> sizes = topicBrowserSplitter_->sizes();
@@ -398,9 +462,9 @@ void MultiplotWidget::openAbout() {
 
 void MultiplotWidget::applyTopicBrowserState() {
   const bool visible = config_->isTopicBrowserVisible();
-  const QSignalBlocker buttonBlocker(ui_->pushButtonTopicBrowser);
-  ui_->pushButtonTopicBrowser->setChecked(visible);
-  ui_->pushButtonTopicBrowser->setToolTip(visible ? tr("Hide topic browser") : tr("Show topic browser"));
+  const QSignalBlocker buttonBlocker(topicBrowserButton_);
+  topicBrowserButton_->setChecked(visible);
+  topicBrowserButton_->setToolTip(visible ? tr("Hide topic browser") : tr("Show topic browser"));
   topicBrowser_->setVisible(visible);
   if (!visible) {
     return;
@@ -527,6 +591,7 @@ void MultiplotWidget::openPreferences() {
 
 void MultiplotWidget::configThemeChanged(const QString& themeId) {
   Theme::apply(this, Theme::fromId(themeId));
+  applySideIconButton(topicBrowserButton_);
 }
 
 }  // namespace rqt_multiplot
