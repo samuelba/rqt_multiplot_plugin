@@ -174,6 +174,9 @@ jobs:
           path: src/rqt_multiplot_plugin
           fetch-depth: 0
 
+      - name: Test continuous Debian version
+        run: ./src/rqt_multiplot_plugin/scripts/continuous_deb_version_test.sh
+
       - name: Build Debian package
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
@@ -203,6 +206,10 @@ jobs:
             --os-version "${UBUNTU_VERSION}" \
             --ros-distro "${ROS_DISTRO}"
 
+          eval "$(./scripts/continuous_deb_version.sh --changelog debian/changelog)"
+          export RQT_MULTIPLOT_CONTINUOUS_VERSION="${CONTINUOUS_VERSION}"
+          echo "Continuous Debian version: ${RQT_MULTIPLOT_CONTINUOUS_VERSION}"
+
           fakeroot debian/rules binary
 
           mkdir -p ../../debian-packages
@@ -217,3 +224,57 @@ jobs:
           path: debian-packages/*
           retention-days: 7
           if-no-files-found: error
+
+  continuous-release:
+    name: continuous-release
+    needs: debian-packaging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Download Debian packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: debian-*
+          path: debian-packages
+          merge-multiple: true
+
+      - name: Publish continuous prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          files=(debian-packages/*)
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "no debian packages downloaded" >&2
+            exit 1
+          fi
+
+          eval "$(./scripts/continuous_deb_version.sh)"
+          tag="continuous/${STAMP}-${SHA}"
+          title=$(printf 'continuous %s %s-%s-%s %s:%s:%s UTC %s' \
+            "${BASE}" \
+            "${STAMP:0:4}" "${STAMP:4:2}" "${STAMP:6:2}" \
+            "${STAMP:8:2}" "${STAMP:10:2}" "${STAMP:12:2}" \
+            "${SHA}")
+          notes=$(cat <<EOF
+          Continuous build of ${SHA}. Not a ROS bloom release.
+
+          Debian version \`${CONTINUOUS_VERSION}\` sorts below a bloom package of the same package.xml version.
+          EOF
+          )
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release edit "${tag}" --title "${title}" --prerelease
+            gh release upload "${tag}" "${files[@]}" --clobber
+          else
+            gh release create "${tag}" \
+              --prerelease \
+              --title "${title}" \
+              --notes "${notes}" \
+              "${files[@]}"
+          fi
