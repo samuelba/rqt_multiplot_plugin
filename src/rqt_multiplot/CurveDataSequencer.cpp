@@ -28,6 +28,12 @@
 
 namespace rqt_multiplot {
 
+namespace {
+
+constexpr int64_t kTopicMetricUpdatePeriodNs = 100000000;
+
+}  // namespace
+
 CurveDataSequencer::CurveDataSequencer(QObject* parent) : QObject(parent), config_(nullptr), broker_(nullptr) {}
 
 CurveDataSequencer::~CurveDataSequencer() {
@@ -92,6 +98,7 @@ void CurveDataSequencer::subscribe() {
   if (isSubscribed()) {
     unsubscribe();
   }
+  resetTopicMetrics();
 
   if ((config_ != nullptr) && (broker_ != nullptr)) {
     CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
@@ -141,6 +148,7 @@ void CurveDataSequencer::unsubscribe() {
     subscribedTopics_.clear();
     timeFields_.clear();
     timeValues_.clear();
+    resetTopicMetrics();
 
     emit unsubscribed();
   }
@@ -286,49 +294,105 @@ void CurveDataSequencer::processMessage(const Message& message) {
     return;
   }
 
-  CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
-  CurveAxisConfig* yAxisConfig = config_->getAxisConfig(CurveConfig::Y);
-
-  QPointF point;
+  const CurveAxisConfig* xAxisConfig = config_->getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* yAxisConfig = config_->getAxisConfig(CurveConfig::Y);
 
   if (message.isEmpty()) {
     return;
   }
 
-  if (xAxisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue) {
-    double x = 0.0;
-    if (!tryReadDiagnosticValue(message, *xAxisConfig, x)) {
-      return;
-    }
-    point.setX(x);
-  } else if (xAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    double x = 0.0;
-    if (!tryGetNumericValue(*message.getCompound(), xAxisConfig->getField().toStdString(), x)) {
-      return;
-    }
-    point.setX(xAxisConfig->convertValue(x));
-  } else {
-    point.setX(message.getReceiptTime().seconds());
+  const bool isMetricCurve = usesTopicMetric(*config_);
+  if (isMetricCurve && !addTopicMetricSample(message)) {
+    return;
   }
 
-  if (yAxisConfig->getFieldType() == CurveAxisConfig::DiagnosticValue) {
-    double y = 0.0;
-    if (!tryReadDiagnosticValue(message, *yAxisConfig, y)) {
-      return;
-    }
-    point.setY(y);
-  } else if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
-    double y = 0.0;
-    if (!tryGetNumericValue(*message.getCompound(), yAxisConfig->getField().toStdString(), y)) {
+  double x = 0.0;
+  if (!tryReadAxisValue(*xAxisConfig, message, x)) {
+    return;
+  }
+  double y = 0.0;
+  if (!tryReadAxisValue(*yAxisConfig, message, y)) {
+    if (yAxisConfig->getFieldType() == CurveAxisConfig::MessageData) {
       qWarning() << "No such member" << yAxisConfig->getField();
-      return;
     }
-    point.setY(yAxisConfig->convertValue(y));
-  } else {
-    point.setY(message.getReceiptTime().seconds());
+    return;
   }
 
-  emit pointReceived(point);
+  if (isMetricCurve) {
+    lastMetricPointNs_ = message.getReceiptTime().nanoseconds();
+  }
+  emit pointReceived(QPointF(x, y));
+}
+
+bool CurveDataSequencer::usesTopicMetric(const CurveConfig& config) {
+  const CurveAxisConfig* xAxisConfig = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* yAxisConfig = config.getAxisConfig(CurveConfig::Y);
+  return (xAxisConfig != nullptr && xAxisConfig->getFieldType() == CurveAxisConfig::TopicMetric) ||
+         (yAxisConfig != nullptr && yAxisConfig->getFieldType() == CurveAxisConfig::TopicMetric);
+}
+
+QString CurveDataSequencer::topicMetricIncompatibilityReason(const CurveConfig& config) {
+  if (!usesTopicMetric(config)) {
+    return {};
+  }
+  if (config.getAxisConfig(CurveConfig::X)->getTopic() != config.getAxisConfig(CurveConfig::Y)->getTopic()) {
+    return QStringLiteral("Topic metrics require the same topic on both axes");
+  }
+  return {};
+}
+
+void CurveDataSequencer::resetTopicMetrics() {
+  metricsWindow_.reset();
+  lastMetricPointNs_.reset();
+}
+
+bool CurveDataSequencer::addTopicMetricSample(const Message& message) {
+  size_t windowSize = TopicMetricsWindow::kMinWindowSize;
+  bool needsStamp = false;
+  for (const auto axis : {CurveConfig::X, CurveConfig::Y}) {
+    const CurveAxisConfig* axisConfig = config_->getAxisConfig(axis);
+    if (axisConfig->getFieldType() == CurveAxisConfig::TopicMetric) {
+      windowSize = std::max(windowSize, static_cast<size_t>(axisConfig->getTopicMetricWindow()));
+      needsStamp = needsStamp || isDelayMetric(axisConfig->getTopicMetric());
+    }
+  }
+  metricsWindow_.setWindowSize(windowSize);
+
+  std::optional<int64_t> stampNs;
+  if (needsStamp && hasHeader(*message.getCompound())) {
+    const auto* stamp = getMember(*message.getCompound(), "header/stamp");
+    if (stamp != nullptr) {
+      stampNs = getStamp(*stamp).nanoseconds();
+    }
+  }
+
+  const int64_t receiptNs = message.getReceiptTime().nanoseconds();
+  metricsWindow_.addSample(receiptNs, message.getSerializedSize(), stampNs);
+  return !lastMetricPointNs_ || (receiptNs - *lastMetricPointNs_ >= kTopicMetricUpdatePeriodNs);
+}
+
+bool CurveDataSequencer::tryReadAxisValue(const CurveAxisConfig& axisConfig, const Message& message, double& value) const {
+  switch (axisConfig.getFieldType()) {
+    case CurveAxisConfig::TopicMetric: {
+      const auto metricValue = metricsWindow_.value(axisConfig.getTopicMetric());
+      if (!metricValue) {
+        return false;
+      }
+      value = *metricValue;
+      return true;
+    }
+    case CurveAxisConfig::DiagnosticValue:
+      return tryReadDiagnosticValue(message, axisConfig, value);
+    case CurveAxisConfig::MessageData:
+      if (!tryGetNumericValue(*message.getCompound(), axisConfig.getField().toStdString(), value)) {
+        return false;
+      }
+      value = axisConfig.convertValue(value);
+      return true;
+    default:
+      value = message.getReceiptTime().seconds();
+      return true;
+  }
 }
 
 void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& message) {
@@ -373,7 +437,7 @@ void CurveDataSequencer::processMessage(CurveConfig::Axis axis, const Message& m
       timeValue.time_ = message.getReceiptTime();
     }
 
-    if (axisConfig->getFieldType() == CurveAxisConfig::ArrayIndex) {
+    if (axisConfig->getFieldType() == CurveAxisConfig::ArrayIndex || axisConfig->getFieldType() == CurveAxisConfig::TopicMetric) {
       return;
     }
 

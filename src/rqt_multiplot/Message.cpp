@@ -42,6 +42,14 @@ ros_babel_fish::CompoundMessage::SharedPtr Message::getCompound() const {
   return compound_;
 }
 
+void Message::setSerializedSize(size_t serializedSize) {
+  serializedSize_ = serializedSize;
+}
+
+size_t Message::getSerializedSize() const {
+  return serializedSize_;
+}
+
 bool Message::isEmpty() const {
   return !compound_ || !compound_->isValid();
 }

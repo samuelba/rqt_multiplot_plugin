@@ -745,12 +745,16 @@ ros_babel_fish::CompoundMessage::SharedPtr createMessagePrototype(const std::str
 }
 
 ros_babel_fish::CompoundMessage::SharedPtr deserializeMessage(const std::string& typeName, const rclcpp::SerializedMessage& serialized) {
-  const auto typeSupport = RosContext::fish().get_message_type_support(normalizeTypeName(typeName));
-  auto message = ros_babel_fish::CompoundMessage::make_shared(*typeSupport);
+  return deserializeMessage(*RosContext::fish().get_message_type_support(normalizeTypeName(typeName)), serialized);
+}
+
+ros_babel_fish::CompoundMessage::SharedPtr deserializeMessage(const ros_babel_fish::MessageTypeSupport& typeSupport,
+                                                              const rclcpp::SerializedMessage& serialized) {
+  auto message = ros_babel_fish::CompoundMessage::make_shared(typeSupport);
   const auto result =
-      rmw_deserialize(&serialized.get_rcl_serialized_message(), &typeSupport->type_support_handle, message->type_erased_message().get());
+      rmw_deserialize(&serialized.get_rcl_serialized_message(), &typeSupport.type_support_handle, message->type_erased_message().get());
   if (result != RMW_RET_OK) {
-    throw ros_babel_fish::BabelFishException("Failed to deserialize message of type " + typeName);
+    throw ros_babel_fish::BabelFishException("Failed to deserialize message of type " + typeSupport.name);
   }
   return message;
 }

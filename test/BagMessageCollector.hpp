@@ -16,6 +16,7 @@ class BagMessageCollector : public QObject {
     QString topic;
     qint64 timeNs = 0;
     double value = 0.0;
+    size_t serializedSize = 0;
   };
 
   explicit BagMessageCollector(QObject* parent = nullptr) : QObject(parent) {}
@@ -31,6 +32,7 @@ class BagMessageCollector : public QObject {
     Sample sample;
     sample.topic = topic;
     sample.timeNs = message.getReceiptTime().nanoseconds();
+    sample.serializedSize = message.getSerializedSize();
     if (message.getCompound() != nullptr) {
       double value = 0.0;
       if (tryGetNumericValue(*message.getCompound(), "data", value)) {

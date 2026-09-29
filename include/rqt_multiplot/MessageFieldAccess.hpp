@@ -52,5 +52,7 @@ QHash<QString, int> collectArrayLengths(const ros_babel_fish::Message& message, 
 
 ros_babel_fish::CompoundMessage::SharedPtr createMessagePrototype(const std::string& typeName);
 ros_babel_fish::CompoundMessage::SharedPtr deserializeMessage(const std::string& typeName, const rclcpp::SerializedMessage& serialized);
+ros_babel_fish::CompoundMessage::SharedPtr deserializeMessage(const ros_babel_fish::MessageTypeSupport& typeSupport,
+                                                              const rclcpp::SerializedMessage& serialized);
 
 }  // namespace rqt_multiplot

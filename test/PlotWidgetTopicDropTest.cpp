@@ -1,8 +1,11 @@
+#include <functional>
 #include <memory>
 
 #include <QApplication>
+#include <QDialogButtonBox>
 #include <QDragEnterEvent>
 #include <QDropEvent>
+#include <QListWidget>
 #include <QMimeData>
 #include <QPushButton>
 #include <QTimer>
@@ -13,6 +16,8 @@
 #include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/Theme.hpp"
+#include "rqt_multiplot/TopicDropDialog.hpp"
 #include "rqt_multiplot/TopicFieldMime.hpp"
 
 namespace {
@@ -22,6 +27,8 @@ using rqt_multiplot::CurveAxisConfig;
 using rqt_multiplot::CurveConfig;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotWidget;
+using rqt_multiplot::Theme;
+using rqt_multiplot::TopicDropDialog;
 using rqt_multiplot::TopicFieldRef;
 
 QApplication* ensureApplication() {
@@ -135,6 +142,16 @@ void answerArrayDropDialog(const QString& buttonName) {
   });
 }
 
+TEST(PlotWidgetTopicDrop, arrayDropDialogFollowsDarkTheme) {
+  ensureApplication();
+  Theme::apply(nullptr, Theme::Id::Dark);
+
+  const ArrayDropDialog dialog(nullptr, 1, 2);
+
+  EXPECT_EQ(dialog.palette().color(QPalette::Window), Theme::palette(Theme::Id::Dark).color(QPalette::Window));
+  Theme::apply(nullptr, Theme::Id::Light);
+}
+
 TEST(PlotWidgetTopicDrop, arrayDropDialogArrayIndexKeepsWildcardCurve) {
   ensureApplication();
   PlotConfig config;
@@ -176,6 +193,138 @@ TEST(PlotWidgetTopicDrop, arrayDropDialogCancelAddsNothing) {
   EXPECT_FALSE(sendDrop(widget, mimeData.get()));
 
   EXPECT_EQ(config.getNumCurves(), 0U);
+}
+
+constexpr int kRootFieldCount = 12;
+
+QMimeData* topicRootMime() {
+  QVector<TopicFieldRef> fields;
+  for (int i = 0; i < kRootFieldCount; ++i) {
+    fields.append({"/pose", "test/msg/Big", QStringLiteral("f%1").arg(i)});
+  }
+  QMimeData* mimeData = topicFieldsMime(fields);
+  mimeData->setData(rqt_multiplot::kTopicRootMimeType,
+                    rqt_multiplot::encodeTopicFields(rqt_multiplot::topicMetricRefs("/pose", "test/msg/Big", false)));
+  return mimeData;
+}
+
+void answerTopicDropDialog(const std::function<void(TopicDropDialog*)>& answer) {
+  QTimer::singleShot(0, [answer]() {
+    auto* dialog = qobject_cast<TopicDropDialog*>(QApplication::activeModalWidget());
+    ASSERT_NE(dialog, nullptr);
+    answer(dialog);
+  });
+}
+
+void clickOk(TopicDropDialog* dialog) {
+  auto* buttonBox = dialog->findChild<QDialogButtonBox*>("topicDropButtonBox");
+  ASSERT_NE(buttonBox, nullptr);
+  buttonBox->button(QDialogButtonBox::Ok)->click();
+}
+
+TEST(PlotWidgetTopicDrop, topicRootDropDefaultsToAllFieldsWithoutConfirmation) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(topicRootMime());
+
+  answerTopicDropDialog([](TopicDropDialog* dialog) {
+    auto* metrics = dialog->findChild<QListWidget*>("topicDropMetricsList");
+    ASSERT_NE(metrics, nullptr);
+    EXPECT_EQ(metrics->item(0)->checkState(), Qt::Unchecked);
+    clickOk(dialog);
+  });
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  EXPECT_EQ(config.getNumCurves(), static_cast<size_t>(kRootFieldCount));
+}
+
+TEST(PlotWidgetTopicDrop, topicRootDropAddsCheckedMetricsBeforeFields) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(topicRootMime());
+
+  answerTopicDropDialog([](TopicDropDialog* dialog) {
+    auto* fieldsNone = dialog->findChild<QPushButton*>("topicDropFieldsSelectNone");
+    auto* fields = dialog->findChild<QListWidget*>("topicDropFieldsList");
+    auto* metrics = dialog->findChild<QListWidget*>("topicDropMetricsList");
+    ASSERT_NE(fieldsNone, nullptr);
+    ASSERT_NE(fields, nullptr);
+    ASSERT_NE(metrics, nullptr);
+    fieldsNone->click();
+    fields->item(3)->setCheckState(Qt::Checked);
+    metrics->item(static_cast<int>(rqt_multiplot::TopicMetric::Bandwidth))->setCheckState(Qt::Checked);
+    clickOk(dialog);
+  });
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 2U);
+  const CurveAxisConfig* metricAxis = config.getCurveConfig(0)->getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(metricAxis->getFieldType(), CurveAxisConfig::TopicMetric);
+  EXPECT_EQ(metricAxis->getTopicMetric(), rqt_multiplot::TopicMetric::Bandwidth);
+  EXPECT_EQ(config.getCurveConfig(0)->getTitle(), QString("/pose/bandwidth"));
+  EXPECT_EQ(config.getCurveConfig(1)->getAxisConfig(CurveConfig::Y)->getField(), QString("f3"));
+}
+
+TEST(PlotWidgetTopicDrop, topicRootDropLeavesArrayFieldsUnchecked) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(topicFieldsMime(
+      {{"/joints", "sensor_msgs/msg/JointState", "header/stamp"}, {"/joints", "sensor_msgs/msg/JointState", "position/*"}}));
+  mimeData->setData(rqt_multiplot::kTopicRootMimeType, rqt_multiplot::encodeTopicFields({}));
+
+  answerTopicDropDialog([](TopicDropDialog* dialog) {
+    auto* fields = dialog->findChild<QListWidget*>("topicDropFieldsList");
+    ASSERT_NE(fields, nullptr);
+    ASSERT_EQ(fields->count(), 2);
+    EXPECT_EQ(fields->item(0)->checkState(), Qt::Checked);
+    EXPECT_EQ(fields->item(1)->checkState(), Qt::Unchecked);
+    clickOk(dialog);
+  });
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 1U);
+  EXPECT_EQ(config.getCurveConfig(0)->getAxisConfig(CurveConfig::Y)->getField(), QString("header/stamp"));
+}
+
+TEST(PlotWidgetTopicDrop, topicRootDropOkIsDisabledWithNothingChecked) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(topicRootMime());
+
+  answerTopicDropDialog([](TopicDropDialog* dialog) {
+    auto* fieldsNone = dialog->findChild<QPushButton*>("topicDropFieldsSelectNone");
+    auto* buttonBox = dialog->findChild<QDialogButtonBox*>("topicDropButtonBox");
+    ASSERT_NE(fieldsNone, nullptr);
+    ASSERT_NE(buttonBox, nullptr);
+    fieldsNone->click();
+    EXPECT_FALSE(buttonBox->button(QDialogButtonBox::Ok)->isEnabled());
+    dialog->reject();
+  });
+  EXPECT_FALSE(sendDrop(widget, mimeData.get()));
+
+  EXPECT_EQ(config.getNumCurves(), 0U);
+}
+
+TEST(PlotWidgetTopicDrop, metricLeafDropAddsCurveWithoutDialog) {
+  ensureApplication();
+  PlotConfig config;
+  PlotWidget widget;
+  widget.setConfig(&config);
+  const std::unique_ptr<QMimeData> mimeData(
+      topicFieldsMime({TopicFieldRef::forMetric("/pose", "test/msg/Big", rqt_multiplot::TopicMetric::Rate)}));
+
+  EXPECT_TRUE(sendDrop(widget, mimeData.get()));
+
+  ASSERT_EQ(config.getNumCurves(), 1U);
+  EXPECT_EQ(config.getCurveConfig(0)->getAxisConfig(CurveConfig::Y)->getFieldType(), CurveAxisConfig::TopicMetric);
 }
 
 TEST(PlotWidgetTopicDrop, droppingSameFieldTwiceKeepsTitlesUnique) {

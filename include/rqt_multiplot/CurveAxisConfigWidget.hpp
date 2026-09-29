@@ -97,6 +97,8 @@ class CurveAxisConfigWidget : public QWidget {
   void configDiagnosticHardwareIdChanged(const QString& hardwareId);
   void configScaleConfigChanged();
   void configUnitConversionChanged(int unitConversion);
+  void configTopicMetricChanged(int metric);
+  void configTopicMetricWindowChanged(int window);
 
   void comboBoxTopicUpdateStarted();
   void comboBoxTopicUpdateFinished();
@@ -117,6 +119,9 @@ class CurveAxisConfigWidget : public QWidget {
   void checkBoxFieldReceiptTimeStateChanged(int state);
   void checkBoxFieldArrayIndexStateChanged(int state);
   void checkBoxFieldDiagnosticValueStateChanged(int state);
+  void checkBoxFieldTopicMetricStateChanged(int state);
+  void comboBoxTopicMetricActivated(int index);
+  void spinBoxTopicMetricWindowValueChanged(int window);
   void comboBoxDiagnosticStatusEdited(const QString& status);
   void comboBoxDiagnosticKeyEdited(const QString& key);
   void comboBoxDiagnosticHardwareIdEdited(const QString& hardwareId);

@@ -7,6 +7,8 @@
 
 #include <QPushButton>
 
+#include "rqt_multiplot/Theme.hpp"
+
 namespace rqt_multiplot {
 
 namespace {
@@ -32,6 +34,7 @@ ArrayDropDialog::ArrayDropDialog(QWidget* parent, int arrayIndexCurveCount, int 
   individualButton_->setObjectName(QStringLiteral("arrayDropIndividualButton"));
   addButton(QMessageBox::Cancel);
   setDefaultButton(arrayIndexButton_);
+  Theme::apply(this);
 }
 
 ArrayDropDialog::~ArrayDropDialog() = default;

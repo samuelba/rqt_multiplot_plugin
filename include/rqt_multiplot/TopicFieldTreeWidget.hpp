@@ -57,13 +57,16 @@ class TopicFieldTreeWidget : public QTreeWidget {
 #endif
 
  private:
-  enum ItemKind { Unplottable, Leaf, Array, Node, DiagnosticStatus, DiagnosticKey };
+  enum ItemKind { Unplottable, Leaf, Array, Node, DiagnosticStatus, DiagnosticKey, TopicMetricGroup, TopicMetricLeaf };
 
   QHash<QString, QHash<QString, int>> arrayLengths_;
   QHash<QString, QVector<DiagnosticKeyRef>> diagnosticKeys_;
 
   void buildTopicFields(QTreeWidgetItem* root);
   static void addDiagnosticValues(QTreeWidgetItem* root, const QVector<DiagnosticKeyRef>* keys);
+  static void addTopicMetrics(QTreeWidgetItem* root, bool withDelay);
+  static QVector<TopicFieldRef> rootFieldRefsOf(const QTreeWidgetItem* root);
+  static QVector<TopicFieldRef> topicMetricRefsOf(const QTreeWidgetItem* root);
   static QVector<TopicFieldRef> collectRefs(const QList<QTreeWidgetItem*>& items, bool expandArrays);
   static void appendItemRefs(QTreeWidgetItem* item, bool expandArrays, QVector<TopicFieldRef>& refs);
   static void appendElementRefs(const QTreeWidgetItem* element, const QString& topic, const QString& type, QVector<TopicFieldRef>& refs);

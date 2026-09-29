@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QObject>
+#include <QSpinBox>
 
 #include <gtest/gtest.h>
 
@@ -283,6 +284,93 @@ TEST(CurveConfigWidget, changingTypeAwayFromDiagnosticArrayResetsField) {
   EXPECT_EQ(widget.getConfig().getAxisConfig(CurveConfig::Y)->getFieldType(), CurveAxisConfig::MessageData);
   EXPECT_TRUE(axisWidget->findChild<QCheckBox*>("checkBoxFieldDiagnosticValue")->isHidden());
   EXPECT_EQ(axisWidget->getFieldStatusRole(), StatusWidget::Error);
+}
+
+TEST(CurveConfigWidget, topicMetricIsExclusiveAndDisablesFieldAndUnitConversion) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::Y)->setType("std_msgs/msg/Float64");
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getAxisConfig(CurveConfig::Y)->setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+
+  CurveConfigWidget widget;
+  widget.setConfig(config);
+
+  auto* axisWidget = widget.getAxisConfigWidget(CurveConfig::Y);
+  auto* topicMetric = axisWidget->findChild<QCheckBox*>("checkBoxFieldTopicMetric");
+  auto* receipt = axisWidget->findChild<QCheckBox*>("checkBoxFieldReceiptTime");
+  auto* metricWidget = axisWidget->findChild<QWidget*>("topicMetricWidget");
+  auto* fieldWidget = axisWidget->findChild<MessageFieldWidget*>("widgetField");
+  auto* radToDeg = axisWidget->findChild<QCheckBox*>("checkBoxRadiansToDegrees");
+  ASSERT_NE(topicMetric, nullptr);
+  ASSERT_NE(receipt, nullptr);
+  ASSERT_NE(metricWidget, nullptr);
+  ASSERT_NE(fieldWidget, nullptr);
+  ASSERT_NE(radToDeg, nullptr);
+  EXPECT_FALSE(topicMetric->isHidden());
+  EXPECT_TRUE(metricWidget->isHidden());
+
+  topicMetric->setCheckState(Qt::Checked);
+  const CurveAxisConfig* yConfig = widget.getConfig().getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(yConfig->getFieldType(), CurveAxisConfig::TopicMetric);
+  EXPECT_EQ(yConfig->getUnitConversion(), CurveAxisConfig::None);
+  EXPECT_EQ(receipt->checkState(), Qt::Unchecked);
+  EXPECT_FALSE(metricWidget->isHidden());
+  EXPECT_FALSE(fieldWidget->isEnabled());
+  EXPECT_FALSE(radToDeg->isEnabled());
+
+  receipt->setCheckState(Qt::Checked);
+  EXPECT_EQ(topicMetric->checkState(), Qt::Unchecked);
+  EXPECT_EQ(yConfig->getFieldType(), CurveAxisConfig::MessageReceiptTime);
+  EXPECT_TRUE(metricWidget->isHidden());
+}
+
+TEST(CurveConfigWidget, topicMetricComboAndWindowSyncWithConfig) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::TopicMetric);
+  config.getAxisConfig(CurveConfig::Y)->setTopicMetric(rqt_multiplot::TopicMetric::DelayMax);
+  config.getAxisConfig(CurveConfig::Y)->setTopicMetricWindow(250);
+
+  CurveConfigWidget widget;
+  widget.setConfig(config);
+
+  auto* axisWidget = widget.getAxisConfigWidget(CurveConfig::Y);
+  auto* combo = axisWidget->findChild<QComboBox*>("comboBoxTopicMetric");
+  auto* window = axisWidget->findChild<QSpinBox*>("spinBoxTopicMetricWindow");
+  ASSERT_NE(combo, nullptr);
+  ASSERT_NE(window, nullptr);
+  EXPECT_EQ(combo->currentData().toInt(), static_cast<int>(rqt_multiplot::TopicMetric::DelayMax));
+  EXPECT_EQ(window->value(), 250);
+
+  const int bandwidthIndex = combo->findData(static_cast<int>(rqt_multiplot::TopicMetric::Bandwidth));
+  ASSERT_GE(bandwidthIndex, 0);
+  combo->setCurrentIndex(bandwidthIndex);
+  emit combo->activated(bandwidthIndex);
+  window->setValue(20);
+
+  const CurveAxisConfig* yConfig = widget.getConfig().getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(yConfig->getTopicMetric(), rqt_multiplot::TopicMetric::Bandwidth);
+  EXPECT_EQ(yConfig->getTopicMetricWindow(), 20);
+}
+
+TEST(CurveConfigWidget, topicMetricOnDifferentTopicsShowsBannerError) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/a");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/b");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::TopicMetric);
+
+  CurveConfigWidget widget;
+  widget.setConfig(config);
+
+  EXPECT_TRUE(widget.validationErrorText().contains("Topic metrics require the same topic on both axes"));
+  widget.getConfig().getAxisConfig(CurveConfig::Y)->setTopic("/a");
+  EXPECT_FALSE(widget.validationErrorText().contains("Topic metrics require the same topic on both axes"));
 }
 
 }  // namespace

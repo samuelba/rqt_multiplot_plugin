@@ -44,6 +44,17 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent)
   QPixmap pixmapError = packagePixmap("resource/status-error.svg", QSize(22, 22));
   QPixmap pixmapBusy = QPixmap(packageResourcePath("resource/22x22/busy.png"));
 
+  for (int index = 0; index < kTopicMetricCount; ++index) {
+    const auto metric = static_cast<TopicMetric>(index);
+    if (metric == TopicMetric::Bandwidth || metric == TopicMetric::DelayMean) {
+      ui_->comboBoxTopicMetric->insertSeparator(ui_->comboBoxTopicMetric->count());
+    }
+    ui_->comboBoxTopicMetric->addItem(QString::fromUtf8(topicMetricLabel(metric)), index);
+  }
+  ui_->spinBoxTopicMetricWindow->setRange(static_cast<int>(TopicMetricsWindow::kMinWindowSize),
+                                          static_cast<int>(TopicMetricsWindow::kMaxWindowSize));
+  ui_->spinBoxTopicMetricWindow->setValue(static_cast<int>(TopicMetricsWindow::kDefaultWindowSize));
+
   ui_->statusWidgetTopic->setIcon(StatusWidget::Okay, pixmapOkay);
   ui_->statusWidgetTopic->setIcon(StatusWidget::Error, pixmapError);
   ui_->statusWidgetTopic->setFrames(StatusWidget::Busy, pixmapBusy, 8);
@@ -86,6 +97,9 @@ CurveAxisConfigWidget::CurveAxisConfigWidget(QWidget* parent)
   connect(ui_->checkBoxFieldReceiptTime, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldReceiptTimeStateChanged(int)));
   connect(ui_->checkBoxFieldArrayIndex, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldArrayIndexStateChanged(int)));
   connect(ui_->checkBoxFieldDiagnosticValue, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldDiagnosticValueStateChanged(int)));
+  connect(ui_->checkBoxFieldTopicMetric, SIGNAL(stateChanged(int)), this, SLOT(checkBoxFieldTopicMetricStateChanged(int)));
+  connect(ui_->comboBoxTopicMetric, SIGNAL(activated(int)), this, SLOT(comboBoxTopicMetricActivated(int)));
+  connect(ui_->spinBoxTopicMetricWindow, SIGNAL(valueChanged(int)), this, SLOT(spinBoxTopicMetricWindowValueChanged(int)));
   connect(ui_->comboBoxDiagnosticStatus, SIGNAL(currentTextChanged(const QString&)), this,
           SLOT(comboBoxDiagnosticStatusEdited(const QString&)));
   connect(ui_->comboBoxDiagnosticKey, SIGNAL(currentTextChanged(const QString&)), this, SLOT(comboBoxDiagnosticKeyEdited(const QString&)));
@@ -123,6 +137,8 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       disconnect(config_, SIGNAL(diagnosticHardwareIdChanged(const QString&)), this,
                  SLOT(configDiagnosticHardwareIdChanged(const QString&)));
       disconnect(config_, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
+      disconnect(config_, SIGNAL(topicMetricChanged(int)), this, SLOT(configTopicMetricChanged(int)));
+      disconnect(config_, SIGNAL(topicMetricWindowChanged(int)), this, SLOT(configTopicMetricWindowChanged(int)));
       disconnect(config_->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
     }
 
@@ -139,6 +155,8 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       connect(config, SIGNAL(diagnosticKeyChanged(const QString&)), this, SLOT(configDiagnosticKeyChanged(const QString&)));
       connect(config, SIGNAL(diagnosticHardwareIdChanged(const QString&)), this, SLOT(configDiagnosticHardwareIdChanged(const QString&)));
       connect(config, SIGNAL(unitConversionChanged(int)), this, SLOT(configUnitConversionChanged(int)));
+      connect(config, SIGNAL(topicMetricChanged(int)), this, SLOT(configTopicMetricChanged(int)));
+      connect(config, SIGNAL(topicMetricWindowChanged(int)), this, SLOT(configTopicMetricWindowChanged(int)));
       connect(config->getScaleConfig(), SIGNAL(changed()), this, SLOT(configScaleConfigChanged()));
 
       configTopicChanged(config->getTopic());
@@ -149,6 +167,8 @@ void CurveAxisConfigWidget::setConfig(CurveAxisConfig* config) {
       configDiagnosticKeyChanged(config->getDiagnosticKey());
       configDiagnosticHardwareIdChanged(config->getDiagnosticHardwareId());
       configUnitConversionChanged(config->getUnitConversion());
+      configTopicMetricChanged(static_cast<int>(config->getTopicMetric()));
+      configTopicMetricWindowChanged(config->getTopicMetricWindow());
       configScaleConfigChanged();
     } else {
       ui_->widgetScale->setConfig(nullptr);
@@ -263,7 +283,8 @@ bool CurveAxisConfigWidget::validateType() {
 
 bool CurveAxisConfigWidget::isSyntheticFieldType() const {
   return (config_ != nullptr) &&
-         (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex);
+         (config_->getFieldType() == CurveAxisConfig::MessageReceiptTime || config_->getFieldType() == CurveAxisConfig::ArrayIndex ||
+          config_->getFieldType() == CurveAxisConfig::TopicMetric);
 }
 
 bool CurveAxisConfigWidget::isDiagnosticArrayType() const {
@@ -359,8 +380,10 @@ void CurveAxisConfigWidget::updateFieldWidgetEnabled() {
   ui_->checkBoxFieldDiagnosticValue->setVisible(isDiagnosticArrayType());
   ui_->diagnosticFieldsWidget->setVisible(diagnostic);
   ui_->widgetField->setVisible(!diagnostic);
-  const bool syntheticField =
-      (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) || (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked);
+  const bool topicMetric = ui_->checkBoxFieldTopicMetric->checkState() == Qt::Checked;
+  ui_->topicMetricWidget->setVisible(topicMetric);
+  const bool syntheticField = (ui_->checkBoxFieldReceiptTime->checkState() == Qt::Checked) ||
+                              (ui_->checkBoxFieldArrayIndex->checkState() == Qt::Checked) || topicMetric;
   ui_->widgetField->setEnabled(!syntheticField && !diagnostic);
   updateUnitConversionWidgetsEnabled();
   updateDiagnosticSubscription();
@@ -382,6 +405,10 @@ void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::Fi
     const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
     ui_->checkBoxFieldArrayIndex->setCheckState(Qt::Unchecked);
   }
+  if (checked && fieldType != CurveAxisConfig::TopicMetric) {
+    const QSignalBlocker topicMetricBlocker(ui_->checkBoxFieldTopicMetric);
+    ui_->checkBoxFieldTopicMetric->setCheckState(Qt::Unchecked);
+  }
   if (checked) {
     const QSignalBlocker diagnosticBlocker(ui_->checkBoxFieldDiagnosticValue);
     ui_->checkBoxFieldDiagnosticValue->setCheckState(Qt::Unchecked);
@@ -400,7 +427,7 @@ void CurveAxisConfigWidget::setSyntheticFieldType(int state, CurveAxisConfig::Fi
   }
 
   if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked &&
-      ui_->checkBoxFieldDiagnosticValue->checkState() != Qt::Checked) {
+      ui_->checkBoxFieldDiagnosticValue->checkState() != Qt::Checked && ui_->checkBoxFieldTopicMetric->checkState() != Qt::Checked) {
     config_->setFieldType(CurveAxisConfig::MessageData);
   }
 }
@@ -445,7 +472,7 @@ void CurveAxisConfigWidget::syncLabelFromZero() {
     return;
   }
 
-  if (config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+  if (config_->getFieldType() == CurveAxisConfig::DiagnosticValue || config_->getFieldType() == CurveAxisConfig::TopicMetric) {
     config_->setLabelFromZero(false);
     return;
   }
@@ -475,9 +502,11 @@ void CurveAxisConfigWidget::configFieldTypeChanged(int fieldType) {
   const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
   const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
   const QSignalBlocker diagnosticBlocker(ui_->checkBoxFieldDiagnosticValue);
+  const QSignalBlocker topicMetricBlocker(ui_->checkBoxFieldTopicMetric);
   ui_->checkBoxFieldReceiptTime->setCheckState((fieldType == CurveAxisConfig::MessageReceiptTime) ? Qt::Checked : Qt::Unchecked);
   ui_->checkBoxFieldArrayIndex->setCheckState((fieldType == CurveAxisConfig::ArrayIndex) ? Qt::Checked : Qt::Unchecked);
   ui_->checkBoxFieldDiagnosticValue->setCheckState((fieldType == CurveAxisConfig::DiagnosticValue) ? Qt::Checked : Qt::Unchecked);
+  ui_->checkBoxFieldTopicMetric->setCheckState((fieldType == CurveAxisConfig::TopicMetric) ? Qt::Checked : Qt::Unchecked);
 
   updateFieldWidgetEnabled();
   syncLabelFromZero();
@@ -491,6 +520,18 @@ void CurveAxisConfigWidget::configUnitConversionChanged(int unitConversion) {
   ui_->checkBoxRadiansToDegrees->setCheckState((unitConversion == CurveAxisConfig::RadiansToDegrees) ? Qt::Checked : Qt::Unchecked);
   ui_->checkBoxDegreesToRadians->setCheckState((unitConversion == CurveAxisConfig::DegreesToRadians) ? Qt::Checked : Qt::Unchecked);
   updateUnitConversionWidgetsEnabled();
+}
+
+void CurveAxisConfigWidget::configTopicMetricChanged(int metric) {
+  const int index = ui_->comboBoxTopicMetric->findData(metric);
+  if (index >= 0) {
+    ui_->comboBoxTopicMetric->setCurrentIndex(index);
+  }
+}
+
+void CurveAxisConfigWidget::configTopicMetricWindowChanged(int window) {
+  const QSignalBlocker blocker(ui_->spinBoxTopicMetricWindow);
+  ui_->spinBoxTopicMetricWindow->setValue(window);
 }
 
 void CurveAxisConfigWidget::configFieldChanged(const QString& field) {
@@ -719,15 +760,17 @@ void CurveAxisConfigWidget::checkBoxFieldDiagnosticValueStateChanged(int state) 
   if (checked) {
     const QSignalBlocker receiptBlocker(ui_->checkBoxFieldReceiptTime);
     const QSignalBlocker arrayBlocker(ui_->checkBoxFieldArrayIndex);
+    const QSignalBlocker topicMetricBlocker(ui_->checkBoxFieldTopicMetric);
     ui_->checkBoxFieldReceiptTime->setCheckState(Qt::Unchecked);
     ui_->checkBoxFieldArrayIndex->setCheckState(Qt::Unchecked);
+    ui_->checkBoxFieldTopicMetric->setCheckState(Qt::Unchecked);
   }
 
   if (config_ != nullptr) {
     if (checked) {
       config_->setFieldType(CurveAxisConfig::DiagnosticValue);
     } else if (ui_->checkBoxFieldReceiptTime->checkState() != Qt::Checked && ui_->checkBoxFieldArrayIndex->checkState() != Qt::Checked &&
-               config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
+               ui_->checkBoxFieldTopicMetric->checkState() != Qt::Checked && config_->getFieldType() == CurveAxisConfig::DiagnosticValue) {
       config_->setFieldType(CurveAxisConfig::MessageData);
     }
   }
@@ -804,6 +847,24 @@ void CurveAxisConfigWidget::checkBoxFieldArrayIndexStateChanged(int state) {
   setSyntheticFieldType(state, CurveAxisConfig::ArrayIndex);
   syncLabelFromZero();
   validateField();
+}
+
+void CurveAxisConfigWidget::checkBoxFieldTopicMetricStateChanged(int state) {
+  setSyntheticFieldType(state, CurveAxisConfig::TopicMetric);
+  syncLabelFromZero();
+  validateField();
+}
+
+void CurveAxisConfigWidget::comboBoxTopicMetricActivated(int index) {
+  if (config_ != nullptr) {
+    config_->setTopicMetric(static_cast<TopicMetric>(ui_->comboBoxTopicMetric->itemData(index).toInt()));
+  }
+}
+
+void CurveAxisConfigWidget::spinBoxTopicMetricWindowValueChanged(int window) {
+  if (config_ != nullptr) {
+    config_->setTopicMetricWindow(window);
+  }
 }
 
 void CurveAxisConfigWidget::checkBoxRadiansToDegreesStateChanged(int state) {

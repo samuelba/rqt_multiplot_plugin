@@ -27,6 +27,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Data statistics** — right click on a plot to open the data statistics dialog, showing the mean, std, min, max, median, mode, range, count, RMS, and sum of the data
 - **[Array curves](#array-curves)** — plot a whole array vs index (or vs another array field); the series is replaced on each message
 - **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
+- **[Topic metrics](#topic-metrics)** — plot the rate, bandwidth, and delay of a topic, as `ros2 topic hz`, `bw`, and `delay` show them
 - **[Topic browser](#topic-browser)** — browse live and bag topics, then drag'n'drop a field onto a plot
 
 Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
@@ -253,6 +254,23 @@ All on `/diagnostics` (`diagnostic_msgs/DiagnosticArray`). X: `header/stamp` or 
 
 In the [topic browser](#topic-browser), a `DiagnosticArray` topic has a **Diagnostic values** node. It lists each status (`name [hardware_id]`) and its keys. Drag a key, or a status for all its keys, onto a plot to add **Diagnostic value** curves. Live topics add new keys while checked. Bag topics scan up to 5000 messages.
 
+## Topic metrics
+
+A curve axis can show a metric of its topic instead of a message field. In **Edit curve**, check **Topic metric** on Y and select the metric. X is usually message receipt time. Both axes must use the same topic.
+
+| Group | Metrics | Unit |
+| --- | --- | --- |
+| Rate | rate, period min, period max, period std dev | Hz, s |
+| Bandwidth | bandwidth, message size mean, min, max | B/s, B |
+| Delay | delay mean, min, max, std dev | s |
+
+- The metrics use the same formulas as `ros2 topic hz`, `bw`, and `delay`. Period values are in seconds.
+- **Window** sets the number of most recent messages for the metric (default 100, range 2 to 10000).
+- The curve gets at most one point per 0.1 s of message time. The window restarts when the curve subscribes again.
+- Delay is receipt time minus `header/stamp`. Topics without a header give no delay points.
+- For a bag, receipt time is the recording time. Bag delay is therefore the delay at recording time, not the delay now.
+- Size and bandwidth use the serialized message size. For live topics this is the size on the wire of the local RMW.
+
 ## Topic browser
 
 A sidebar lists live topics and, after a bag import, the topics in that bag. Check a topic to show its fields. Drag a numeric field, a message, or an array onto a plot to add curves.
@@ -264,9 +282,11 @@ The tree-view button on the left of the plot area, or **View → Topic browser**
 - **Filter** matches the topic name or the type. The refresh button reloads live topics.
 - **Live** lists topics that are publishing. A checked topic stays listed after it stops.
 - **Bag** lists topics from the imported files, under **Bags (N)**. Those field roots end with `[bag]`. Adding a bag keeps topics that were only in an earlier file.
-- A drop sets Y to the field and X to message receipt time. A wildcard array (`position/*`) uses array index on X. Dropping a message or an array adds one curve per numeric field. More than 10 curves asks first.
+- A drop sets Y to the field and X to message receipt time. A wildcard array (`position/*`) uses array index on X. Dropping a message or an array adds one curve per numeric field. More than 10 curves asks first, except for a topic root drop.
 - A dropped array with listed elements asks for the curve mode: **Array vs index** (one wildcard curve per field, for example `poses/*/position/x`) or **Individual curves** (one curve over time per element and field, for example `poses/3/position/x`).
 - A dynamic array lists elements after one message arrives, up to 100.
+- Each topic has a **Topic metrics** node. Drag a metric, or the node for all metrics, onto a plot to add [topic metric](#topic-metrics) curves. Delay metrics show only for messages with a header.
+- Dropping a topic root opens a dialog with two lists: **Metrics** (none checked) and **Fields**. Numeric fields are checked. Arrays show as wildcard fields (`position/*`, array vs index) and are not checked. Only the checked items are added.
 
 ## Bugs and feature requests
 

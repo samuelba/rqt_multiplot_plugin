@@ -13,6 +13,7 @@ using rqt_multiplot::CurveConfig;
 using rqt_multiplot::DiagnosticKeyRef;
 using rqt_multiplot::MessageFieldType;
 using rqt_multiplot::TopicFieldRef;
+using rqt_multiplot::TopicMetric;
 
 MessageFieldType builtin(const QString& identifier, bool numeric) {
   MessageFieldType type;
@@ -117,6 +118,62 @@ TEST(TopicFieldMime, mergeDiagnosticKeysAppendsOnlyUnknownKeys) {
 
 TEST(TopicFieldMime, decodeOfGarbageReturnsEmpty) {
   EXPECT_TRUE(rqt_multiplot::decodeTopicFields(QByteArray("not a payload")).isEmpty());
+}
+
+TEST(TopicFieldMime, encodeDecodeRoundTripKeepsTopicMetric) {
+  const QVector<TopicFieldRef> refs = {TopicFieldRef::forMetric("/imu", "sensor_msgs/msg/Imu", TopicMetric::DelayStdDev),
+                                       {"/imu", "sensor_msgs/msg/Imu", "orientation/x"}};
+
+  const QVector<TopicFieldRef> decoded = rqt_multiplot::decodeTopicFields(rqt_multiplot::encodeTopicFields(refs));
+
+  EXPECT_EQ(decoded, refs);
+  ASSERT_EQ(decoded.count(), 2);
+  EXPECT_TRUE(decoded[0].isTopicMetric());
+  EXPECT_FALSE(decoded[1].isTopicMetric());
+}
+
+TEST(TopicFieldMime, fillCurveForTopicMetricUsesReceiptTimeAndMetric) {
+  CurveConfig config;
+
+  rqt_multiplot::fillCurveFromTopicField(config, TopicFieldRef::forMetric("/scan", "sensor_msgs/msg/LaserScan", TopicMetric::Bandwidth));
+
+  const CurveAxisConfig* x = config.getAxisConfig(CurveConfig::X);
+  const CurveAxisConfig* y = config.getAxisConfig(CurveConfig::Y);
+  EXPECT_EQ(x->getTopic(), QString("/scan"));
+  EXPECT_EQ(x->getFieldType(), CurveAxisConfig::MessageReceiptTime);
+  EXPECT_EQ(y->getTopic(), QString("/scan"));
+  EXPECT_EQ(y->getType(), QString("sensor_msgs/msg/LaserScan"));
+  EXPECT_EQ(y->getFieldType(), CurveAxisConfig::TopicMetric);
+  EXPECT_EQ(y->getTopicMetric(), TopicMetric::Bandwidth);
+  EXPECT_EQ(config.getTitle(), QString("/scan/bandwidth"));
+}
+
+TEST(TopicFieldMime, topicMetricRefsOmitDelayWithoutHeader) {
+  const QVector<TopicFieldRef> all = rqt_multiplot::topicMetricRefs("/a", "t", true);
+  const QVector<TopicFieldRef> withoutDelay = rqt_multiplot::topicMetricRefs("/a", "t", false);
+
+  EXPECT_EQ(all.count(), rqt_multiplot::kTopicMetricCount);
+  EXPECT_EQ(withoutDelay.count(), static_cast<int>(TopicMetric::DelayMean));
+  for (const auto& ref : withoutDelay) {
+    EXPECT_FALSE(rqt_multiplot::isDelayMetric(*ref.metric));
+  }
+}
+
+TEST(TopicFieldMime, plottableFieldsAddArrayWildcards) {
+  const MessageFieldType jointState = compound("sensor_msgs/JointState", {{"header", headerType()},
+                                                                          {"name", array(builtin("string", false))},
+                                                                          {"position", array(builtin("float64", true))},
+                                                                          {"points", array(pointType())}});
+
+  EXPECT_EQ(rqt_multiplot::plottableFields(jointState, QString()),
+            QStringList({"header/stamp", "position/*", "points/*/x", "points/*/y", "points/*/z"}));
+  EXPECT_EQ(rqt_multiplot::plottableLeaves(jointState, QString()), QStringList({"header/stamp"}));
+}
+
+TEST(TopicFieldMime, hasHeaderStampNeedsHeaderWithStamp) {
+  EXPECT_TRUE(rqt_multiplot::hasHeaderStamp(compound("geometry_msgs/PoseStamped", {{"header", headerType()}})));
+  EXPECT_FALSE(rqt_multiplot::hasHeaderStamp(pointType()));
+  EXPECT_FALSE(rqt_multiplot::hasHeaderStamp(compound("test/Odd", {{"header", pointType()}})));
 }
 
 TEST(TopicFieldMime, plottableLeavesOfPointAreXYZ) {

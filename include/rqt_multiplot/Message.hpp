@@ -33,11 +33,15 @@ class Message {
   const rclcpp::Time& getReceiptTime() const;
   void setCompound(ros_babel_fish::CompoundMessage::SharedPtr compound);
   ros_babel_fish::CompoundMessage::SharedPtr getCompound() const;
+  void setSerializedSize(size_t serializedSize);
+  // 0 when the size is unknown.
+  size_t getSerializedSize() const;
   bool isEmpty() const;
 
  private:
   rclcpp::Time receiptTime_{0, 0, RCL_ROS_TIME};
   ros_babel_fish::CompoundMessage::SharedPtr compound_;
+  size_t serializedSize_ = 0;
 };
 
 }  // namespace rqt_multiplot
