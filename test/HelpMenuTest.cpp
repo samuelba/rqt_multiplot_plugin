@@ -2,6 +2,8 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
 #include <QLayout>
@@ -10,6 +12,7 @@
 #include <QPixmap>
 #include <QSize>
 #include <QTableWidget>
+#include <QWidget>
 
 #include <gtest/gtest.h>
 
@@ -87,16 +90,37 @@ bool tableContainsText(const QTableWidget& table, const QString& substring) {
   return false;
 }
 
+bool dialogContainsText(const QWidget& root, const QString& substring) {
+  const auto tables = root.findChildren<QTableWidget*>();
+  for (const QTableWidget* table : tables) {
+    if (tableContainsText(*table, substring)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool hasSection(const QWidget& root, const QString& title) {
+  const auto groups = root.findChildren<QGroupBox*>();
+  for (const QGroupBox* group : groups) {
+    if (group->title() == title) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
-TEST(HelpMenu, menuBarHasFileViewHelp) {
+TEST(HelpMenu, menuBarHasFileViewPlotsHelp) {
   ensureApplication();
 
   MultiplotWidget widget;
   const auto* menuBar = widget.findChild<QMenuBar*>("menuBar");
   ASSERT_NE(menuBar, nullptr);
 
-  EXPECT_EQ(topLevelMenuTexts(*menuBar), QStringList({QStringLiteral("&File"), QStringLiteral("&View"), QStringLiteral("&Help")}));
+  EXPECT_EQ(topLevelMenuTexts(*menuBar),
+            QStringList({QStringLiteral("&File"), QStringLiteral("&View"), QStringLiteral("&Plots"), QStringLiteral("&Help")}));
 }
 
 TEST(HelpMenu, helpMenuHasExpectedActions) {
@@ -175,13 +199,64 @@ TEST(CheatsheetDialog, tablesIncludePlotInteractions) {
   CheatsheetDialog dialog;
   EXPECT_EQ(dialog.windowTitle(), QStringLiteral("Keyboard shortcuts"));
 
-  const auto* keyboardTable = dialog.findChild<QTableWidget*>("keyboardShortcutsTable");
   const auto* mouseTable = dialog.findChild<QTableWidget*>("mouseActionsTable");
-  ASSERT_NE(keyboardTable, nullptr);
   ASSERT_NE(mouseTable, nullptr);
 
-  EXPECT_TRUE(tableContainsText(*keyboardTable, QStringLiteral("Home")));
+  EXPECT_TRUE(dialogContainsText(dialog, QStringLiteral("Home")));
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Left drag")));
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Right drag")));
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Right click")));
+}
+
+TEST(CheatsheetDialog, groupsActionsIntoTwoColumns) {
+  ensureApplication();
+
+  CheatsheetDialog dialog;
+  auto* columns = dialog.findChild<QHBoxLayout*>(QStringLiteral("cheatsheetColumns"));
+  auto* left = dialog.findChild<QWidget*>(QStringLiteral("cheatsheetLeftColumn"));
+  auto* right = dialog.findChild<QWidget*>(QStringLiteral("cheatsheetRightColumn"));
+  ASSERT_NE(columns, nullptr);
+  ASSERT_NE(left, nullptr);
+  ASSERT_NE(right, nullptr);
+  EXPECT_EQ(columns->indexOf(left), 0);
+  EXPECT_EQ(columns->indexOf(right), 1);
+  EXPECT_GE(left->findChildren<QTableWidget*>().size(), 2);
+  EXPECT_GE(right->findChildren<QTableWidget*>().size(), 2);
+
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("File")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("Import and export")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("Plots")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("General")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("Tabs")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("View")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("Curves")));
+  EXPECT_TRUE(hasSection(dialog, QStringLiteral("Mouse")));
+
+  const auto* fileGroup = dialog.findChild<QGroupBox*>(QStringLiteral("cheatsheetSectionFile"));
+  const auto* tabsGroup = dialog.findChild<QGroupBox*>(QStringLiteral("cheatsheetSectionTabs"));
+  const auto* mouseGroup = dialog.findChild<QGroupBox*>(QStringLiteral("cheatsheetSectionMouse"));
+  ASSERT_NE(fileGroup, nullptr);
+  ASSERT_NE(tabsGroup, nullptr);
+  ASSERT_NE(mouseGroup, nullptr);
+  EXPECT_TRUE(left->isAncestorOf(fileGroup));
+  EXPECT_TRUE(right->isAncestorOf(tabsGroup));
+  EXPECT_FALSE(left->isAncestorOf(mouseGroup));
+  EXPECT_FALSE(right->isAncestorOf(mouseGroup));
+
+  const auto* fileTable = fileGroup->findChild<QTableWidget*>();
+  const auto* tabsTable = tabsGroup->findChild<QTableWidget*>();
+  ASSERT_NE(fileTable, nullptr);
+  ASSERT_NE(tabsTable, nullptr);
+  EXPECT_TRUE(tableContainsText(*fileTable, QStringLiteral("New configuration")));
+  EXPECT_FALSE(tableContainsText(*fileTable, QStringLiteral("New tab")));
+  EXPECT_TRUE(tableContainsText(*tabsTable, QStringLiteral("New tab")));
+
+  const auto tables = dialog.findChildren<QTableWidget*>();
+  for (const QTableWidget* table : tables) {
+    for (int row = 0; row < table->rowCount(); ++row) {
+      const QTableWidgetItem* input = table->item(row, 0);
+      ASSERT_NE(input, nullptr);
+      EXPECT_FALSE(input->text().trimmed().isEmpty());
+    }
+  }
 }

@@ -227,6 +227,14 @@ void PlotTableWidget::clearPlots() {
   }
 }
 
+void PlotTableWidget::resetZoom() {
+  for (PlotWidget* plot : plotWidgets_) {
+    if (plot != nullptr) {
+      plot->resetZoom();
+    }
+  }
+}
+
 void PlotTableWidget::requestReplot() {
   for (PlotWidget* plot : plotWidgets_) {
     plot->requestReplot();

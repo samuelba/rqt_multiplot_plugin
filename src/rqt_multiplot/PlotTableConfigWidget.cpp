@@ -18,6 +18,7 @@
 
 #include <QAction>
 #include <QFileDialog>
+#include <QKeySequence>
 #include <QSignalBlocker>
 
 #include "rqt_multiplot/PackageResource.hpp"
@@ -31,6 +32,14 @@
 #include <ui_PlotTableConfigWidget.h>
 
 #include "rqt_multiplot/PlotTableConfigWidget.hpp"
+
+namespace {
+
+QKeySequence keySequence(int modifiers, int key) {
+  return QKeySequence(static_cast<int>(modifiers) | key);
+}
+
+}  // namespace
 
 namespace rqt_multiplot {
 
@@ -57,6 +66,9 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   actionAddBagDirectory_->setObjectName(QStringLiteral("actionAddBagDirectory"));
   actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
   actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
+  actionImportBagFile_->setShortcut(keySequence(Qt::CTRL, Qt::Key_I));
+  actionAddBagFiles_->setShortcut(keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_I));
+  actionExportImageFile_->setShortcut(keySequence(Qt::CTRL, Qt::Key_E));
 
   setThemeIcon(actionImportBagFile_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionAddBagFiles_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));

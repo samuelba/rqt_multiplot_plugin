@@ -53,6 +53,8 @@ class PlotTabWidget : public QWidget {
   void runPlots();
   void pausePlots();
   void clearPlots();
+  bool isAnyPlotRunning() const;
+  void togglePlots();
   void loadFromBagFiles(const QStringList& fileNames, bool replace);
 
  signals:

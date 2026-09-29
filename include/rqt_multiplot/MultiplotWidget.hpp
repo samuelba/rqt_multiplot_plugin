@@ -77,6 +77,7 @@ class MultiplotWidget : public QWidget {
   void installStandaloneMenu();
   bool isCloseButtonActivation(QObject* object, QEvent* event) const;
   void setupTopicBrowser();
+  void setupShortcuts();
   void setupHelpMenu();
   void applyTopicBrowserState();
 
@@ -97,6 +98,7 @@ class MultiplotWidget : public QWidget {
   bool closePromptCompleted_;
   bool closePromptOpen_;
   bool standaloneMenuInstalled_;
+  bool initialFocusSet_;
 
  private slots:
   void configWidgetCurrentConfigModifiedChanged(bool modified);

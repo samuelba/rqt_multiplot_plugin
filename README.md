@@ -119,10 +119,30 @@ The rqt launcher needs `--` before those flags.
 | Ctrl + left drag | Draw a rectangle to zoom |
 | Mouse wheel | Zoom in / out |
 | Right click | Open plot context menu |
-| Home (canvas focused) | Reset zoom |
+| Home | Reset zoom of all plots in the active tab |
 | Hover (Points enabled) | Crosshair; nearest-sample marker and readout with crosshair x, y plus each curve title / x, y |
 | Click a legend item | Toggle that curve's visibility |
 | Drag a legend item onto another plot | Copy that curve |
+
+### Keyboard shortcuts
+
+These apply while focus is inside the Multiplot window. The full list is under **Help → Keyboard shortcuts** (`F1`).
+
+| Shortcut | Action |
+| --- | --- |
+| Space | Play / pause all plots |
+| Ctrl+Shift+Delete | Clear all plots |
+| Home | Reset zoom in the active tab |
+| Ctrl+T / Ctrl+W | New tab / close tab |
+| Ctrl+PgDown / Ctrl+PgUp | Next / previous tab |
+| Alt+1 ... Alt+9 | Select tab 1-9 |
+| Ctrl+B | Topic browser |
+| Ctrl+Shift+B | Curve values (active tab) |
+| Ctrl+G | Grid (active tab) |
+| Ctrl+I / Ctrl+Shift+I | Import bag files / add bag files |
+| Ctrl+E | Export image |
+
+In the plot configuration dialog, the curve list uses Ctrl+A (select all), Ctrl+C (copy), Ctrl+V (paste), and Delete (remove selected).
 
 Use the plot toolbar to run, pause, clear, configure, split (left / right / top / bottom), maximize, or close one plot. Drag a splitter handle to resize panes; those ratios are stored in the XML. The even-distribution button on the main toolbar resets splitter sizes in the active tab. Older row×column files still load.
 
