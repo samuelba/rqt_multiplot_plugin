@@ -23,10 +23,13 @@
 #include <QString>
 #include <QTimer>
 
-#include <ros_babel_fish/detail/babel_fish_subscription.hpp>
-#include <ros_babel_fish/messages/compound_message.hpp>
+#include <atomic>
+
+#include <rclcpp/serialized_message.hpp>
+#include <ros_babel_fish/idl/type_support.hpp>
 
 #include "rqt_multiplot/Message.hpp"
+#include "rqt_multiplot/SerializedSubscription.hpp"
 
 namespace rqt_multiplot {
 
@@ -64,15 +67,16 @@ class MessageSubscriber : public QObject {
   size_t queueSize_;
   QTimer* retryTimer_;
   bool hasReportedError_;
+  std::atomic_bool hasReportedDeserializeError_{false};
 
-  ros_babel_fish::BabelFishSubscription::SharedPtr subscriber_;
+  SerializedSubscription::SharedPtr subscriber_;
 
   void subscribe();
   void unsubscribe();
   void resubscribe();
   bool hasReceivers() const;
 
-  void callback(const ros_babel_fish::CompoundMessage& compound);
+  void callback(const ros_babel_fish::MessageTypeSupport& typeSupport, const rclcpp::SerializedMessage& serialized);
 
   void connectNotify(const QMetaMethod& signal) override;
   void disconnectNotify(const QMetaMethod& signal) override;

@@ -170,6 +170,7 @@ void CurveConfigWidget::updateValidationErrorBanner() {
     appendUnique(error);
   }
   appendUnique(CurveDataSequencer::snapshotIncompatibilityReason(*config_));
+  appendUnique(CurveDataSequencer::topicMetricIncompatibilityReason(*config_));
 
   ui_->labelValidationError->setText(errors.join(QStringLiteral("\n")));
   const bool visible = !errors.isEmpty();

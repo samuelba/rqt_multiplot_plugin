@@ -383,6 +383,89 @@ TEST(CurveAxisConfig, savesLoadsAndCopiesDiagnosticValue) {
   EXPECT_FALSE(loaded.hasConfiguredSource());
 }
 
+TEST(CurveAxisConfig, savesLoadsAndCopiesTopicMetric) {
+  EXPECT_EQ(static_cast<int>(CurveAxisConfig::TopicMetric), 4);
+
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+
+  {
+    CurveAxisConfig config;
+    config.setFieldType(CurveAxisConfig::TopicMetric);
+    config.setTopicMetric(rqt_multiplot::TopicMetric::DelayMax);
+    config.setTopicMetricWindow(250);
+
+    QSettings settings(settingsPath(dir, "metric.ini"), QSettings::IniFormat);
+    config.save(settings);
+    settings.sync();
+    EXPECT_EQ(settings.value("topic_metric").toString(), QString("delay_max"));
+  }
+
+  CurveAxisConfig loaded;
+  QSettings settings(settingsPath(dir, "metric.ini"), QSettings::IniFormat);
+  loaded.load(settings);
+
+  EXPECT_EQ(loaded.getFieldType(), CurveAxisConfig::TopicMetric);
+  EXPECT_EQ(loaded.getTopicMetric(), rqt_multiplot::TopicMetric::DelayMax);
+  EXPECT_EQ(loaded.getTopicMetricWindow(), 250);
+  EXPECT_EQ(loaded.getFieldLabel(), QString("delay_max"));
+  EXPECT_TRUE(loaded.hasConfiguredSource());
+  EXPECT_FALSE(loaded.usesTimeScale());
+  EXPECT_FALSE(loaded.isTimeSource());
+
+  QBuffer buffer;
+  buffer.open(QIODevice::ReadWrite);
+  QDataStream stream(&buffer);
+  loaded.write(stream);
+  buffer.seek(0);
+  CurveAxisConfig streamed;
+  streamed.read(stream);
+  EXPECT_EQ(streamed.getFieldType(), CurveAxisConfig::TopicMetric);
+  EXPECT_EQ(streamed.getTopicMetric(), rqt_multiplot::TopicMetric::DelayMax);
+  EXPECT_EQ(streamed.getTopicMetricWindow(), 250);
+
+  CurveAxisConfig copy;
+  copy = loaded;
+  EXPECT_EQ(copy.getTopicMetric(), rqt_multiplot::TopicMetric::DelayMax);
+  EXPECT_EQ(copy.getTopicMetricWindow(), 250);
+
+  loaded.reset();
+  EXPECT_EQ(loaded.getTopicMetric(), rqt_multiplot::TopicMetric::Rate);
+  EXPECT_EQ(loaded.getTopicMetricWindow(), static_cast<int>(rqt_multiplot::TopicMetricsWindow::kDefaultWindowSize));
+}
+
+TEST(CurveAxisConfig, missingOrUnknownTopicMetricDefaultsToRate) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  QSettings settings(settingsPath(dir, "unknown_metric.ini"), QSettings::IniFormat);
+  settings.setValue("field_type", static_cast<int>(CurveAxisConfig::TopicMetric));
+  settings.setValue("topic_metric", "nonsense");
+  settings.sync();
+
+  CurveAxisConfig config;
+  config.setTopicMetric(rqt_multiplot::TopicMetric::Bandwidth);
+  config.load(settings);
+
+  EXPECT_EQ(config.getTopicMetric(), rqt_multiplot::TopicMetric::Rate);
+  EXPECT_EQ(config.getTopicMetricWindow(), static_cast<int>(rqt_multiplot::TopicMetricsWindow::kDefaultWindowSize));
+}
+
+TEST(CurveAxisConfig, topicMetricWindowIsClamped) {
+  CurveAxisConfig config;
+  config.setTopicMetricWindow(1);
+  EXPECT_EQ(config.getTopicMetricWindow(), static_cast<int>(rqt_multiplot::TopicMetricsWindow::kMinWindowSize));
+  config.setTopicMetricWindow(1000000);
+  EXPECT_EQ(config.getTopicMetricWindow(), static_cast<int>(rqt_multiplot::TopicMetricsWindow::kMaxWindowSize));
+}
+
+TEST(CurveAxisConfig, convertValueSkipsTopicMetrics) {
+  CurveAxisConfig config;
+  config.setFieldType(CurveAxisConfig::TopicMetric);
+  config.setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+
+  EXPECT_DOUBLE_EQ(config.convertValue(2.0), 2.0);
+}
+
 TEST(CurveAxisConfig, assignmentCopiesUnitConversion) {
   CurveAxisConfig source;
   source.setUnitConversion(CurveAxisConfig::RadiansToDegrees);

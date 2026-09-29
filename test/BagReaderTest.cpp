@@ -209,6 +209,8 @@ TEST(BagReader, decodesTypeThatIsNotInstalledFromMcapSchema) {
   std::filesystem::remove_all(root);
 }
 
+constexpr size_t kFloat64SerializedSize = 12;
+
 void writeFloatBag(const std::string& uri, int64_t stampSec, double data) {
   rosbag2_storage::StorageOptions options;
   options.uri = uri;
@@ -260,6 +262,7 @@ TEST(BagReader, readsSeveralBagsInStartTimeOrder) {
   EXPECT_DOUBLE_EQ(collector.samples[0].value, 1.0);
   EXPECT_DOUBLE_EQ(collector.samples[1].value, 10.0);
   EXPECT_LT(collector.samples[0].timeNs, collector.samples[1].timeNs);
+  EXPECT_EQ(collector.samples[0].serializedSize, kFloat64SerializedSize);
   EXPECT_EQ(collector.finished, 1);
   EXPECT_EQ(collector.failed, 0);
   EXPECT_GE(collector.maxProgress, 1.0);

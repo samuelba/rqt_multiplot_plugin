@@ -22,13 +22,14 @@
 
 #include "rqt_multiplot/Config.hpp"
 #include "rqt_multiplot/CurveAxisScaleConfig.hpp"
+#include "rqt_multiplot/TopicMetrics.hpp"
 
 namespace rqt_multiplot {
 
 class CurveAxisConfig : public Config {
   Q_OBJECT
  public:
-  enum FieldType { MessageData, MessageReceiptTime, ArrayIndex, DiagnosticValue };
+  enum FieldType { MessageData, MessageReceiptTime, ArrayIndex, DiagnosticValue, TopicMetric };
   enum UnitConversion { None, RadiansToDegrees, DegreesToRadians };
 
   explicit CurveAxisConfig(QObject* parent = nullptr, QString topic = QString(), QString type = QString(),
@@ -49,6 +50,10 @@ class CurveAxisConfig : public Config {
   const QString& getDiagnosticKey() const;
   void setDiagnosticHardwareId(const QString& hardwareId);
   const QString& getDiagnosticHardwareId() const;
+  void setTopicMetric(rqt_multiplot::TopicMetric metric);
+  rqt_multiplot::TopicMetric getTopicMetric() const;
+  void setTopicMetricWindow(int window);
+  int getTopicMetricWindow() const;
   void setLabelFromZero(bool labelFromZero);
   bool isLabelFromZero() const;
   void setUnitConversion(UnitConversion unitConversion);
@@ -79,6 +84,8 @@ class CurveAxisConfig : public Config {
   void diagnosticStatusChanged(const QString& status);
   void diagnosticKeyChanged(const QString& key);
   void diagnosticHardwareIdChanged(const QString& hardwareId);
+  void topicMetricChanged(int metric);
+  void topicMetricWindowChanged(int window);
   void labelFromZeroChanged(bool labelFromZero);
   void unitConversionChanged(int unitConversion);
 
@@ -90,6 +97,8 @@ class CurveAxisConfig : public Config {
   QString diagnosticStatus_;
   QString diagnosticKey_;
   QString diagnosticHardwareId_;
+  rqt_multiplot::TopicMetric topicMetric_;
+  int topicMetricWindow_;
   bool labelFromZero_;
   UnitConversion unitConversion_;
 

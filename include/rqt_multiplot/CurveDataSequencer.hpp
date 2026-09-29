@@ -18,7 +18,9 @@
 
 #pragma once
 
+#include <cstdint>
 #include <list>
+#include <optional>
 
 #include <QMap>
 #include <QObject>
@@ -30,6 +32,7 @@
 
 #include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/MessageBroker.hpp"
+#include "rqt_multiplot/TopicMetrics.hpp"
 
 namespace rqt_multiplot {
 
@@ -52,6 +55,8 @@ class CurveDataSequencer : public QObject {
   static bool isSnapshotConfig(const CurveConfig& config);
   static QString snapshotIncompatibilityReason(const CurveConfig& config);
   static bool tryBuildSnapshotSeries(const Message& message, const CurveConfig& config, QVector<QPointF>& points);
+  static bool usesTopicMetric(const CurveConfig& config);
+  static QString topicMetricIncompatibilityReason(const CurveConfig& config);
 
  signals:
   void subscribed();
@@ -85,6 +90,12 @@ class CurveDataSequencer : public QObject {
   QMap<CurveConfig::Axis, QString> timeFields_;
   QMap<CurveConfig::Axis, TimeValueList> timeValues_;
 
+  TopicMetricsWindow metricsWindow_;
+  std::optional<int64_t> lastMetricPointNs_;
+
+  void resetTopicMetrics();
+  bool addTopicMetricSample(const Message& message);
+  bool tryReadAxisValue(const CurveAxisConfig& axisConfig, const Message& message, double& value) const;
   void processMessage(const Message& message);
   void processMessage(CurveConfig::Axis axis, const Message& message);
   void interpolate();

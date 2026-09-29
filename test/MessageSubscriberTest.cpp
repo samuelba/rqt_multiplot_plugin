@@ -11,6 +11,7 @@
 #include <std_msgs/msg/float64.hpp>
 
 #include "rqt_multiplot/Message.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 #include "rqt_multiplot/MessageSubscriber.hpp"
 #include "rqt_multiplot/RosContext.hpp"
 #include "rqt_multiplot/runtime_types/MsgDefinitionParser.hpp"
@@ -104,6 +105,42 @@ TEST_F(MessageSubscriberTest, typedSubscribeSucceedsWithoutPublisher) {
   auto publisher = node_->create_publisher<std_msgs::msg::Float64>("/message_subscriber_test/typed", 10);
   std_msgs::msg::Float64 value;
   value.data = 1.5;
+  EXPECT_TRUE(spinUntil([&received]() { return received > 0; }, [&]() { publisher->publish(value); }));
+}
+
+TEST_F(MessageSubscriberTest, receivedMessageCarriesSerializedSizeAndDecodedValue) {
+  constexpr size_t kFloat64SerializedSize = 12;
+  MessageSubscriber subscriber;
+  subscriber.setMessageType("std_msgs/msg/Float64");
+  subscriber.setTopic("/message_subscriber_test/size");
+  QObject receiver;
+  bool received = false;
+  size_t serializedSize = 0;
+  double data = 0.0;
+  QObject::connect(&subscriber, &MessageSubscriber::messageReceived, &receiver, [&](const QString&, const Message& message) {
+    received = !message.isEmpty() && rqt_multiplot::tryGetNumericValue(*message.getCompound(), "data", data);
+    serializedSize = message.getSerializedSize();
+  });
+
+  auto publisher = node_->create_publisher<std_msgs::msg::Float64>("/message_subscriber_test/size", 10);
+  std_msgs::msg::Float64 value;
+  value.data = 4.25;
+  ASSERT_TRUE(spinUntil([&received]() { return received; }, [&]() { publisher->publish(value); }));
+
+  EXPECT_EQ(serializedSize, kFloat64SerializedSize);
+  EXPECT_DOUBLE_EQ(data, 4.25);
+}
+
+TEST_F(MessageSubscriberTest, untypedSubscribeReceivesMessages) {
+  MessageSubscriber subscriber;
+  subscriber.setTopic("/message_subscriber_test/untyped_receive");
+  QObject receiver;
+  int received = 0;
+  connectReceiver(subscriber, receiver, &received);
+
+  auto publisher = node_->create_publisher<std_msgs::msg::Float64>("/message_subscriber_test/untyped_receive", 10);
+  std_msgs::msg::Float64 value;
+  value.data = 2.0;
   EXPECT_TRUE(spinUntil([&received]() { return received > 0; }, [&]() { publisher->publish(value); }));
 }
 

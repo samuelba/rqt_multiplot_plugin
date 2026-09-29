@@ -29,9 +29,9 @@ namespace {
 
 constexpr auto kThemeFilterProperty = "rqt_multiplot_theme_filter";
 
-bool isTopicBrowserList(const QWidget* widget) {
+bool needsVisibleCheckBorder(const QWidget* widget) {
   for (const QWidget* current = widget; current != nullptr; current = current->parentWidget()) {
-    if (current->objectName() == QLatin1String("topicBrowserList")) {
+    if (current->objectName() == QLatin1String("topicBrowserList") || current->objectName() == QLatin1String("topicDropDialog")) {
       return true;
     }
   }
@@ -62,7 +62,7 @@ class FusionThemeStyle : public QProxyStyle {
   void drawPrimitive(PrimitiveElement element, const QStyleOption* option, QPainter* painter, const QWidget* widget) const override {
     QProxyStyle::drawPrimitive(element, option, painter, widget);
     const bool isItemCheck = (element == PE_IndicatorItemViewItemCheck) && (option != nullptr) && (painter != nullptr);
-    if (!isItemCheck || (Theme::currentId() != Theme::Id::Dark) || !isTopicBrowserList(widget)) {
+    if (!isItemCheck || (Theme::currentId() != Theme::Id::Dark) || !needsVisibleCheckBorder(widget)) {
       return;
     }
     painter->save();

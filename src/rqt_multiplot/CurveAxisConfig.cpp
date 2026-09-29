@@ -20,6 +20,7 @@
 
 #include <QtMath>
 
+#include <algorithm>
 #include <utility>
 
 namespace rqt_multiplot {
@@ -31,6 +32,7 @@ CurveAxisConfig::FieldType parseFieldType(int raw) {
     case CurveAxisConfig::MessageReceiptTime:
     case CurveAxisConfig::ArrayIndex:
     case CurveAxisConfig::DiagnosticValue:
+    case CurveAxisConfig::TopicMetric:
       return static_cast<CurveAxisConfig::FieldType>(raw);
     default:
       return CurveAxisConfig::MessageData;
@@ -48,6 +50,15 @@ CurveAxisConfig::UnitConversion parseUnitConversion(int raw) {
   }
 }
 
+rqt_multiplot::TopicMetric parseTopicMetric(int raw) {
+  if (raw < 0 || raw >= kTopicMetricCount) {
+    return rqt_multiplot::TopicMetric::Rate;
+  }
+  return static_cast<rqt_multiplot::TopicMetric>(raw);
+}
+
+constexpr int kDefaultTopicMetricWindow = static_cast<int>(TopicMetricsWindow::kDefaultWindowSize);
+
 }  // namespace
 
 CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, FieldType fieldType, QString field, bool labelFromZero)
@@ -56,6 +67,8 @@ CurveAxisConfig::CurveAxisConfig(QObject* parent, QString topic, QString type, F
       type_(std::move(type)),
       fieldType_(fieldType),
       field_(std::move(field)),
+      topicMetric_(rqt_multiplot::TopicMetric::Rate),
+      topicMetricWindow_(kDefaultTopicMetricWindow),
       labelFromZero_(labelFromZero),
       unitConversion_(None),
       scaleConfig_(new CurveAxisScaleConfig(this)) {
@@ -155,6 +168,34 @@ const QString& CurveAxisConfig::getDiagnosticHardwareId() const {
   return diagnosticHardwareId_;
 }
 
+void CurveAxisConfig::setTopicMetric(rqt_multiplot::TopicMetric metric) {
+  if (metric != topicMetric_) {
+    topicMetric_ = metric;
+
+    emit topicMetricChanged(static_cast<int>(metric));
+    emit changed();
+  }
+}
+
+rqt_multiplot::TopicMetric CurveAxisConfig::getTopicMetric() const {
+  return topicMetric_;
+}
+
+void CurveAxisConfig::setTopicMetricWindow(int window) {
+  const int clamped =
+      std::clamp(window, static_cast<int>(TopicMetricsWindow::kMinWindowSize), static_cast<int>(TopicMetricsWindow::kMaxWindowSize));
+  if (clamped != topicMetricWindow_) {
+    topicMetricWindow_ = clamped;
+
+    emit topicMetricWindowChanged(clamped);
+    emit changed();
+  }
+}
+
+int CurveAxisConfig::getTopicMetricWindow() const {
+  return topicMetricWindow_;
+}
+
 void CurveAxisConfig::setLabelFromZero(bool labelFromZero) {
   if (labelFromZero != labelFromZero_) {
     labelFromZero_ = labelFromZero;
@@ -194,7 +235,7 @@ double CurveAxisConfig::conversionFactor(UnitConversion unitConversion) {
 }
 
 double CurveAxisConfig::convertValue(double value) const {
-  if (fieldType_ == ArrayIndex || isTimeSource()) {
+  if (fieldType_ == ArrayIndex || fieldType_ == TopicMetric || isTimeSource()) {
     return value;
   }
   return value * conversionFactor(unitConversion_);
@@ -205,14 +246,14 @@ bool CurveAxisConfig::isTimeFieldPath(const QString& field) {
 }
 
 bool CurveAxisConfig::usesTimeScale() const {
-  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue) {
+  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue || fieldType_ == TopicMetric) {
     return false;
   }
   return labelFromZero_ || (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
 }
 
 bool CurveAxisConfig::isTimeSource() const {
-  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue) {
+  if (fieldType_ == ArrayIndex || fieldType_ == DiagnosticValue || fieldType_ == TopicMetric) {
     return false;
   }
   return (fieldType_ == MessageReceiptTime) || (fieldType_ == MessageData && isTimeFieldPath(field_));
@@ -222,7 +263,7 @@ bool CurveAxisConfig::hasConfiguredSource() const {
   if (fieldType_ == DiagnosticValue) {
     return !diagnosticStatus_.isEmpty() && !diagnosticKey_.isEmpty();
   }
-  return fieldType_ == MessageReceiptTime || fieldType_ == ArrayIndex || !field_.isEmpty();
+  return fieldType_ == MessageReceiptTime || fieldType_ == ArrayIndex || fieldType_ == TopicMetric || !field_.isEmpty();
 }
 
 QString CurveAxisConfig::getFieldLabel() const {
@@ -231,6 +272,9 @@ QString CurveAxisConfig::getFieldLabel() const {
   }
   if (fieldType_ == ArrayIndex) {
     return QStringLiteral("index");
+  }
+  if (fieldType_ == TopicMetric) {
+    return QString::fromLatin1(topicMetricName(topicMetric_));
   }
   if (fieldType_ == DiagnosticValue) {
     const QString label = diagnosticStatus_ + QLatin1Char('/') + diagnosticKey_;
@@ -254,6 +298,8 @@ void CurveAxisConfig::save(QSettings& settings) const {
   settings.setValue("diagnostic_status", diagnosticStatus_);
   settings.setValue("diagnostic_key", diagnosticKey_);
   settings.setValue("diagnostic_hardware_id", diagnosticHardwareId_);
+  settings.setValue("topic_metric", QString::fromLatin1(topicMetricName(topicMetric_)));
+  settings.setValue("topic_metric_window", topicMetricWindow_);
   settings.setValue("label_from_zero", labelFromZero_);
   settings.setValue("unit_conversion", unitConversion_);
 
@@ -271,6 +317,8 @@ void CurveAxisConfig::load(QSettings& settings) {
   setDiagnosticStatus(settings.value("diagnostic_status").toString());
   setDiagnosticKey(settings.value("diagnostic_key").toString());
   setDiagnosticHardwareId(settings.value("diagnostic_hardware_id").toString());
+  setTopicMetric(topicMetricFromName(settings.value("topic_metric").toString().toStdString()).value_or(rqt_multiplot::TopicMetric::Rate));
+  setTopicMetricWindow(settings.value("topic_metric_window", kDefaultTopicMetricWindow).toInt());
   setLabelFromZero(settings.value("label_from_zero", fieldType == MessageReceiptTime).toBool());
   setUnitConversion(parseUnitConversion(settings.value("unit_conversion", None).toInt()));
 
@@ -287,6 +335,8 @@ void CurveAxisConfig::reset() {
   setDiagnosticStatus(QString());
   setDiagnosticKey(QString());
   setDiagnosticHardwareId(QString());
+  setTopicMetric(rqt_multiplot::TopicMetric::Rate);
+  setTopicMetricWindow(kDefaultTopicMetricWindow);
   setLabelFromZero(false);
   setUnitConversion(None);
 
@@ -301,6 +351,8 @@ void CurveAxisConfig::write(QDataStream& stream) const {
   stream << diagnosticStatus_;
   stream << diagnosticKey_;
   stream << diagnosticHardwareId_;
+  stream << static_cast<int>(topicMetric_);
+  stream << topicMetricWindow_;
   stream << labelFromZero_;
   stream << static_cast<int>(unitConversion_);
 
@@ -315,6 +367,8 @@ void CurveAxisConfig::read(QDataStream& stream) {
   QString diagnosticKey;
   QString diagnosticHardwareId;
   int fieldType = 0;
+  int topicMetric = 0;
+  int topicMetricWindow = 0;
   bool labelFromZero = false;
   int unitConversion = 0;
 
@@ -332,6 +386,10 @@ void CurveAxisConfig::read(QDataStream& stream) {
   setDiagnosticKey(diagnosticKey);
   stream >> diagnosticHardwareId;
   setDiagnosticHardwareId(diagnosticHardwareId);
+  stream >> topicMetric;
+  setTopicMetric(parseTopicMetric(topicMetric));
+  stream >> topicMetricWindow;
+  setTopicMetricWindow(topicMetricWindow);
   stream >> labelFromZero;
   setLabelFromZero(labelFromZero);
   stream >> unitConversion;
@@ -352,6 +410,8 @@ CurveAxisConfig& CurveAxisConfig::operator=(const CurveAxisConfig& src) {
   setDiagnosticStatus(src.diagnosticStatus_);
   setDiagnosticKey(src.diagnosticKey_);
   setDiagnosticHardwareId(src.diagnosticHardwareId_);
+  setTopicMetric(src.topicMetric_);
+  setTopicMetricWindow(src.topicMetricWindow_);
   setLabelFromZero(src.labelFromZero_);
   setUnitConversion(src.unitConversion_);
 

@@ -34,10 +34,12 @@ constexpr int kTypeRole = Qt::UserRole + 5;
 constexpr int kDiagnosticStatusRole = Qt::UserRole + 6;
 constexpr int kDiagnosticHardwareIdRole = Qt::UserRole + 7;
 constexpr int kDiagnosticKeyRole = Qt::UserRole + 8;
+constexpr int kTopicMetricRole = Qt::UserRole + 9;
 constexpr QRgb kErrorColor = 0xc62828;
 
 // Field names cannot start with '#', so these paths never collide with message field paths.
 const QString kDiagnosticsPath = QStringLiteral("#diagnostics");
+const QString kTopicMetricsPath = QStringLiteral("#metrics");
 
 constexpr int kLeadingColumnShareNumerator = 2;
 constexpr int kLeadingColumnShareDenominator = 3;
@@ -80,8 +82,10 @@ QVector<TopicFieldRef> withoutDuplicates(const QVector<TopicFieldRef>& refs) {
   QVector<TopicFieldRef> unique;
   QSet<QString> seen;
   for (const auto& ref : refs) {
-    const QString id = QStringList({ref.topic, ref.type, ref.field, ref.diagnostic.status, ref.diagnostic.hardwareId, ref.diagnostic.key})
-                           .join(QLatin1Char('\n'));
+    const QString metric = ref.metric ? QString::number(static_cast<int>(*ref.metric)) : QString();
+    const QString id =
+        QStringList({ref.topic, ref.type, ref.field, ref.diagnostic.status, ref.diagnostic.hardwareId, ref.diagnostic.key, metric})
+            .join(QLatin1Char('\n'));
     if (!seen.contains(id)) {
       seen.insert(id);
       unique.append(ref);
@@ -195,7 +199,7 @@ void TopicFieldTreeWidget::setTopicDefinition(const QString& key, const MessageF
   }
 
   item->setData(0, kDefinitionRole, QVariant::fromValue(definition));
-  setDraggable(item, !plottableLeaves(definition, QString()).isEmpty());
+  setDraggable(item, true);
   buildTopicFields(item);
   item->setExpanded(true);
 }
@@ -232,7 +236,53 @@ void TopicFieldTreeWidget::buildTopicFields(QTreeWidgetItem* root) {
     const auto keysIt = diagnosticKeys_.constFind(key);
     addDiagnosticValues(root, (keysIt != diagnosticKeys_.constEnd()) ? &keysIt.value() : nullptr);
   }
+  addTopicMetrics(root, hasHeaderStamp(definition));
   restoreExpandedPaths(root, expandedPaths);
+}
+
+void TopicFieldTreeWidget::addTopicMetrics(QTreeWidgetItem* root, bool withDelay) {
+  auto* group = new QTreeWidgetItem(root);
+  group->setText(0, tr("Topic metrics"));
+  group->setData(0, kKindRole, TopicMetricGroup);
+  group->setData(0, kPathRole, kTopicMetricsPath);
+  setDraggable(group, true);
+
+  const QString topic = root->data(0, kTopicRole).toString();
+  const QString type = root->data(0, kTypeRole).toString();
+  for (const auto& ref : topicMetricRefs(topic, type, withDelay)) {
+    auto* item = new QTreeWidgetItem(group);
+    item->setText(0, QString::fromUtf8(topicMetricName(*ref.metric)));
+    item->setToolTip(0, QString::fromUtf8(topicMetricLabel(*ref.metric)));
+    item->setData(0, kKindRole, TopicMetricLeaf);
+    item->setData(0, kTopicMetricRole, static_cast<int>(*ref.metric));
+    setDraggable(item, true);
+  }
+}
+
+QVector<TopicFieldRef> TopicFieldTreeWidget::rootFieldRefsOf(const QTreeWidgetItem* root) {
+  const QString topic = root->data(0, kTopicRole).toString();
+  const QString type = root->data(0, kTypeRole).toString();
+  QVector<TopicFieldRef> refs;
+  for (const QString& field : plottableFields(root->data(0, kDefinitionRole).value<MessageFieldType>(), QString())) {
+    refs.append({topic, type, field});
+  }
+  return refs;
+}
+
+QVector<TopicFieldRef> TopicFieldTreeWidget::topicMetricRefsOf(const QTreeWidgetItem* root) {
+  for (int i = 0; i < root->childCount(); ++i) {
+    const QTreeWidgetItem* group = root->child(i);
+    if (group->data(0, kKindRole).toInt() != TopicMetricGroup) {
+      continue;
+    }
+    QVector<TopicFieldRef> refs;
+    for (int j = 0; j < group->childCount(); ++j) {
+      refs.append(TopicFieldRef::forMetric(root->data(0, kTopicRole).toString(), root->data(0, kTypeRole).toString(),
+                                           static_cast<TopicMetric>(group->child(j)->data(0, kTopicMetricRole).toInt())));
+    }
+    return refs;
+  }
+  return {};
 }
 
 void TopicFieldTreeWidget::addDiagnosticValues(QTreeWidgetItem* root, const QVector<DiagnosticKeyRef>* keys) {
@@ -340,6 +390,12 @@ void TopicFieldTreeWidget::appendItemRefs(QTreeWidgetItem* item, bool expandArra
     case DiagnosticKey:
       refs.append({topic, type, QString(), diagnosticRefOf(item)});
       break;
+    case TopicMetricGroup:
+      refs.append(topicMetricRefsOf(root));
+      break;
+    case TopicMetricLeaf:
+      refs.append(TopicFieldRef::forMetric(topic, type, static_cast<TopicMetric>(item->data(0, kTopicMetricRole).toInt())));
+      break;
     default:
       break;
   }
@@ -376,12 +432,17 @@ QMimeData* TopicFieldTreeWidget::mimeData(const QList<QTreeWidgetItem*>& items) 
 #else
 QMimeData* TopicFieldTreeWidget::mimeData(const QList<QTreeWidgetItem*> items) const {
 #endif
-  const QVector<TopicFieldRef> refs = refsForItems(items);
-  if (refs.isEmpty()) {
+  const bool isSingleRoot = (items.count() == 1) && (items.first()->parent() == nullptr);
+  const QVector<TopicFieldRef> refs = isSingleRoot ? rootFieldRefsOf(items.first()) : refsForItems(items);
+  const QVector<TopicFieldRef> rootMetrics = isSingleRoot ? topicMetricRefsOf(items.first()) : QVector<TopicFieldRef>();
+  if (refs.isEmpty() && rootMetrics.isEmpty()) {
     return nullptr;
   }
   auto* data = new QMimeData();
   data->setData(kTopicFieldsMimeType, encodeTopicFields(refs));
+  if (isSingleRoot) {
+    data->setData(kTopicRootMimeType, encodeTopicFields(rootMetrics));
+  }
   const QVector<TopicFieldRef> expanded = expandedRefsForItems(items);
   if (expanded != refs) {
     data->setData(kTopicFieldsExpandedMimeType, encodeTopicFields(expanded));

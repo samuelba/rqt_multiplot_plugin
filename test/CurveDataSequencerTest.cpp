@@ -14,6 +14,7 @@
 #include "rqt_multiplot/CurveConfig.hpp"
 #include "rqt_multiplot/CurveDataSequencer.hpp"
 #include "rqt_multiplot/Message.hpp"
+#include "rqt_multiplot/MessageBroker.hpp"
 #include "rqt_multiplot/MessageFieldAccess.hpp"
 
 namespace {
@@ -385,6 +386,153 @@ TEST(CurveDataSequencer, diagnosticHardwareIdSelectsMatchingStatus) {
   config.getAxisConfig(CurveConfig::Y)->setDiagnosticHardwareId("missing");
   ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", message));
   EXPECT_EQ(count, 1);
+}
+
+constexpr int64_t kNsPerMs = 1000000;
+
+Message stampedMetricMessage(int64_t receiptNs, int64_t stampNs, size_t bytes) {
+  auto compound = createMessagePrototype("geometry_msgs/msg/PoseStamped");
+  (*compound)["header"]["stamp"] = rclcpp::Time(stampNs, RCL_ROS_TIME);
+  Message message;
+  message.setCompound(compound);
+  message.setReceiptTime(rclcpp::Time(receiptNs, RCL_ROS_TIME));
+  message.setSerializedSize(bytes);
+  return message;
+}
+
+Message unstampedMetricMessage(int64_t receiptNs) {
+  Message message;
+  message.setCompound(createMessagePrototype("std_msgs/msg/Float64"));
+  message.setReceiptTime(rclcpp::Time(receiptNs, RCL_ROS_TIME));
+  return message;
+}
+
+void configureMetricCurve(CurveConfig& config, rqt_multiplot::TopicMetric metric) {
+  config.getAxisConfig(CurveConfig::X)->setTopic("/metric");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/metric");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageReceiptTime);
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::TopicMetric);
+  config.getAxisConfig(CurveConfig::Y)->setTopicMetric(metric);
+}
+
+class FakeBroker : public rqt_multiplot::MessageBroker {
+ public:
+  bool subscribe(const QString& /*topic*/, QObject* /*receiver*/, const char* /*method*/, const PropertyMap& /*properties*/,
+                 Qt::ConnectionType /*type*/) override {
+    return true;
+  }
+  bool unsubscribe(const QString& /*topic*/, QObject* /*receiver*/, const char* /*method*/) override { return true; }
+};
+
+TEST(CurveDataSequencer, topicRateIsThrottledByMessageTime) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::Rate);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+
+  QVector<QPointF> points;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF& point) { points.append(point); });
+
+  for (int i = 0; i <= 100; ++i) {
+    ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(i * 10 * kNsPerMs)));
+  }
+
+  ASSERT_EQ(points.size(), 10);
+  EXPECT_DOUBLE_EQ(points.front().x(), 0.01);
+  EXPECT_NEAR(points.front().y(), 100.0, 1e-9);
+  EXPECT_NEAR(points.back().y(), 100.0, 1e-9);
+  EXPECT_NEAR(points[1].x() - points[0].x(), 0.1, 1e-9);
+}
+
+TEST(CurveDataSequencer, topicMetricEmitsNothingBeforeTwoMessages) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::Rate);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  int count = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF&) { ++count; });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(0)));
+
+  EXPECT_EQ(count, 0);
+}
+
+TEST(CurveDataSequencer, topicDelayUsesHeaderStamp) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::DelayMean);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  QPointF point;
+  int count = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF& received) {
+    point = received;
+    ++count;
+  });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", stampedMetricMessage(1000 * kNsPerMs, 980 * kNsPerMs, 0)));
+
+  ASSERT_EQ(count, 1);
+  EXPECT_DOUBLE_EQ(point.x(), 1.0);
+  EXPECT_NEAR(point.y(), 0.02, 1e-12);
+}
+
+TEST(CurveDataSequencer, topicDelayEmitsNothingWithoutHeader) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::DelayMean);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  int count = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF&) { ++count; });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(0)));
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(200 * kNsPerMs)));
+
+  EXPECT_EQ(count, 0);
+}
+
+TEST(CurveDataSequencer, topicBandwidthUsesSerializedSize) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::Bandwidth);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  QPointF point;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF& received) { point = received; });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", stampedMetricMessage(0, 0, 500)));
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", stampedMetricMessage(500 * kNsPerMs, 0, 500)));
+
+  EXPECT_DOUBLE_EQ(point.y(), 1000.0);
+}
+
+TEST(CurveDataSequencer, topicMetricRequiresSameTopic) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::Rate);
+  EXPECT_TRUE(CurveDataSequencer::topicMetricIncompatibilityReason(config).isEmpty());
+
+  config.getAxisConfig(CurveConfig::X)->setTopic("/other");
+  EXPECT_FALSE(CurveDataSequencer::topicMetricIncompatibilityReason(config).isEmpty());
+
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::MessageData);
+  EXPECT_TRUE(CurveDataSequencer::topicMetricIncompatibilityReason(config).isEmpty());
+}
+
+TEST(CurveDataSequencer, topicMetricWindowResetsOnResubscribe) {
+  CurveConfig config;
+  configureMetricCurve(config, rqt_multiplot::TopicMetric::Rate);
+  FakeBroker broker;
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  sequencer.setBroker(&broker);
+  sequencer.subscribe();
+  int count = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF&) { ++count; });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(0)));
+  sequencer.unsubscribe();
+  sequencer.subscribe();
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", unstampedMetricMessage(200 * kNsPerMs)));
+
+  EXPECT_EQ(count, 0);
 }
 
 TEST(CurveDataSequencer, arrayIndexAxisIsNotConverted) {

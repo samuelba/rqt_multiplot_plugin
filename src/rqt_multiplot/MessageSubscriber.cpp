@@ -16,8 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
-#include <chrono>
-#include <utility>
+#include <string>
 
 #include <QApplication>
 
@@ -29,52 +28,16 @@
 
 namespace {
 
-// Rolling passes the callback group through SubscriptionOptions. Older releases still take it as its own argument.
-template <typename Callback>
-auto createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node, const std::string& topic, const rclcpp::QoS& qos,
-                             Callback&& callback, std::chrono::nanoseconds timeout, int /*preferNewApi*/)
-    -> decltype(fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{}, timeout)) {
-  return fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{}, timeout);
-}
-
-template <typename Callback>
-ros_babel_fish::BabelFishSubscription::SharedPtr createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
-                                                                         const std::string& topic, const rclcpp::QoS& qos,
-                                                                         Callback&& callback, std::chrono::nanoseconds timeout,
-                                                                         long /*preferLegacyApi*/) {
-  return fish.create_subscription(node, topic, qos, std::forward<Callback>(callback), nullptr, {}, timeout);
-}
-
-template <typename Callback>
-ros_babel_fish::BabelFishSubscription::SharedPtr createTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
-                                                                         const std::string& topic, const rclcpp::QoS& qos,
-                                                                         Callback&& callback, std::chrono::nanoseconds timeout) {
-  return createTopicSubscription(fish, node, topic, qos, std::forward<Callback>(callback), timeout, 0);
-}
-
-template <typename Callback>
-auto createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node, const std::string& topic, const std::string& type,
-                                  const rclcpp::QoS& qos, Callback&& callback, int /*preferNewApi*/)
-    -> decltype(fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{})) {
-  return fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), rclcpp::SubscriptionOptions{});
-}
-
-template <typename Callback>
-ros_babel_fish::BabelFishSubscription::SharedPtr createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
-                                                                              const std::string& topic, const std::string& type,
-                                                                              const rclcpp::QoS& qos, Callback&& callback,
-                                                                              long /*preferLegacyApi*/) {
-  return fish.create_subscription(node, topic, type, qos, std::forward<Callback>(callback), nullptr, {});
-}
-
-template <typename Callback>
-ros_babel_fish::BabelFishSubscription::SharedPtr createTypedTopicSubscription(ros_babel_fish::BabelFish& fish, rclcpp::Node& node,
-                                                                              const std::string& topic, const std::string& type,
-                                                                              const rclcpp::QoS& qos, Callback&& callback) {
-  return createTypedTopicSubscription(fish, node, topic, type, qos, std::forward<Callback>(callback), 0);
-}
-
 constexpr int kSubscribeRetryIntervalMs = 1000;
+
+std::string discoverTopicType(rclcpp::Node& node, const std::string& resolvedTopic) {
+  const auto topics = node.get_topic_names_and_types();
+  const auto it = topics.find(resolvedTopic);
+  if (it == topics.end() || it->second.empty()) {
+    return {};
+  }
+  return it->second.front();
+}
 
 }  // namespace
 
@@ -99,6 +62,7 @@ void MessageSubscriber::setTopic(const QString& topic) {
   if (topic != topic_) {
     topic_ = topic;
     hasReportedError_ = false;
+    hasReportedDeserializeError_ = false;
     resubscribe();
   }
 }
@@ -107,6 +71,7 @@ void MessageSubscriber::setMessageType(const QString& type) {
   if (type != messageType_) {
     messageType_ = type;
     hasReportedError_ = false;
+    hasReportedDeserializeError_ = false;
     resubscribe();
   }
 }
@@ -152,14 +117,17 @@ void MessageSubscriber::subscribe() {
     return;
   }
 
-  auto onMessage = [this](const ros_babel_fish::CompoundMessage& compound) { callback(compound); };
   try {
-    if (messageType_.isEmpty()) {
-      subscriber_ = createTopicSubscription(RosContext::fish(), *node, topic_.toStdString(), rclcpp::QoS(queueSize_), onMessage,
-                                            std::chrono::nanoseconds(0));
-    } else {
-      subscriber_ = createTypedTopicSubscription(RosContext::fish(), *node, topic_.toStdString(),
-                                                 normalizeTypeName(messageType_.toStdString()), rclcpp::QoS(queueSize_), onMessage);
+    const auto topics = node->get_node_topics_interface();
+    const std::string topic = topics->resolve_topic_name(topic_.toStdString());
+    const std::string type = messageType_.isEmpty() ? discoverTopicType(*node, topic) : normalizeTypeName(messageType_.toStdString());
+    if (!type.empty()) {
+      auto typeSupport = RosContext::fish().get_message_type_support(type);
+      auto onMessage = [this, typeSupport](const rclcpp::SerializedMessage& serialized) { callback(*typeSupport, serialized); };
+      auto subscription = std::make_shared<SerializedSubscription>(node->get_node_base_interface().get(), typeSupport, topic,
+                                                                   rclcpp::QoS(queueSize_), onMessage);
+      topics->add_subscription(subscription, nullptr);
+      subscriber_ = subscription;
     }
   } catch (const std::exception& ex) {
     subscriber_.reset();
@@ -208,11 +176,19 @@ void MessageSubscriber::unsubscribe() {
   }
 }
 
-void MessageSubscriber::callback(const ros_babel_fish::CompoundMessage& compound) {
+void MessageSubscriber::callback(const ros_babel_fish::MessageTypeSupport& typeSupport, const rclcpp::SerializedMessage& serialized) {
   Message message;
   auto node = RosContext::node();
   message.setReceiptTime(node ? node->now() : rclcpp::Clock(RCL_ROS_TIME).now());
-  message.setCompound(ros_babel_fish::CompoundMessage::make_shared(compound.clone()));
+  try {
+    message.setCompound(deserializeMessage(typeSupport, serialized));
+  } catch (const std::exception& ex) {
+    if (!hasReportedDeserializeError_.exchange(true)) {
+      qWarning("MessageSubscriber: cannot deserialize message on [%s]: %s", qPrintable(topic_), ex.what());
+    }
+    return;
+  }
+  message.setSerializedSize(serialized.size());
 
   auto* messageEvent = new MessageEvent(topic_, message);
 

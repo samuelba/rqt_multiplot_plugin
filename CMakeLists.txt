@@ -125,6 +125,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CheatsheetDialog.cpp
   src/rqt_multiplot/DataStatisticsDialog.cpp
   src/rqt_multiplot/ArrayDropDialog.cpp
+  src/rqt_multiplot/TopicDropDialog.cpp
   src/rqt_multiplot/DataTypeRegistry.cpp
   src/rqt_multiplot/DiagnosticKeySampler.cpp
   src/rqt_multiplot/FileScheme.cpp
@@ -202,12 +203,14 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/runtime_types/RuntimeTypeSupportProvider.cpp
   src/rqt_multiplot/runtime_types/TypeDescriptionClient.cpp
   src/rqt_multiplot/runtime_types/TypeDescriptionModel.cpp
+  src/rqt_multiplot/SerializedSubscription.cpp
   src/rqt_multiplot/SnapshotHistory.cpp
   src/rqt_multiplot/StatusWidget.cpp
   src/rqt_multiplot/TimeZoneUtil.cpp
   src/rqt_multiplot/TopicBrowserWidget.cpp
   src/rqt_multiplot/TopicFieldMime.cpp
   src/rqt_multiplot/TopicFieldTreeWidget.cpp
+  src/rqt_multiplot/TopicMetrics.cpp
   src/rqt_multiplot/TopicSampleLoader.cpp
   src/rqt_multiplot/UserPreferences.cpp
   src/rqt_multiplot/ThreadedTimer.cpp
@@ -255,6 +258,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/CurveValuesWidget.hpp
   include/rqt_multiplot/CheatsheetDialog.hpp
   include/rqt_multiplot/ArrayDropDialog.hpp
+  include/rqt_multiplot/TopicDropDialog.hpp
   include/rqt_multiplot/DataTypeRegistry.hpp
   include/rqt_multiplot/DiagnosticKeySampler.hpp
   include/rqt_multiplot/FileScheme.hpp
@@ -535,6 +539,7 @@ if(BUILD_TESTING)
     test/TimeZoneUtilTest.cpp
     test/TopicBrowserWidgetTest.cpp
     test/TopicFieldMimeTest.cpp
+    test/TopicMetricsTest.cpp
     test/TopicSampleLoaderTest.cpp
     test/UserPreferencesTest.cpp
     test/UrlComboBoxTest.cpp

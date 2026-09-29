@@ -75,6 +75,7 @@
 #include "rqt_multiplot/PlotZoomer.hpp"
 #include "rqt_multiplot/Theme.hpp"
 #include "rqt_multiplot/TimeZoneUtil.hpp"
+#include "rqt_multiplot/TopicDropDialog.hpp"
 
 #include <ui_PlotWidget.h>
 
@@ -1019,6 +1020,9 @@ void PlotWidget::dropEvent(QDropEvent* event) {
 
 bool PlotWidget::chooseDroppedTopicFields(const QMimeData* mimeData, QVector<TopicFieldRef>& refs) {
   refs = decodeTopicFields(mimeData->data(kTopicFieldsMimeType));
+  if (mimeData->hasFormat(kTopicRootMimeType)) {
+    return TopicDropDialog::ask(this, refs, decodeTopicFields(mimeData->data(kTopicRootMimeType)), refs);
+  }
   const QVector<TopicFieldRef> expanded = mimeData->hasFormat(kTopicFieldsExpandedMimeType)
                                               ? decodeTopicFields(mimeData->data(kTopicFieldsExpandedMimeType))
                                               : QVector<TopicFieldRef>();

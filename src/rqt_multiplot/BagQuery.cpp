@@ -45,6 +45,7 @@ void BagQuery::callback(const QString& topic, const QString& type, const rclcpp:
   Message message;
   message.setReceiptTime(time);
   message.setCompound(deserializeMessage(type.toStdString(), serialized));
+  message.setSerializedSize(serialized.size());
 
   auto* messageEvent = new MessageEvent(topic, message);
 

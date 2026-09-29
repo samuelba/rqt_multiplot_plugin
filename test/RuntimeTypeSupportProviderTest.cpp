@@ -18,6 +18,7 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 
 #include "rqt_multiplot/MessageFieldAccess.hpp"
+#include "rqt_multiplot/SerializedSubscription.hpp"
 #include "rqt_multiplot/runtime_types/RuntimeTypeSupportProvider.hpp"
 #include "rqt_multiplot/runtime_types/TypeDescriptionModel.hpp"
 
@@ -138,6 +139,52 @@ TEST_F(RuntimeTypeSupportProviderTest, decodesTypeFetchedFromPublisher) {
   const std::lock_guard<std::mutex> lock(mutex);
   EXPECT_EQ((std::vector<double>{0.25, -2.5}), positions);
   EXPECT_EQ(message.header.frame_id, frameId);
+}
+
+TEST_F(RuntimeTypeSupportProviderTest, serializedSubscriptionDecodesTypeFetchedFromPublisher) {
+  const std::string topic = "/runtime_types/serialized_joint_state";
+  auto publisher = publisherNode_->create_publisher<sensor_msgs::msg::JointState>(topic, 10);
+  ASSERT_TRUE(waitFor([&] { return listenerNode_->count_publishers(topic) > 0; }));
+
+  const auto typeSupport = fish_->get_message_type_support("sensor_msgs/msg/JointState");
+  ASSERT_NE(nullptr, typeSupport);
+
+  struct Received {
+    std::mutex mutex;
+    std::vector<double> positions;
+    size_t serializedSize = 0;
+    std::atomic<bool> done{false};
+  };
+  // The spin thread can still run the callback after the test body returns.
+  auto state = std::make_shared<Received>();
+  auto subscription = std::make_shared<rqt_multiplot::SerializedSubscription>(
+      listenerNode_->get_node_base_interface().get(), typeSupport, topic, rclcpp::QoS(10),
+      [state, typeSupport](const rclcpp::SerializedMessage& serialized) {
+        const auto message = rqt_multiplot::deserializeMessage(*typeSupport, serialized);
+        double first = 0.0;
+        double second = 0.0;
+        if (!rqt_multiplot::tryGetNumericValue(*message, "position/0", first) ||
+            !rqt_multiplot::tryGetNumericValue(*message, "position/1", second)) {
+          return;
+        }
+        const std::lock_guard<std::mutex> lock(state->mutex);
+        state->positions = {first, second};
+        state->serializedSize = serialized.size();
+        state->done = true;
+      });
+  listenerNode_->get_node_topics_interface()->add_subscription(subscription, nullptr);
+
+  sensor_msgs::msg::JointState message;
+  message.name = {"pan", "tilt"};
+  message.position = {0.5, -1.25};
+  ASSERT_TRUE(waitFor([&] {
+    publisher->publish(message);
+    return state->done.load();
+  }));
+
+  const std::lock_guard<std::mutex> lock(state->mutex);
+  EXPECT_EQ((std::vector<double>{0.5, -1.25}), state->positions);
+  EXPECT_GT(state->serializedSize, 0u);
 }
 
 TEST_F(RuntimeTypeSupportProviderTest, decodesRegisteredDescriptionWithoutPublisher) {

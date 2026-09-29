@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QHeaderView>
 #include <QImage>
+#include <QListWidget>
 #include <QMimeData>
 #include <QPainter>
 #include <QStyle>
@@ -19,6 +20,7 @@
 #include "rqt_multiplot/MessageTopicRegistry.hpp"
 #include "rqt_multiplot/Theme.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
+#include "rqt_multiplot/TopicDropDialog.hpp"
 #include "rqt_multiplot/TopicFieldMime.hpp"
 #include "rqt_multiplot/TopicFieldTreeWidget.hpp"
 
@@ -29,6 +31,7 @@ using rqt_multiplot::MessageDefinitionLoader;
 using rqt_multiplot::MessageFieldType;
 using rqt_multiplot::Theme;
 using rqt_multiplot::TopicBrowserWidget;
+using rqt_multiplot::TopicDropDialog;
 using rqt_multiplot::TopicFieldRef;
 using rqt_multiplot::TopicFieldTreeWidget;
 
@@ -326,6 +329,20 @@ TEST(TopicBrowserWidget, darkThemeCheckboxBorderIsVisible) {
   Theme::apply(&browser, Theme::Id::Light);
 }
 
+TEST(TopicDropDialog, darkThemeCheckboxBorderIsVisible) {
+  ensureApplication();
+  Theme::apply(nullptr, Theme::Id::Dark);
+  TopicDropDialog dialog(nullptr, {{"/pose", "test/msg/Pose", "x"}}, rqt_multiplot::topicMetricRefs("/pose", "test/msg/Pose", false));
+  auto* metrics = dialog.findChild<QListWidget*>("topicDropMetricsList");
+  ASSERT_NE(metrics, nullptr);
+
+  const QImage image = renderUncheckedIndicator(metrics->viewport(), Theme::palette(Theme::Id::Dark));
+
+  EXPECT_EQ(dialog.palette().color(QPalette::Window), Theme::palette(Theme::Id::Dark).color(QPalette::Window));
+  EXPECT_GE(brightestGray(image), 180);
+  Theme::apply(nullptr, Theme::Id::Light);
+}
+
 TEST(TopicBrowserWidget, lightThemeCheckboxKeepsLightFill) {
   ensureApplication();
   TopicBrowserWidget browser;
@@ -375,6 +392,103 @@ TEST(TopicFieldTreeWidget, topicNodeDragsAllNumericLeaves) {
   tree.setTopicDefinition("live:/pose", poseMessage());
 
   EXPECT_EQ(TopicFieldTreeWidget::refsForItems({tree.topicItem("live:/pose")}).count(), 3);
+}
+
+class MimeTree : public TopicFieldTreeWidget {
+ public:
+  using TopicFieldTreeWidget::mimeData;
+};
+
+MessageFieldType stampedPointMessage() {
+  MessageFieldType stamp = scalar(true);
+  stamp.identifier = "builtin_interfaces/Time";
+  MessageFieldType header;
+  header.kind = MessageFieldType::Compound;
+  header.identifier = "std_msgs/Header";
+  header.members = {{"stamp", stamp}, {"frame_id", scalar(false)}};
+  MessageFieldType message;
+  message.kind = MessageFieldType::Compound;
+  message.identifier = "geometry_msgs/PointStamped";
+  message.members = {{"header", header}, {"point", pointMessage()}};
+  return message;
+}
+
+TEST(TopicFieldTreeWidget, topicMetricsGroupOffersDelayOnlyWithHeader) {
+  ensureApplication();
+  TopicFieldTreeWidget tree;
+  tree.addTopic("live:/pose", "/pose", "test/msg/Pose", false);
+  tree.setTopicDefinition("live:/pose", poseMessage());
+  tree.addTopic("live:/point", "/point", "geometry_msgs/msg/PointStamped", false);
+  tree.setTopicDefinition("live:/point", stampedPointMessage());
+
+  QTreeWidgetItem* poseMetrics = childByText(tree.topicItem("live:/pose"), "Topic metrics");
+  QTreeWidgetItem* pointMetrics = childByText(tree.topicItem("live:/point"), "Topic metrics");
+  ASSERT_NE(poseMetrics, nullptr);
+  ASSERT_NE(pointMetrics, nullptr);
+  EXPECT_NE(childByText(poseMetrics, "rate"), nullptr);
+  EXPECT_NE(childByText(poseMetrics, "bandwidth"), nullptr);
+  EXPECT_EQ(childByText(poseMetrics, "delay_mean"), nullptr);
+  EXPECT_NE(childByText(pointMetrics, "delay_mean"), nullptr);
+  EXPECT_EQ(pointMetrics->childCount(), rqt_multiplot::kTopicMetricCount);
+}
+
+TEST(TopicFieldTreeWidget, metricLeafAndGroupGiveMetricRefs) {
+  ensureApplication();
+  TopicFieldTreeWidget tree;
+  tree.addTopic("live:/pose", "/pose", "test/msg/Pose", false);
+  tree.setTopicDefinition("live:/pose", poseMessage());
+  QTreeWidgetItem* metrics = childByText(tree.topicItem("live:/pose"), "Topic metrics");
+  ASSERT_NE(metrics, nullptr);
+  QTreeWidgetItem* rate = childByText(metrics, "rate");
+  ASSERT_NE(rate, nullptr);
+  EXPECT_TRUE(rate->flags().testFlag(Qt::ItemIsDragEnabled));
+  EXPECT_TRUE(metrics->flags().testFlag(Qt::ItemIsDragEnabled));
+
+  const QVector<TopicFieldRef> rateRefs = TopicFieldTreeWidget::refsForItems({rate});
+  ASSERT_EQ(rateRefs.count(), 1);
+  EXPECT_EQ(rateRefs[0], TopicFieldRef::forMetric("/pose", "test/msg/Pose", rqt_multiplot::TopicMetric::Rate));
+
+  EXPECT_EQ(TopicFieldTreeWidget::refsForItems({metrics, rate}), rqt_multiplot::topicMetricRefs("/pose", "test/msg/Pose", false));
+}
+
+TEST(TopicFieldTreeWidget, topicRootDragCarriesFieldsAndOfferedMetrics) {
+  ensureApplication();
+  MimeTree tree;
+  tree.addTopic("live:/pose", "/pose", "test/msg/Pose", false);
+  tree.setTopicDefinition("live:/pose", poseMessage());
+  QTreeWidgetItem* root = tree.topicItem("live:/pose");
+
+  const std::unique_ptr<QMimeData> rootData(tree.mimeData({root}));
+  const std::unique_ptr<QMimeData> fieldData(tree.mimeData({childByText(root, "position")}));
+
+  ASSERT_NE(rootData, nullptr);
+  ASSERT_TRUE(rootData->hasFormat(rqt_multiplot::kTopicRootMimeType));
+  EXPECT_EQ(rqt_multiplot::decodeTopicFields(rootData->data(rqt_multiplot::kTopicRootMimeType)),
+            rqt_multiplot::topicMetricRefs("/pose", "test/msg/Pose", false));
+  const QVector<TopicFieldRef> expectedFields = {{"/pose", "test/msg/Pose", "position/x"},
+                                                 {"/pose", "test/msg/Pose", "position/y"},
+                                                 {"/pose", "test/msg/Pose", "position/z"},
+                                                 {"/pose", "test/msg/Pose", "values/*"}};
+  EXPECT_EQ(rqt_multiplot::decodeTopicFields(rootData->data(rqt_multiplot::kTopicFieldsMimeType)), expectedFields);
+  ASSERT_NE(fieldData, nullptr);
+  EXPECT_FALSE(fieldData->hasFormat(rqt_multiplot::kTopicRootMimeType));
+}
+
+TEST(TopicFieldTreeWidget, topicWithoutNumericFieldsIsStillDraggableForMetrics) {
+  ensureApplication();
+  MessageFieldType message;
+  message.kind = MessageFieldType::Compound;
+  message.members = {{"data", scalar(false)}};
+  MimeTree tree;
+  tree.addTopic("live:/chatter", "/chatter", "std_msgs/msg/String", false);
+  tree.setTopicDefinition("live:/chatter", message);
+  QTreeWidgetItem* root = tree.topicItem("live:/chatter");
+
+  EXPECT_TRUE(root->flags().testFlag(Qt::ItemIsDragEnabled));
+  const std::unique_ptr<QMimeData> data(tree.mimeData({root}));
+  ASSERT_NE(data, nullptr);
+  EXPECT_TRUE(rqt_multiplot::decodeTopicFields(data->data(rqt_multiplot::kTopicFieldsMimeType)).isEmpty());
+  EXPECT_FALSE(rqt_multiplot::decodeTopicFields(data->data(rqt_multiplot::kTopicRootMimeType)).isEmpty());
 }
 
 TEST(TopicFieldTreeWidget, fixedArrayListsIndexedElementsFromDefinition) {
@@ -481,10 +595,6 @@ TEST_F(TopicFieldTreeArrayTest, expandedRefsFallBackToWildcardsForUnsampledArray
 }
 
 TEST_F(TopicFieldTreeArrayTest, mimeDataCarriesExpandedRefsOnlyForSampledArrays) {
-  class MimeTree : public TopicFieldTreeWidget {
-   public:
-    using TopicFieldTreeWidget::mimeData;
-  };
   MimeTree tree;
   MessageFieldType poses;
   poses.kind = MessageFieldType::Array;
