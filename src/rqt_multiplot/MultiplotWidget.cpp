@@ -111,6 +111,19 @@ QPushButton* createSideIconRail(QWidget* parent) {
   return button;
 }
 
+QKeySequence keySequence(int modifiers, int key) {
+  return QKeySequence(static_cast<int>(modifiers) | key);
+}
+
+QAction* addWidgetShortcut(QWidget* owner, QMenu* menu, const QString& text, const QString& objectName, const QKeySequence& sequence) {
+  QAction* action = (menu != nullptr) ? menu->addAction(text) : new QAction(owner);
+  action->setObjectName(objectName);
+  action->setShortcut(sequence);
+  action->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+  owner->addAction(action);
+  return action;
+}
+
 QAbstractButton* findDockCloseButton(QWidget* titleBar) {
   if (titleBar == nullptr) {
     return nullptr;
@@ -146,8 +159,10 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       guardedCloseButton_(nullptr),
       closePromptCompleted_(false),
       closePromptOpen_(false),
-      standaloneMenuInstalled_(false) {
+      standaloneMenuInstalled_(false),
+      initialFocusSet_(false) {
   ui_->setupUi(this);
+  setFocusPolicy(Qt::StrongFocus);
   setWindowIcon(applicationIcon());
 
   ui_->menuBar->setNativeMenuBar(false);
@@ -176,6 +191,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->plotTableConfigWidget->setPlotTabs(ui_->plotTabWidget);
   plotTabCurrentPlotTableChanged(ui_->plotTabWidget->getCurrentPlotTable());
   setupTopicBrowser();
+  setupShortcuts();
   setupHelpMenu();
 
   connect(ui_->configWidget, SIGNAL(currentConfigModifiedChanged(bool)), this, SLOT(configWidgetCurrentConfigModifiedChanged(bool)));
@@ -321,6 +337,10 @@ void MultiplotWidget::showEvent(QShowEvent* event) {
   installCloseGuard();
   installStandaloneMenu();
   QWidget::showEvent(event);
+  if (!initialFocusSet_) {
+    initialFocusSet_ = true;
+    setFocus(Qt::OtherFocusReason);
+  }
 }
 
 void MultiplotWidget::installStandaloneMenu() {
@@ -434,6 +454,108 @@ void MultiplotWidget::setupTopicBrowser() {
   connect(ui_->plotTabWidget, &PlotTabWidget::bagFilesImported, topicBrowser_, &TopicBrowserWidget::setBagFiles);
 
   applyTopicBrowserState();
+}
+
+void MultiplotWidget::setupShortcuts() {
+  QMenu* plotsMenu = ui_->menuBar->addMenu(tr("&Plots"));
+  plotsMenu->setObjectName(QStringLiteral("menuPlots"));
+
+  QAction* playPause =
+      addWidgetShortcut(this, plotsMenu, tr("Play / Pause"), QStringLiteral("actionTogglePlayPause"), QKeySequence(Qt::Key_Space));
+  setThemeIcon(playPause, QStringLiteral("resource/play.svg"), QSize(16, 16));
+  connect(playPause, &QAction::triggered, this, [this]() { ui_->plotTabWidget->togglePlots(); });
+
+  QAction* clearPlots = addWidgetShortcut(this, plotsMenu, tr("Clear plots"), QStringLiteral("actionClearPlots"),
+                                          keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_Delete));
+  setThemeIcon(clearPlots, QStringLiteral("resource/delete-data.svg"), QSize(16, 16));
+  connect(clearPlots, &QAction::triggered, this, [this]() { ui_->plotTabWidget->clearPlots(); });
+
+  QAction* resetZoom = addWidgetShortcut(this, plotsMenu, tr("Reset zoom"), QStringLiteral("actionResetZoom"), QKeySequence(Qt::Key_Home));
+  setThemeIcon(resetZoom, QStringLiteral("resource/zoom-reset.svg"), QSize(16, 16));
+  connect(resetZoom, &QAction::triggered, this, [this]() {
+    if (PlotTableWidget* table = ui_->plotTabWidget->getCurrentPlotTable()) {
+      table->resetZoom();
+    }
+  });
+
+  plotsMenu->addSeparator();
+
+  QAction* newTab = addWidgetShortcut(this, plotsMenu, tr("New tab"), QStringLiteral("actionNewTab"), keySequence(Qt::CTRL, Qt::Key_T));
+  setThemeIcon(newTab, QStringLiteral("resource/new-tab.svg"), QSize(16, 16));
+  connect(newTab, &QAction::triggered, ui_->plotTabWidget, &PlotTabWidget::addTab);
+
+  QAction* closeTab =
+      addWidgetShortcut(this, plotsMenu, tr("Close tab"), QStringLiteral("actionCloseTab"), keySequence(Qt::CTRL, Qt::Key_W));
+  setThemeIcon(closeTab, QStringLiteral("resource/close-tab.svg"), QSize(16, 16));
+  connect(closeTab, &QAction::triggered, this, [this]() {
+    if (config_->getNumTabs() <= 1) {
+      return;
+    }
+    ui_->plotTabWidget->closeTab(config_->getCurrentTabIndex());
+  });
+
+  const auto selectRelativeTab = [this](int offset) {
+    const size_t count = config_->getNumTabs();
+    if (count == 0) {
+      return;
+    }
+    const int wrapped = (static_cast<int>(config_->getCurrentTabIndex()) + offset) % static_cast<int>(count);
+    const auto index = static_cast<size_t>(wrapped < 0 ? wrapped + static_cast<int>(count) : wrapped);
+    config_->setCurrentTabIndex(index);
+  };
+
+  QAction* nextTab =
+      addWidgetShortcut(this, plotsMenu, tr("Next tab"), QStringLiteral("actionNextTab"), keySequence(Qt::CTRL, Qt::Key_PageDown));
+  connect(nextTab, &QAction::triggered, this, [selectRelativeTab]() { selectRelativeTab(1); });
+
+  QAction* previousTab =
+      addWidgetShortcut(this, plotsMenu, tr("Previous tab"), QStringLiteral("actionPreviousTab"), keySequence(Qt::CTRL, Qt::Key_PageUp));
+  connect(previousTab, &QAction::triggered, this, [selectRelativeTab]() { selectRelativeTab(-1); });
+
+  for (int number = 1; number <= 9; ++number) {
+    QAction* jump = addWidgetShortcut(this, nullptr, QString(), QStringLiteral("actionSelectTab%1").arg(number),
+                                      keySequence(Qt::ALT, static_cast<int>(Qt::Key_0) + number));
+    connect(jump, &QAction::triggered, this, [this, number]() {
+      const auto index = static_cast<size_t>(number - 1);
+      if (index < config_->getNumTabs()) {
+        config_->setCurrentTabIndex(index);
+      }
+    });
+  }
+
+  actionTopicBrowser_->setShortcut(keySequence(Qt::CTRL, Qt::Key_B));
+  actionTopicBrowser_->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+  addAction(actionTopicBrowser_);
+
+  QMenu* viewMenu = nullptr;
+  for (QAction* action : ui_->menuBar->actions()) {
+    if (action->text() == tr("&View")) {
+      viewMenu = action->menu();
+      break;
+    }
+  }
+  if (viewMenu == nullptr) {
+    return;
+  }
+
+  QAction* curveValues = addWidgetShortcut(this, viewMenu, tr("Curve values"), QStringLiteral("actionToggleCurveValues"),
+                                           keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_B));
+  setThemeIcon(curveValues, QStringLiteral("resource/side-panel-open.svg"), QSize(16, 16));
+  connect(curveValues, &QAction::triggered, this, [this]() {
+    PlotTableWidget* table = ui_->plotTabWidget->getCurrentPlotTable();
+    if ((table != nullptr) && (table->getConfig() != nullptr)) {
+      table->getConfig()->setSidebarVisible(!table->getConfig()->isSidebarVisible());
+    }
+  });
+
+  QAction* grid = addWidgetShortcut(this, viewMenu, tr("Grid"), QStringLiteral("actionToggleGrid"), keySequence(Qt::CTRL, Qt::Key_G));
+  setThemeIcon(grid, QStringLiteral("resource/grid.svg"), QSize(16, 16));
+  connect(grid, &QAction::triggered, this, [this]() {
+    PlotTableWidget* table = ui_->plotTabWidget->getCurrentPlotTable();
+    if ((table != nullptr) && (table->getConfig() != nullptr)) {
+      table->getConfig()->setGridVisible(!table->getConfig()->isGridVisible());
+    }
+  });
 }
 
 void MultiplotWidget::setupHelpMenu() {

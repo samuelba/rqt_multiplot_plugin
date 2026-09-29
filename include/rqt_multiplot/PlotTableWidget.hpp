@@ -68,6 +68,7 @@ class PlotTableWidget : public QWidget {
   void runPlots();
   void pausePlots();
   void clearPlots();
+  void resetZoom();
 
   void requestReplot();
   void forceReplot();

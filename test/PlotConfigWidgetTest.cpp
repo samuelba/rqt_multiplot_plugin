@@ -5,6 +5,7 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QTest>
 
 #include <gtest/gtest.h>
 
@@ -163,6 +164,75 @@ TEST(PlotConfigWidget, moveUpKeepsAllCurveRowsVisibleWithFourCurves) {
     ASSERT_NE(curveWidget, nullptr);
     EXPECT_FALSE(curveWidget->getConfig()->getTitle().isEmpty());
   }
+}
+
+TEST(PlotConfigWidget, deleteRemovesSelectedCurves) {
+  ensureApplication();
+
+  PlotConfig config;
+  config.addCurve()->setTitle("first");
+  config.addCurve()->setTitle("second");
+  config.addCurve()->setTitle("third");
+
+  PlotConfigWidget widget;
+  widget.setConfig(config);
+
+  auto* list = widget.findChild<QListWidget*>(QStringLiteral("curveListWidget"));
+  ASSERT_NE(list, nullptr);
+  ASSERT_EQ(list->count(), 3);
+  list->item(0)->setSelected(true);
+  list->item(1)->setSelected(true);
+  list->item(2)->setSelected(false);
+
+  QTest::keyClick(list, Qt::Key_Delete);
+
+  ASSERT_EQ(widget.getConfig().getNumCurves(), 1u);
+  EXPECT_EQ(widget.getConfig().getCurveConfig(0)->getTitle(), QStringLiteral("third"));
+  EXPECT_EQ(list->count(), 1);
+}
+
+TEST(PlotConfigWidget, deleteWithEmptySelectionChangesNothing) {
+  ensureApplication();
+
+  PlotConfig config;
+  config.addCurve()->setTitle("first");
+  config.addCurve()->setTitle("second");
+  config.addCurve()->setTitle("third");
+
+  PlotConfigWidget widget;
+  widget.setConfig(config);
+
+  auto* list = widget.findChild<QListWidget*>(QStringLiteral("curveListWidget"));
+  ASSERT_NE(list, nullptr);
+  list->clearSelection();
+
+  QTest::keyClick(list, Qt::Key_Delete);
+
+  EXPECT_EQ(widget.getConfig().getNumCurves(), 3u);
+  EXPECT_EQ(list->count(), 3);
+}
+
+TEST(PlotConfigWidget, ctrlCAndCtrlVDuplicateSelectedCurves) {
+  ensureApplication();
+
+  PlotConfig config;
+  config.addCurve()->setTitle("alpha");
+  config.addCurve()->setTitle("beta");
+
+  PlotConfigWidget widget;
+  widget.setConfig(config);
+
+  auto* list = widget.findChild<QListWidget*>(QStringLiteral("curveListWidget"));
+  ASSERT_NE(list, nullptr);
+  list->setCurrentRow(0);
+
+  QTest::keyClick(list, Qt::Key_C, Qt::ControlModifier);
+  QTest::keyClick(list, Qt::Key_V, Qt::ControlModifier);
+
+  ASSERT_EQ(widget.getConfig().getNumCurves(), 3u);
+  EXPECT_EQ(widget.getConfig().getCurveConfig(0)->getTitle(), QStringLiteral("alpha"));
+  EXPECT_EQ(widget.getConfig().getCurveConfig(1)->getTitle(), QStringLiteral("beta"));
+  EXPECT_EQ(widget.getConfig().getCurveConfig(2)->getTitle(), QStringLiteral("Copy of alpha"));
 }
 
 TEST(PlotConfigWidget, timeWindowControlsDisabledForMixedCurves) {

@@ -41,10 +41,10 @@ find_package(type_description_interfaces REQUIRED)
 # Follow the Qt major version already selected by qt_gui_cpp / rqt_gui_cpp.
 # Preferring Qt6 here would break jazzy/kilted hosts that also have Qt6 installed.
 if(TARGET Qt6::Core OR QT_VERSION_MAJOR EQUAL 6)
-  find_package(Qt6 REQUIRED COMPONENTS Widgets Svg OpenGL OpenGLWidgets)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets Svg OpenGL OpenGLWidgets Test)
   set(QT_VERSION_MAJOR 6)
 else()
-  find_package(Qt5 REQUIRED COMPONENTS Widgets Svg)
+  find_package(Qt5 REQUIRED COMPONENTS Widgets Svg Test)
   set(QT_VERSION_MAJOR 5)
 endif()
 
@@ -509,6 +509,7 @@ if(BUILD_TESTING)
     test/DataStatisticsDialogTest.cpp
     test/DiagnosticKeySamplerTest.cpp
     test/HelpMenuTest.cpp
+    test/KeyboardShortcutsTest.cpp
     test/MessageFieldAccessTest.cpp
     test/MessageSubscriberTest.cpp
     test/MessageTopicRegistryTest.cpp
@@ -563,6 +564,7 @@ if(BUILD_TESTING)
     target_link_libraries(test_${PROJECT_NAME}
       ${PROJECT_NAME}
       Qt${QT_VERSION_MAJOR}::Core
+      Qt${QT_VERSION_MAJOR}::Test
       Qt${QT_VERSION_MAJOR}::Widgets
       ${diagnostic_msgs_TARGETS}
       ${geometry_msgs_TARGETS}

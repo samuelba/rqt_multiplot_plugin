@@ -19,6 +19,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLayout>
 #include <QMimeData>
 
@@ -166,16 +167,22 @@ void PlotConfigWidget::pasteCurves() {
 }
 
 bool PlotConfigWidget::eventFilter(QObject* object, QEvent* event) {
-  if (object == ui_->curveListWidget) {
-    if (event->type() == QEvent::KeyPress) {
-      auto* keyEvent = dynamic_cast<QKeyEvent*>(event);
+  if ((object == ui_->curveListWidget) && (event->type() == QEvent::KeyPress)) {
+    auto* keyEvent = dynamic_cast<QKeyEvent*>(event);
+    if (keyEvent == nullptr) {
+      return false;
+    }
 
-      if (keyEvent->modifiers() == Qt::ControlModifier) {
-        if (keyEvent->key() == Qt::Key_C) {
-          copySelectedCurves();
-        } else if (keyEvent->key() == Qt::Key_V) {
-          pasteCurves();
-        }
+    if (keyEvent->matches(QKeySequence::Delete)) {
+      if (!ui_->curveListWidget->selectedItems().isEmpty()) {
+        pushButtonRemoveCurvesClicked();
+        return true;
+      }
+    } else if (keyEvent->modifiers() == Qt::ControlModifier) {
+      if (keyEvent->key() == Qt::Key_C) {
+        copySelectedCurves();
+      } else if (keyEvent->key() == Qt::Key_V) {
+        pasteCurves();
       }
     }
   }

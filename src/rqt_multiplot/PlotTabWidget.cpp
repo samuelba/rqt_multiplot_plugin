@@ -31,6 +31,7 @@
 #include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotWidget.hpp"
 #include "rqt_multiplot/Theme.hpp"
 
 namespace rqt_multiplot {
@@ -142,6 +143,31 @@ void PlotTabWidget::pausePlots() {
 
 void PlotTabWidget::clearPlots() {
   forEachPlotTable(&PlotTableWidget::clearPlots);
+}
+
+bool PlotTabWidget::isAnyPlotRunning() const {
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    const PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index));
+    if (plotTable == nullptr) {
+      continue;
+    }
+
+    for (const PlotWidget* plot : plotTable->getPlotWidgets()) {
+      if ((plot != nullptr) && !plot->isPaused()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+void PlotTabWidget::togglePlots() {
+  if (isAnyPlotRunning()) {
+    pausePlots();
+  } else {
+    runPlots();
+  }
 }
 
 void PlotTabWidget::loadFromBagFiles(const QStringList& fileNames, bool replace) {
