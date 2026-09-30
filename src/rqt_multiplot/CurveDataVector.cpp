@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.       *
  ******************************************************************************/
 
+#include <iterator>
+
 #include "rqt_multiplot/CurveDataVector.hpp"
 
 namespace rqt_multiplot {
@@ -47,6 +49,21 @@ QVector<size_t> CurveDataVector::getPointsInDistance(double x, double maxDistanc
   }
 
   return indexes;
+}
+
+std::optional<double> CurveDataVector::interpolateY(double x) const {
+  const auto right = x_.lower_bound(XCoordinateRef(x));
+  if (right == x_.end()) {
+    return std::nullopt;
+  }
+  const QPointF rightPoint = points_[static_cast<int>(right->index_)];
+  if (right->x_ == x) {
+    return rightPoint.y();
+  }
+  if (right == x_.begin()) {
+    return std::nullopt;
+  }
+  return interpolateLinear(points_[static_cast<int>(std::prev(right)->index_)], rightPoint, x);
 }
 
 BoundingRectangle CurveDataVector::getBounds() const {

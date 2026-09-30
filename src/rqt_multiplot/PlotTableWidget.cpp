@@ -35,6 +35,7 @@
 #include "rqt_multiplot/PlotCursor.hpp"
 #include "rqt_multiplot/PlotExport.hpp"
 #include "rqt_multiplot/PlotLayoutConfig.hpp"
+#include "rqt_multiplot/PlotMarkerPair.hpp"
 #include "rqt_multiplot/PlotMouseBindings.hpp"
 #include "rqt_multiplot/PlotSplitter.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
@@ -500,6 +501,9 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     if (config_->isScaleLinked() && !plotWidgets_.isEmpty()) {
       plot->setCurrentScale(plotWidgets_.front()->getCurrentScale());
     }
+    if (config_->isCursorLinked() && !plotWidgets_.isEmpty()) {
+      plot->getMarkers()->setPositions(plotWidgets_.front()->getMarkers()->positions());
+    }
     plot->show();
     plotWidgets_.append(plot);
     return plot;
@@ -532,6 +536,8 @@ void PlotTableWidget::connectPlotWidget(PlotWidget* plot) {
   connect(plot, SIGNAL(userScaleLockedChanged(bool)), this, SLOT(plotUserScaleLockedChanged(bool)));
   connect(plot, &PlotWidget::canvasChanged, this, [this, plot]() { connectPlotCursor(plot); });
   connectPlotCursor(plot);
+  connect(plot->getMarkers(), &PlotMarkerPair::markersChanged, this,
+          [this, plot](const MarkerPositions& positions) { linkPlotMarkers(plot, positions); });
   connect(plot, SIGNAL(pausedChanged(bool)), this, SLOT(plotPausedChanged(bool)));
   connect(plot, SIGNAL(stateChanged(int)), this, SLOT(plotStateChanged(int)));
   connect(plot, SIGNAL(splitRequested(Qt::Orientation, bool)), this, SLOT(plotSplitRequested(Qt::Orientation, bool)));
@@ -784,6 +790,17 @@ void PlotTableWidget::plotCursorCurrentPositionChanged(const QPointF& position) 
       if (sender() != plot) {
         plot->getCursor()->setCurrentPosition(position);
       }
+    }
+  }
+}
+
+void PlotTableWidget::linkPlotMarkers(const PlotWidget* source, const MarkerPositions& positions) {
+  if ((config_ == nullptr) || !config_->isCursorLinked()) {
+    return;
+  }
+  for (PlotWidget* plot : plotWidgets_) {
+    if (plot != source) {
+      plot->getMarkers()->setPositions(positions);
     }
   }
 }

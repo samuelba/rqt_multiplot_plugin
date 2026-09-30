@@ -58,6 +58,7 @@ class PlotCursor;
 class PlotCurve;
 class PlotLegend;
 class PlotMagnifier;
+class PlotMarkerPair;
 class PlotPanner;
 class PlotZoomer;
 
@@ -74,6 +75,7 @@ class PlotWidget : public QWidget {
   void setBroker(MessageBroker* broker);
   MessageBroker* getBroker() const;
   PlotCursor* getCursor() const;
+  PlotMarkerPair* getMarkers() const;
   void setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format);
   PlotTableConfig::TimeAxisFormat getTimeAxisFormat() const;
   void setTimeZone(const QTimeZone& zone);
@@ -158,6 +160,10 @@ class PlotWidget : public QWidget {
   QAction* actionContextResetZoom_;
   QAction* actionContextResetZoomHorizontal_;
   QAction* actionContextResetZoomVertical_;
+  QAction* actionContextMarkerA_;
+  QAction* actionContextMarkerB_;
+  QAction* actionContextClearMarkers_;
+  double contextMenuX_;
   QAction* actionContextConfigure_;
   QMenu* menuContextSplit_;
   QAction* actionContextShowLegend_;
@@ -183,6 +189,7 @@ class PlotWidget : public QWidget {
   PlotPanner* panner_;
   PlotMagnifier* magnifier_;
   PlotZoomer* zoomer_;
+  PlotMarkerPair* markers_;
 
   bool paused_;
   bool rescale_;
@@ -265,6 +272,9 @@ class PlotWidget : public QWidget {
   void menuToggleLegendTriggered();
   void menuCopyImageTriggered();
   void menuDataStatisticsTriggered();
+  void menuMarkerATriggered();
+  void menuMarkerBTriggered();
+  void menuClearMarkersTriggered();
   void showPlotContextMenu(const QPoint& globalPos);
   void configDestroyed();
 

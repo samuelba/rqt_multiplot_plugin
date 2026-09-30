@@ -116,4 +116,36 @@ TEST(PlotMouseBindings, ignoresLinkedPreferredScaleWhenAnyPlotIsLocked) {
   EXPECT_FALSE(shouldIgnoreLinkedPreferredScale(false, false));
 }
 
+TEST(PlotMouseBindings, shiftLeftPlacesMarkerAndPlainLeftDragsIt) {
+  EXPECT_TRUE(rqt_multiplot::isMarkerPlaceMouse(Qt::LeftButton, Qt::ShiftModifier));
+  EXPECT_FALSE(rqt_multiplot::isMarkerPlaceMouse(Qt::LeftButton, Qt::NoModifier));
+  EXPECT_FALSE(rqt_multiplot::isMarkerPlaceMouse(Qt::RightButton, Qt::ShiftModifier));
+  EXPECT_TRUE(rqt_multiplot::isMarkerDragMouse(Qt::LeftButton, Qt::NoModifier));
+  EXPECT_FALSE(rqt_multiplot::isMarkerDragMouse(Qt::LeftButton, Qt::ControlModifier));
+}
+
+TEST(PlotMouseBindings, placesAThenBThenMovesTheNearerMarker) {
+  using rqt_multiplot::MarkerId;
+  using rqt_multiplot::MarkerPositions;
+  using rqt_multiplot::markerToPlace;
+
+  EXPECT_EQ(markerToPlace(MarkerPositions{}, 5.0), MarkerId::A);
+  EXPECT_EQ(markerToPlace(MarkerPositions{1.0, std::nullopt}, 5.0), MarkerId::B);
+  EXPECT_EQ(markerToPlace(MarkerPositions{std::nullopt, 1.0}, 5.0), MarkerId::A);
+  EXPECT_EQ(markerToPlace(MarkerPositions{1.0, 10.0}, 3.0), MarkerId::A);
+  EXPECT_EQ(markerToPlace(MarkerPositions{1.0, 10.0}, 8.0), MarkerId::B);
+}
+
+TEST(PlotMouseBindings, markerHitRequiresGrabDistanceAndPicksNearest) {
+  using rqt_multiplot::kMarkerGrabPx;
+  using rqt_multiplot::markerHit;
+  using rqt_multiplot::MarkerId;
+
+  EXPECT_FALSE(markerHit(std::nullopt, std::nullopt, 10.0).has_value());
+  EXPECT_EQ(markerHit(10.0, std::nullopt, 10.0 + kMarkerGrabPx), MarkerId::A);
+  EXPECT_FALSE(markerHit(10.0, std::nullopt, 11.0 + kMarkerGrabPx).has_value());
+  EXPECT_EQ(markerHit(10.0, 14.0, 13.0), MarkerId::B);
+  EXPECT_EQ(markerHit(10.0, 14.0, 11.0), MarkerId::A);
+}
+
 }  // namespace

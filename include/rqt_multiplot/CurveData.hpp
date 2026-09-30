@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <QPair>
 #include <QPointF>
 #include <QRectF>
@@ -30,6 +32,14 @@
 
 namespace rqt_multiplot {
 
+inline double interpolateLinear(const QPointF& left, const QPointF& right, double x) {
+  const double dx = right.x() - left.x();
+  if (dx == 0.0) {
+    return left.y();
+  }
+  return left.y() + (right.y() - left.y()) * (x - left.x()) / dx;
+}
+
 class CurveData : public QwtSeriesData<QPointF> {
  public:
   CurveData();
@@ -39,6 +49,7 @@ class CurveData : public QwtSeriesData<QPointF> {
   double getValue(size_t index, CurveConfig::Axis axis) const;
   virtual QPointF getPoint(size_t index) const = 0;
   virtual QVector<size_t> getPointsInDistance(double x, double maxDistance) const;
+  virtual std::optional<double> interpolateY(double x) const;
   QPair<double, double> getAxisBounds(CurveConfig::Axis axis) const;
   virtual BoundingRectangle getBounds() const = 0;
   bool isEmpty() const;

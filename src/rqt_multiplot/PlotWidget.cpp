@@ -69,6 +69,7 @@
 #include "rqt_multiplot/PlotCurve.hpp"
 #include "rqt_multiplot/PlotLegend.hpp"
 #include "rqt_multiplot/PlotMagnifier.hpp"
+#include "rqt_multiplot/PlotMarkerPair.hpp"
 #include "rqt_multiplot/PlotMouseBindings.hpp"
 #include "rqt_multiplot/PlotPanner.hpp"
 #include "rqt_multiplot/PlotReplotPolicy.hpp"
@@ -131,6 +132,10 @@ PlotWidget::PlotWidget(QWidget* parent)
       actionContextResetZoom_(nullptr),
       actionContextResetZoomHorizontal_(nullptr),
       actionContextResetZoomVertical_(nullptr),
+      actionContextMarkerA_(nullptr),
+      actionContextMarkerB_(nullptr),
+      actionContextClearMarkers_(nullptr),
+      contextMenuX_(0.0),
       actionContextConfigure_(nullptr),
       menuContextSplit_(new QMenu(tr("Split"), menuContext_)),
       actionContextShowLegend_(nullptr),
@@ -151,6 +156,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       panner_(nullptr),
       magnifier_(nullptr),
       zoomer_(nullptr),
+      markers_(nullptr),
       paused_(true),
       rescale_(false),
       replot_(false),
@@ -223,6 +229,10 @@ PlotWidget::PlotWidget(QWidget* parent)
   grid_->enableYMin(false);
   grid_->setVisible(false);
   updateGridPen();
+  markers_ = new PlotMarkerPair(ui_->plot, this);
+  markers_->setCoordinateFormatter([this](double value, bool isX) {
+    return (cursor_ != nullptr) ? cursor_->formatCoordinate(value, isX) : QString::number(value, 'g', 6);
+  });
   createCanvasPickers();
 
 #if QWT_VERSION >= 0x060100
@@ -265,6 +275,8 @@ PlotWidget::~PlotWidget() {
     delete curve;
   }
   curves_.clear();
+  delete markers_;
+  markers_ = nullptr;
   if (grid_ != nullptr) {
     grid_->detach();
     delete grid_;
@@ -348,6 +360,10 @@ MessageBroker* PlotWidget::getBroker() const {
 
 PlotCursor* PlotWidget::getCursor() const {
   return cursor_;
+}
+
+PlotMarkerPair* PlotWidget::getMarkers() const {
+  return markers_;
 }
 
 const QVector<PlotCurve*>& PlotWidget::getCurves() const {
@@ -671,6 +687,7 @@ void PlotWidget::createCanvasPickers() {
   zoomer_->setTrackerMode(QwtPicker::AlwaysOff);
   connect(zoomer_, SIGNAL(zoomed(const QRectF&)), this, SLOT(plotZoomed(const QRectF&)));
   connect(zoomer_, SIGNAL(contextMenuRequested(QPoint)), this, SLOT(showPlotContextMenu(QPoint)));
+  markers_->setCanvas(canvas);
   canvas->setFocusPolicy(Qt::StrongFocus);
   canvas->installEventFilter(this);
 }
@@ -752,6 +769,17 @@ void PlotWidget::buildContextMenu() {
 
   menuContext_->addSeparator();
 
+  actionContextMarkerA_ = menuContext_->addAction(tr("Set marker A here"), this, SLOT(menuMarkerATriggered()));
+  actionContextMarkerA_->setObjectName(QStringLiteral("actionContextMarkerA"));
+
+  actionContextMarkerB_ = menuContext_->addAction(tr("Set marker B here"), this, SLOT(menuMarkerBTriggered()));
+  actionContextMarkerB_->setObjectName(QStringLiteral("actionContextMarkerB"));
+
+  actionContextClearMarkers_ = menuContext_->addAction(tr("Clear markers"), this, SLOT(menuClearMarkersTriggered()));
+  actionContextClearMarkers_->setObjectName(QStringLiteral("actionContextClearMarkers"));
+
+  menuContext_->addSeparator();
+
   actionContextConfigure_ = menuContext_->addAction(tr("Configure plot..."), this, SLOT(pushButtonSetupClicked()));
   actionContextConfigure_->setObjectName(QStringLiteral("actionContextConfigure"));
   setContextMenuIcon(actionContextConfigure_, QStringLiteral("resource/settings-edit.svg"));
@@ -824,9 +852,15 @@ void PlotWidget::updateContextMenuState() {
     actionContextShowLegend_->setText(legendVisible ? tr("Hide legend") : tr("Show legend"));
     setContextMenuIcon(actionContextShowLegend_, QStringLiteral("resource/legend.svg"));
   }
+  if ((actionContextClearMarkers_ != nullptr) && (markers_ != nullptr)) {
+    actionContextClearMarkers_->setEnabled(markers_->hasAnyMarker());
+  }
 }
 
 void PlotWidget::showPlotContextMenu(const QPoint& globalPos) {
+  if (QWidget* canvas = ui_->plot->canvas()) {
+    contextMenuX_ = ui_->plot->canvasMap(QwtPlot::xBottom).invTransform(canvas->mapFromGlobal(globalPos).x());
+  }
   updateContextMenuState();
   menuContext_->popup(globalPos);
 }
@@ -863,6 +897,7 @@ void PlotWidget::clear() {
   for (int index = 0; index < curves_.count(); ++index) {
     curves_[index]->clear();
   }
+  markers_->clearMarkers();
 
   resetAxisOrigins();
   forceReplot();
@@ -1118,6 +1153,9 @@ void PlotWidget::applyPlotChrome() {
   if (zoomer_ != nullptr) {
     zoomer_->updateOverlayPens();
   }
+  if (markers_ != nullptr) {
+    markers_->setColors(foreground, background);
+  }
 
   const std::array<QwtPlot::Axis, 4> axes = {QwtPlot::xBottom, QwtPlot::xTop, QwtPlot::yLeft, QwtPlot::yRight};
   for (QwtPlot::Axis axis : axes) {
@@ -1314,6 +1352,9 @@ void PlotWidget::applyAxisTimeOffsets() {
     cursor_->setXOffset(xOffset);
     cursor_->setYOffset(yOffset);
     cursor_->setTimeZone(timeZone_);
+  }
+  if (markers_ != nullptr) {
+    markers_->setXIsTime(xTimeScale);
   }
 
   if (currentBounds_.isValid()) {
@@ -1609,6 +1650,18 @@ void PlotWidget::menuDataStatisticsTriggered() {
   dataStatisticsDialog_->show();
   dataStatisticsDialog_->raise();
   dataStatisticsDialog_->activateWindow();
+}
+
+void PlotWidget::menuMarkerATriggered() {
+  markers_->placeMarker(MarkerId::A, contextMenuX_);
+}
+
+void PlotWidget::menuMarkerBTriggered() {
+  markers_->placeMarker(MarkerId::B, contextMenuX_);
+}
+
+void PlotWidget::menuClearMarkersTriggered() {
+  markers_->removeMarkers();
 }
 
 void PlotWidget::plotXBottomScaleDivChanged() {

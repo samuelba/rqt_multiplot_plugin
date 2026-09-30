@@ -48,4 +48,42 @@ TEST(CurveDataVector, replacePointsCanClearSeries) {
   EXPECT_TRUE(data.isEmpty());
 }
 
+TEST(CurveDataVector, interpolateYReturnsSampleOnExactHit) {
+  CurveDataVector data;
+  data.appendPoint(QPointF(0.0, 1.0));
+  data.appendPoint(QPointF(1.0, 3.0));
+
+  ASSERT_TRUE(data.interpolateY(1.0).has_value());
+  EXPECT_DOUBLE_EQ(*data.interpolateY(1.0), 3.0);
+  EXPECT_DOUBLE_EQ(*data.interpolateY(0.0), 1.0);
+}
+
+TEST(CurveDataVector, interpolateYIsLinearBetweenSamples) {
+  CurveDataVector data;
+  data.appendPoint(QPointF(0.0, 0.0));
+  data.appendPoint(QPointF(2.0, 10.0));
+  data.appendPoint(QPointF(4.0, 0.0));
+
+  EXPECT_DOUBLE_EQ(*data.interpolateY(0.5), 2.5);
+  EXPECT_DOUBLE_EQ(*data.interpolateY(3.0), 5.0);
+}
+
+TEST(CurveDataVector, interpolateYIsEmptyOutsideRange) {
+  CurveDataVector data;
+  data.appendPoint(QPointF(1.0, 1.0));
+  data.appendPoint(QPointF(2.0, 2.0));
+
+  EXPECT_FALSE(data.interpolateY(0.5).has_value());
+  EXPECT_FALSE(data.interpolateY(2.5).has_value());
+  EXPECT_FALSE(CurveDataVector().interpolateY(0.0).has_value());
+}
+
+TEST(CurveDataVector, interpolateYOnSinglePointOnlyHitsThatPoint) {
+  CurveDataVector data;
+  data.appendPoint(QPointF(1.0, 7.0));
+
+  EXPECT_DOUBLE_EQ(*data.interpolateY(1.0), 7.0);
+  EXPECT_FALSE(data.interpolateY(1.5).has_value());
+}
+
 }  // namespace

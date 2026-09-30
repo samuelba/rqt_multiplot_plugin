@@ -5,6 +5,11 @@
 
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <optional>
+
 #include <QMouseEvent>
 #include <QPoint>
 #include <Qt>
@@ -60,6 +65,45 @@ inline bool isUserScaleLocked(bool xScaleLocked, bool yScaleLocked) {
 
 inline bool shouldIgnoreLinkedPreferredScale(bool scaleLinked, bool anyPlotLocked) {
   return scaleLinked && anyPlotLocked;
+}
+
+inline constexpr int kMarkerGrabPx = 5;
+
+enum class MarkerId { A, B };
+
+struct MarkerPositions {
+  std::optional<double> a;
+  std::optional<double> b;
+
+  bool operator==(const MarkerPositions& other) const { return (a == other.a) && (b == other.b); }
+  bool operator!=(const MarkerPositions& other) const { return !(*this == other); }
+};
+
+inline bool isMarkerPlaceMouse(Qt::MouseButton button, Qt::KeyboardModifiers modifiers) {
+  return (button == Qt::LeftButton) && (modifiers == Qt::ShiftModifier);
+}
+
+inline bool isMarkerDragMouse(Qt::MouseButton button, Qt::KeyboardModifiers modifiers) {
+  return (button == Qt::LeftButton) && (modifiers == Qt::NoModifier);
+}
+
+inline MarkerId markerToPlace(const MarkerPositions& positions, double x) {
+  if (!positions.a) {
+    return MarkerId::A;
+  }
+  if (!positions.b) {
+    return MarkerId::B;
+  }
+  return (std::fabs(x - *positions.b) < std::fabs(x - *positions.a)) ? MarkerId::B : MarkerId::A;
+}
+
+inline std::optional<MarkerId> markerHit(std::optional<double> aPx, std::optional<double> bPx, double px, int grabPx = kMarkerGrabPx) {
+  const double distanceA = aPx ? std::fabs(px - *aPx) : std::numeric_limits<double>::infinity();
+  const double distanceB = bPx ? std::fabs(px - *bPx) : std::numeric_limits<double>::infinity();
+  if (std::min(distanceA, distanceB) > grabPx) {
+    return std::nullopt;
+  }
+  return (distanceB < distanceA) ? MarkerId::B : MarkerId::A;
 }
 
 }  // namespace rqt_multiplot

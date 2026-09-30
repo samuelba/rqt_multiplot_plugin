@@ -8,10 +8,6 @@
 #include <cmath>
 #include <limits>
 
-#include <QColor>
-#include <QFont>
-#include <QFontMetrics>
-#include <QLine>
 #include <QPoint>
 #include <QPointF>
 #include <QRect>
@@ -52,71 +48,6 @@ inline QString trackedPointLabel(const QString& title, const QString& x, const Q
 
 inline QString trackedPointLabels(const QStringList& lines) {
   return lines.join(QLatin1Char('\n'));
-}
-
-constexpr int kTrackedReadoutSwatchSize = 10;
-
-enum class TrackedReadoutMark {
-  Color,
-  Crosshair,
-};
-
-struct TrackedReadoutRow {
-  QColor color;
-  QString title;
-  QString x;
-  QString y;
-  TrackedReadoutMark mark = TrackedReadoutMark::Color;
-};
-
-struct TrackedReadoutLayout {
-  int swatchSize = 0;
-  int titleWidth = 0;
-  int xWidth = 0;
-  int yWidth = 0;
-  int columnGap = 8;
-  int rowHeight = 0;
-};
-
-inline int trackedReadoutSwatchExtent(int rowHeight) {
-  if (rowHeight <= 2) {
-    return std::max(0, rowHeight);
-  }
-  return std::min(kTrackedReadoutSwatchSize, rowHeight - 2);
-}
-
-inline TrackedReadoutLayout trackedReadoutLayout(const QVector<TrackedReadoutRow>& rows, const QFont& font) {
-  const QFontMetrics metrics(font);
-  TrackedReadoutLayout layout;
-  layout.rowHeight = metrics.height();
-  layout.swatchSize = trackedReadoutSwatchExtent(layout.rowHeight);
-  for (const TrackedReadoutRow& row : rows) {
-    layout.titleWidth = std::max(layout.titleWidth, metrics.horizontalAdvance(row.title));
-    layout.xWidth = std::max(layout.xWidth, metrics.horizontalAdvance(row.x));
-    layout.yWidth = std::max(layout.yWidth, metrics.horizontalAdvance(row.y));
-  }
-  return layout;
-}
-
-inline QSize trackedReadoutSize(const TrackedReadoutLayout& layout, int rowCount) {
-  if (rowCount <= 0) {
-    return {};
-  }
-  const int width =
-      layout.swatchSize + layout.columnGap + layout.titleWidth + layout.columnGap + layout.xWidth + layout.columnGap + layout.yWidth;
-  const int height = layout.rowHeight * rowCount;
-  return {width, height};
-}
-
-inline QRect trackedReadoutSwatchRect(const TrackedReadoutLayout& layout, int left, int rowTop) {
-  const int top = rowTop + (layout.rowHeight - layout.swatchSize) / 2;
-  return {left, top, layout.swatchSize, layout.swatchSize};
-}
-
-inline QPair<QLine, QLine> trackedReadoutCrosshairLines(const QRect& swatchRect) {
-  const QPoint center = swatchRect.center();
-  return {QLine(swatchRect.left(), center.y(), swatchRect.right(), center.y()),
-          QLine(center.x(), swatchRect.top(), center.x(), swatchRect.bottom())};
 }
 
 inline QRect trackedPointsReadoutRect(const QPoint& cursor, const QSize& size, const QRect& canvas, int margin = 5) {

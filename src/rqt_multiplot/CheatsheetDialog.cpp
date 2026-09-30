@@ -255,6 +255,8 @@ Section mouseSection() {
           {dialogText("Mouse wheel"), dialogText("Zoom in / out")},
           {dialogText("Right drag"), dialogText("Zoom. Drag right or down to zoom in on that axis, left or up to zoom out")},
           {dialogText("Right click (no drag)"), dialogText("Open plot context menu")},
+          {dialogText("Shift + left click"), dialogText("Place marker A, then B, then move the nearer one")},
+          {dialogText("Drag a marker line"), dialogText("Move that marker")},
           {dialogText("Click a legend item"), dialogText("Toggle that curve's visibility")},
           {dialogText("Drag a legend item onto another plot"), dialogText("Copy that curve")},
       },
