@@ -194,40 +194,38 @@ QString PlotCursor::formatCoordinate(double value, bool isX) const {
   return AxisTimeFormat::coordinate(value, offset, span, mode, timeZone_);
 }
 
-QVector<TrackedReadoutRow> PlotCursor::trackedReadoutRows() const {
-  QVector<TrackedReadoutRow> rows;
+QVector<ReadoutRow> PlotCursor::trackedReadoutRows() const {
+  QVector<ReadoutRow> rows;
   if (trackedPoints_.isEmpty()) {
     return rows;
   }
 
-  TrackedReadoutRow crosshairRow;
-  crosshairRow.mark = TrackedReadoutMark::Crosshair;
-  crosshairRow.x = formatCoordinate(currentPosition_.x(), true);
-  crosshairRow.y = formatCoordinate(currentPosition_.y(), false);
+  ReadoutRow crosshairRow;
+  crosshairRow.mark = ReadoutMark::Crosshair;
+  crosshairRow.values = QStringList{formatCoordinate(currentPosition_.x(), true), formatCoordinate(currentPosition_.y(), false)};
   rows.append(crosshairRow);
 
   for (const auto& tracked : trackedPoints_) {
-    TrackedReadoutRow row;
+    ReadoutRow row;
     row.color = tracked.color;
     row.title = tracked.title;
-    row.x = formatCoordinate(tracked.position.x(), true);
-    row.y = formatCoordinate(tracked.position.y(), false);
+    row.values = QStringList{formatCoordinate(tracked.position.x(), true), formatCoordinate(tracked.position.y(), false)};
     rows.append(row);
   }
   return rows;
 }
 
 QRect PlotCursor::trackedReadoutRect(const QFont& font) const {
-  const QVector<TrackedReadoutRow> rows = trackedReadoutRows();
+  const QVector<ReadoutRow> rows = trackedReadoutRows();
   if (rows.isEmpty()) {
     return {};
   }
 
-  constexpr int kPadding = 4;
-  const TrackedReadoutLayout layout = trackedReadoutLayout(rows, font);
-  const QSize size = trackedReadoutSize(layout, static_cast<int>(rows.size()));
+  const ReadoutLayout layout = readoutLayout(rows, font);
+  const QSize size = readoutSize(layout, static_cast<int>(rows.size()));
   const QRect canvas(0, 0, plot()->canvas()->width(), plot()->canvas()->height());
-  return trackedPointsReadoutRect(transform(currentPosition_), size, canvas).adjusted(-kPadding, -kPadding, kPadding, kPadding);
+  return trackedPointsReadoutRect(transform(currentPosition_), size, canvas)
+      .adjusted(-kReadoutPadding, -kReadoutPadding, kReadoutPadding, kReadoutPadding);
 }
 
 QwtText PlotCursor::trackerTextF(const QPointF& point) const {
@@ -393,43 +391,7 @@ void PlotCursor::drawTrackedPoints(QPainter* painter) const {
 }
 
 void PlotCursor::drawTrackedPointReadout(QPainter* painter) const {
-  const QVector<TrackedReadoutRow> rows = trackedReadoutRows();
-  const QRect background = trackedReadoutRect(painter->font());
-  if (background.isEmpty()) {
-    return;
-  }
-
-  painter->save();
-  painter->fillRect(background, trackerBackgroundColor());
-  QColor border = trackerTextColor();
-  border.setAlpha(180);
-  painter->setPen(border);
-  painter->drawRect(background.adjusted(0, 0, -1, -1));
-
-  const QRect content = background.adjusted(4, 4, -4, -4);
-  const TrackedReadoutLayout layout = trackedReadoutLayout(rows, painter->font());
-  const QColor textColor = trackerTextColor();
-  const int titleColumn = content.left() + layout.swatchSize + layout.columnGap;
-  const int xColumn = titleColumn + layout.titleWidth + layout.columnGap;
-  const int yColumn = xColumn + layout.xWidth + layout.columnGap;
-  int y = content.top();
-
-  painter->setPen(textColor);
-  for (const TrackedReadoutRow& row : rows) {
-    const QRect swatchRect = trackedReadoutSwatchRect(layout, content.left(), y);
-    if (row.mark == TrackedReadoutMark::Crosshair) {
-      const auto lines = trackedReadoutCrosshairLines(swatchRect);
-      painter->drawLine(lines.first);
-      painter->drawLine(lines.second);
-    } else {
-      painter->fillRect(swatchRect, row.color);
-    }
-    painter->drawText(titleColumn, y, layout.titleWidth, layout.rowHeight, Qt::AlignLeft | Qt::AlignVCenter, row.title);
-    painter->drawText(xColumn, y, layout.xWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.x);
-    painter->drawText(yColumn, y, layout.yWidth, layout.rowHeight, Qt::AlignRight | Qt::AlignVCenter, row.y);
-    y += layout.rowHeight;
-  }
-  painter->restore();
+  drawReadoutTable(*painter, trackedReadoutRect(painter->font()), trackedReadoutRows(), trackerTextColor(), trackerBackgroundColor());
 }
 
 void PlotCursor::plotXAxisScaleDivChanged() {

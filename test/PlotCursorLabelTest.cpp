@@ -2,6 +2,7 @@
 
 #include <QColor>
 #include <QFont>
+#include <QFontMetrics>
 #include <QPointF>
 #include <QRect>
 #include <QSize>
@@ -10,24 +11,33 @@
 #include <QVector>
 
 #include "rqt_multiplot/PlotCursorLabel.hpp"
+#include "rqt_multiplot/PlotReadoutTable.hpp"
 
 namespace {
 
-using rqt_multiplot::kTrackedReadoutSwatchSize;
+using rqt_multiplot::kReadoutSwatchSize;
 using rqt_multiplot::kTrackPointSnapPixels;
 using rqt_multiplot::nearestPointByX;
+using rqt_multiplot::readoutCrosshairLines;
+using rqt_multiplot::readoutLayout;
+using rqt_multiplot::ReadoutLayout;
+using rqt_multiplot::ReadoutMark;
+using rqt_multiplot::ReadoutRow;
+using rqt_multiplot::readoutSize;
+using rqt_multiplot::readoutSwatchExtent;
+using rqt_multiplot::readoutSwatchRect;
 using rqt_multiplot::trackedPointLabel;
 using rqt_multiplot::trackedPointLabels;
 using rqt_multiplot::trackedPointsReadoutRect;
-using rqt_multiplot::trackedReadoutCrosshairLines;
-using rqt_multiplot::trackedReadoutLayout;
-using rqt_multiplot::TrackedReadoutLayout;
-using rqt_multiplot::TrackedReadoutMark;
-using rqt_multiplot::TrackedReadoutRow;
-using rqt_multiplot::trackedReadoutSize;
-using rqt_multiplot::trackedReadoutSwatchExtent;
-using rqt_multiplot::trackedReadoutSwatchRect;
 using rqt_multiplot::trackPointSnapDistance;
+
+ReadoutRow curveRow(const QColor& color, const QString& title, const QString& x, const QString& y) {
+  return {color, title, {x, y}, ReadoutMark::Color};
+}
+
+ReadoutRow crosshairRow(const QString& x, const QString& y) {
+  return {QColor(), QString(), {x, y}, ReadoutMark::Crosshair};
+}
 
 TEST(PlotCursorLabel, snapDistanceScalesUnitsPerPixel) {
   EXPECT_DOUBLE_EQ(trackPointSnapDistance(0.5, kTrackPointSnapPixels), 8.0);
@@ -54,28 +64,38 @@ TEST(PlotCursorLabel, joinsOneLinePerCurve) {
 
 TEST(PlotCursorLabel, sizesColumnsFromLongestValueInEachColumn) {
   const QFont font;
-  const QVector<TrackedReadoutRow> rows{{Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")},
-                                        {Qt::blue, QStringLiteral("VeryLongName"), QStringLiteral("12.34"), QStringLiteral("-0.5")}};
-  const auto layout = trackedReadoutLayout(rows, font);
+  const QVector<ReadoutRow> rows{curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")),
+                                 curveRow(Qt::blue, QStringLiteral("VeryLongName"), QStringLiteral("12.34"), QStringLiteral("-0.5"))};
+  const auto layout = readoutLayout(rows, font);
 
-  EXPECT_EQ(layout.swatchSize, trackedReadoutSwatchExtent(layout.rowHeight));
+  ASSERT_EQ(layout.valueWidths.size(), 2);
+  EXPECT_EQ(layout.swatchSize, readoutSwatchExtent(layout.rowHeight));
   EXPECT_GT(layout.titleWidth, 0);
-  EXPECT_GT(layout.xWidth, 0);
-  EXPECT_GT(layout.yWidth, 0);
+  EXPECT_GT(layout.valueWidths[0], 0);
+  EXPECT_GT(layout.valueWidths[1], 0);
   EXPECT_EQ(layout.rowHeight, QFontMetrics(font).height());
-  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).width(),
-            layout.swatchSize + layout.columnGap + layout.titleWidth + layout.columnGap + layout.xWidth + layout.columnGap + layout.yWidth);
-  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).height(), layout.rowHeight * rows.size());
+  EXPECT_EQ(readoutSize(layout, rows.size()).width(), layout.swatchSize + layout.columnGap + layout.titleWidth + layout.columnGap +
+                                                          layout.valueWidths[0] + layout.columnGap + layout.valueWidths[1]);
+  EXPECT_EQ(readoutSize(layout, rows.size()).height(), layout.rowHeight * rows.size());
+}
+
+TEST(PlotCursorLabel, layoutTakesColumnCountFromWidestRow) {
+  const QFont font;
+  const QVector<ReadoutRow> rows{
+      {QColor(), QStringLiteral("dt"), {QStringLiteral("0.25")}, ReadoutMark::None},
+      {Qt::red, QStringLiteral("Pan"), {QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("1"), QStringLiteral("4")}}};
+
+  EXPECT_EQ(readoutLayout(rows, font).valueWidths.size(), 4);
 }
 
 TEST(PlotCursorLabel, colorSwatchFitsInsideTheRow) {
-  EXPECT_EQ(kTrackedReadoutSwatchSize, 10);
-  EXPECT_EQ(trackedReadoutSwatchExtent(16), 10);
-  EXPECT_EQ(trackedReadoutSwatchExtent(8), 6);
-  EXPECT_EQ(trackedReadoutSwatchExtent(0), 0);
+  EXPECT_EQ(kReadoutSwatchSize, 10);
+  EXPECT_EQ(readoutSwatchExtent(16), 10);
+  EXPECT_EQ(readoutSwatchExtent(8), 6);
+  EXPECT_EQ(readoutSwatchExtent(0), 0);
 
-  const TrackedReadoutLayout layout{10, 40, 20, 20, 8, 16};
-  const QRect swatch = trackedReadoutSwatchRect(layout, 4, 20);
+  const ReadoutLayout layout{10, 40, {20, 20}, 8, 16};
+  const QRect swatch = readoutSwatchRect(layout, 4, 20);
 
   EXPECT_EQ(swatch, QRect(4, 23, 10, 10));
   EXPECT_GE(swatch.top(), 20);
@@ -90,41 +110,36 @@ TEST(PlotCursorLabel, placesReadoutAboveRightOfCursor) {
 
 TEST(PlotCursorLabel, crosshairRowDoesNotWidenTitleColumn) {
   const QFont font;
-  const QVector<TrackedReadoutRow> curvesOnly{{Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
-  const QVector<TrackedReadoutRow> withCrosshair{
-      {QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
-      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
-  const auto layoutCurves = trackedReadoutLayout(curvesOnly, font);
-  const auto layoutBoth = trackedReadoutLayout(withCrosshair, font);
+  const QVector<ReadoutRow> curvesOnly{curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2"))};
+  const QVector<ReadoutRow> withCrosshair{crosshairRow(QStringLiteral("1"), QStringLiteral("2")),
+                                          curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2"))};
 
-  EXPECT_EQ(layoutBoth.titleWidth, layoutCurves.titleWidth);
+  EXPECT_EQ(readoutLayout(withCrosshair, font).titleWidth, readoutLayout(curvesOnly, font).titleWidth);
 }
 
 TEST(PlotCursorLabel, crosshairRowWidensNumericColumns) {
   const QFont font;
-  const QVector<TrackedReadoutRow> shortValues{
-      {QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
-      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
-  const QVector<TrackedReadoutRow> longX{
-      {QColor(), QString(), QStringLiteral("123456.789"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
-      {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
+  const QVector<ReadoutRow> shortValues{crosshairRow(QStringLiteral("1"), QStringLiteral("2")),
+                                        curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2"))};
+  const QVector<ReadoutRow> longX{crosshairRow(QStringLiteral("123456.789"), QStringLiteral("2")),
+                                  curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2"))};
 
-  EXPECT_GT(trackedReadoutLayout(longX, font).xWidth, trackedReadoutLayout(shortValues, font).xWidth);
+  EXPECT_GT(readoutLayout(longX, font).valueWidths[0], readoutLayout(shortValues, font).valueWidths[0]);
 }
 
 TEST(PlotCursorLabel, readoutHeightIncludesCrosshairRow) {
   const QFont font;
-  const QVector<TrackedReadoutRow> rows{{QColor(), QString(), QStringLiteral("1"), QStringLiteral("2"), TrackedReadoutMark::Crosshair},
-                                        {Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2")}};
-  const auto layout = trackedReadoutLayout(rows, font);
+  const QVector<ReadoutRow> rows{crosshairRow(QStringLiteral("1"), QStringLiteral("2")),
+                                 curveRow(Qt::red, QStringLiteral("Pan"), QStringLiteral("1"), QStringLiteral("2"))};
+  const auto layout = readoutLayout(rows, font);
 
-  EXPECT_EQ(trackedReadoutSize(layout, rows.size()).height(), layout.rowHeight * 2);
+  EXPECT_EQ(readoutSize(layout, rows.size()).height(), layout.rowHeight * 2);
 }
 
 TEST(PlotCursorLabel, crosshairLinesMeetAtSwatchCenter) {
-  const TrackedReadoutLayout layout{10, 40, 20, 20, 8, 16};
-  const QRect swatch = trackedReadoutSwatchRect(layout, 4, 20);
-  const auto lines = trackedReadoutCrosshairLines(swatch);
+  const ReadoutLayout layout{10, 40, {20, 20}, 8, 16};
+  const QRect swatch = readoutSwatchRect(layout, 4, 20);
+  const auto lines = readoutCrosshairLines(swatch);
 
   EXPECT_EQ(lines.first.y1(), lines.first.y2());
   EXPECT_EQ(lines.second.x1(), lines.second.x2());

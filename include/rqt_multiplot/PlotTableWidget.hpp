@@ -42,6 +42,7 @@ namespace rqt_multiplot {
 class PlotLayoutConfig;
 class PlotWidget;
 class CurveValuesWidget;
+struct MarkerPositions;
 
 class PlotTableWidget : public QWidget {
   Q_OBJECT
@@ -123,6 +124,7 @@ class PlotTableWidget : public QWidget {
   PlotWidget* createPlotWidget();
   void connectPlotWidget(PlotWidget* plot);
   void connectPlotCursor(PlotWidget* plot);
+  void linkPlotMarkers(const PlotWidget* source, const MarkerPositions& positions);
   static void applyStretch(QSplitter* splitter, PlotLayoutConfig* node);
   void applyStretchRecursive(QWidget* widget);
   void applyAllStretch();

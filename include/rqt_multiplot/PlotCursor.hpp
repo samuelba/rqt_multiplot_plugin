@@ -32,6 +32,7 @@
 
 #include "rqt_multiplot/AxisTimeFormat.hpp"
 #include "rqt_multiplot/PlotCursorLabel.hpp"
+#include "rqt_multiplot/PlotReadoutTable.hpp"
 
 class QWidget;
 
@@ -66,6 +67,7 @@ class PlotCursor : public QwtPlotPicker {
   QColor trackerTextColor() const;
   QColor trackerBackgroundColor() const;
   void updateOverlayPens();
+  QString formatCoordinate(double value, bool isX) const;
 
   void drawRubberBand(QPainter* painter) const override;
   QRegion rubberBandMask() const override;
@@ -88,8 +90,7 @@ class PlotCursor : public QwtPlotPicker {
 
   void drawTrackedPoints(QPainter* painter) const;
   void drawTrackedPointReadout(QPainter* painter) const;
-  QString formatCoordinate(double value, bool isX) const;
-  QVector<TrackedReadoutRow> trackedReadoutRows() const;
+  QVector<ReadoutRow> trackedReadoutRows() const;
   QRect trackedReadoutRect(const QFont& font) const;
 
  private:

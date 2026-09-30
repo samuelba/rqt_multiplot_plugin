@@ -34,6 +34,7 @@ class CurveDataVector : public CurveData {
   size_t getNumPoints() const override;
   QPointF getPoint(size_t index) const override;
   QVector<size_t> getPointsInDistance(double x, double maxDistance) const override;
+  std::optional<double> interpolateY(double x) const override;
   BoundingRectangle getBounds() const override;
 
   void appendPoint(const QPointF& point) override;

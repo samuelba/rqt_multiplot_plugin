@@ -50,6 +50,24 @@ QVector<size_t> CurveData::getPointsInDistance(double x, double maxDistance) con
   return indexes;
 }
 
+std::optional<double> CurveData::interpolateY(double x) const {
+  std::optional<QPointF> left;
+  std::optional<QPointF> right;
+  for (size_t index = 0; index < getNumPoints(); ++index) {
+    const QPointF point = getPoint(index);
+    if ((point.x() <= x) && (!left || (point.x() > left->x()))) {
+      left = point;
+    }
+    if ((point.x() >= x) && (!right || (point.x() < right->x()))) {
+      right = point;
+    }
+  }
+  if (!left || !right) {
+    return std::nullopt;
+  }
+  return interpolateLinear(*left, *right, x);
+}
+
 QPair<double, double> CurveData::getAxisBounds(CurveConfig::Axis axis) const {
   BoundingRectangle bounds = getBounds();
 

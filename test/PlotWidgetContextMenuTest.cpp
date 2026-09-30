@@ -7,18 +7,21 @@
 
 #include <gtest/gtest.h>
 #include <qwt/qwt_plot.h>
+#include <qwt/qwt_scale_map.h>
 
 #include "rqt_multiplot/BoundingRectangle.hpp"
 #include "rqt_multiplot/CurveData.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
 #include "rqt_multiplot/PlotCurve.hpp"
+#include "rqt_multiplot/PlotMarkerPair.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
 #include "rqt_multiplot/PlotZoomer.hpp"
 
 namespace {
 
 using rqt_multiplot::BoundingRectangle;
+using rqt_multiplot::MarkerPositions;
 using rqt_multiplot::packageIcon;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotWidget;
@@ -56,13 +59,10 @@ QWidget* plotCanvas(PlotWidget& widget) {
 }
 
 void sendStationaryRightClick(QWidget* canvas, const QPoint& position) {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-  QMouseEvent press(QEvent::MouseButtonPress, position, position, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
-  QMouseEvent release(QEvent::MouseButtonRelease, position, position, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
-#else
-  QMouseEvent press(QEvent::MouseButtonPress, position, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
-  QMouseEvent release(QEvent::MouseButtonRelease, position, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
-#endif
+  const QPointF local(position);
+  const QPointF global(canvas->mapToGlobal(position));
+  QMouseEvent press(QEvent::MouseButtonPress, local, global, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
+  QMouseEvent release(QEvent::MouseButtonRelease, local, global, Qt::RightButton, Qt::RightButton, Qt::NoModifier);
   QApplication::sendEvent(canvas, &press);
   QApplication::sendEvent(canvas, &release);
 }
@@ -84,6 +84,49 @@ TEST(PlotWidget, contextMenuContainsExpectedActions) {
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextSaveImage")), nullptr);
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextSaveData")), nullptr);
   EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextDataStatistics")), nullptr);
+  EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextMarkerA")), nullptr);
+  EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextMarkerB")), nullptr);
+  EXPECT_NE(widget.findChild<QAction*>(QStringLiteral("actionContextClearMarkers")), nullptr);
+}
+
+TEST(PlotWidget, contextMenuSetsMarkersAtClickPositionAndClearsThem) {
+  ensureApplication();
+
+  PlotWidget* widget = makePlotWithData();
+  widget->resize(400, 300);
+  widget->show();
+  QApplication::processEvents();
+
+  QWidget* canvas = plotCanvas(*widget);
+  ASSERT_NE(canvas, nullptr);
+  auto* plot = widget->findChild<QwtPlot*>();
+  auto* menu = widget->findChild<QMenu*>(QStringLiteral("plotContextMenu"));
+  auto* setA = widget->findChild<QAction*>(QStringLiteral("actionContextMarkerA"));
+  auto* setB = widget->findChild<QAction*>(QStringLiteral("actionContextMarkerB"));
+  auto* clear = widget->findChild<QAction*>(QStringLiteral("actionContextClearMarkers"));
+  ASSERT_NE(setA, nullptr);
+  ASSERT_NE(setB, nullptr);
+  ASSERT_NE(clear, nullptr);
+
+  sendStationaryRightClick(canvas, QPoint(60, 50));
+  EXPECT_FALSE(clear->isEnabled());
+  setA->trigger();
+  menu->hide();
+  sendStationaryRightClick(canvas, QPoint(200, 50));
+  EXPECT_TRUE(clear->isEnabled());
+  setB->trigger();
+  menu->hide();
+
+  const MarkerPositions& positions = widget->getMarkers()->positions();
+  ASSERT_TRUE(positions.a && positions.b);
+  EXPECT_NEAR(*positions.a, plot->canvasMap(QwtPlot::xBottom).invTransform(60), 1e-9);
+  EXPECT_NEAR(*positions.b, plot->canvasMap(QwtPlot::xBottom).invTransform(200), 1e-9);
+
+  clear->trigger();
+  EXPECT_FALSE(widget->getMarkers()->hasAnyMarker());
+
+  delete widget->getConfig();
+  delete widget;
 }
 
 TEST(PlotWidget, contextMenuActionsHaveIconsForAvailableResources) {

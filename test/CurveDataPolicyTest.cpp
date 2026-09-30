@@ -163,4 +163,17 @@ TEST(CurveDataCircularBuffer, replacePointsCanClearSeries) {
   EXPECT_TRUE(data.isEmpty());
 }
 
+TEST(CurveDataCircularBuffer, interpolateYUsesNeighboursAfterWrapAround) {
+  CurveDataCircularBuffer data(3);
+  data.appendPoint(QPointF(0.0, 0.0));
+  data.appendPoint(QPointF(1.0, 10.0));
+  data.appendPoint(QPointF(2.0, 20.0));
+  data.appendPoint(QPointF(3.0, 0.0));
+
+  EXPECT_DOUBLE_EQ(*data.interpolateY(2.5), 10.0);
+  EXPECT_DOUBLE_EQ(*data.interpolateY(1.0), 10.0);
+  EXPECT_FALSE(data.interpolateY(0.5).has_value());
+  EXPECT_FALSE(data.interpolateY(3.5).has_value());
+}
+
 }  // namespace

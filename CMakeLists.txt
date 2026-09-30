@@ -184,7 +184,10 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotLegendConfigWidget.cpp
   src/rqt_multiplot/PlotLayoutConfig.cpp
   src/rqt_multiplot/PlotMagnifier.cpp
+  src/rqt_multiplot/PlotMarkerPair.cpp
+  src/rqt_multiplot/PlotMarkerReadout.cpp
   src/rqt_multiplot/PlotPanner.cpp
+  src/rqt_multiplot/PlotReadoutTable.cpp
   src/rqt_multiplot/PlotCanvasPolicy.cpp
   src/rqt_multiplot/PlotOpenGLCanvas.cpp
   src/rqt_multiplot/PlotSplitter.cpp
@@ -315,10 +318,13 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLegendConfigWidget.hpp
   include/rqt_multiplot/PlotLayoutConfig.hpp
   include/rqt_multiplot/PlotMagnifier.hpp
+  include/rqt_multiplot/PlotMarkerPair.hpp
+  include/rqt_multiplot/PlotMarkerReadout.hpp
   include/rqt_multiplot/PlotMouseBindings.hpp
   include/rqt_multiplot/PlotCanvasPolicy.hpp
   include/rqt_multiplot/PlotOpenGLCanvas.hpp
   include/rqt_multiplot/PlotReplotPolicy.hpp
+  include/rqt_multiplot/PlotReadoutTable.hpp
   include/rqt_multiplot/PlotPanner.hpp
   include/rqt_multiplot/PlotSplitter.hpp
   include/rqt_multiplot/PlotTableConfig.hpp
@@ -539,6 +545,7 @@ if(BUILD_TESTING)
     test/PlotWidgetContextMenuTest.cpp
     test/PlotWidgetTopicDropTest.cpp
     test/PlotCursorLabelTest.cpp
+    test/PlotMarkerPairTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp
     test/ThemeTest.cpp

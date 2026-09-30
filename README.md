@@ -29,6 +29,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
 - **[Topic metrics](#topic-metrics)** — plot the rate, bandwidth, and delay of a topic, as `ros2 topic hz`, `bw`, and `delay` show them
 - **[Topic browser](#topic-browser)** — browse live and bag topics, then drag'n'drop a field onto a plot
+- **[Markers](#markers)** — two vertical markers A and B per plot, with Δt and per-curve Δy and slope, to measure latency, rise time, or settling time
 
 Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
 
@@ -119,6 +120,8 @@ The rqt launcher needs `--` before those flags.
 | Ctrl + left drag | Draw a rectangle to zoom |
 | Mouse wheel | Zoom in / out |
 | Right click | Open plot context menu |
+| Shift + left click | Place marker A, then B, then move the nearer one; a readout shows Δt and per curve y(A), y(B), Δy and slope |
+| Drag a marker line | Move that marker |
 | Home | Reset zoom of all plots in the active tab |
 | Hover (Points enabled) | Crosshair; nearest-sample marker and readout with crosshair x, y plus each curve title / x, y |
 | Click a legend item | Toggle that curve's visibility |
@@ -307,6 +310,31 @@ The tree-view button on the left of the plot area, or **View → Topic browser**
 - A dynamic array lists elements after one message arrives, up to 100.
 - Each topic has a **Topic metrics** node. Drag a metric, or the node for all metrics, onto a plot to add [topic metric](#topic-metrics) curves. Delay metrics show only for messages with a header.
 - Dropping a topic root opens a dialog with two lists: **Metrics** (none checked) and **Fields**. Numeric fields are checked. Arrays show as wildcard fields (`position/*`, array vs index) and are not checked. Only the checked items are added.
+
+## Markers
+
+Each plot has two vertical markers, A and B, each with a tag at the top and bottom of the plot. When both are set, a readout next to them compares the curves at the two times. Use it to measure latency (command edge to response edge), rise time, or settling time against a value.
+
+| Action | Input |
+| --- | --- |
+| Place a marker | Shift + left click. The first click sets A, the second sets B, later clicks move the nearer marker |
+| Place from the menu | Right click → **Set marker A here** / **Set marker B here** |
+| Move a marker | Drag its line (the pointer changes near the line) |
+| Remove both markers | Right click → **Clear markers**, or clear the plot |
+
+The readout has one row per visible curve:
+
+| Row | A | B | Δ | Δ/Δt |
+| --- | --- | --- | --- | --- |
+| `t` (or `x`) | time at A | time at B | Δt = B − A | |
+| curve | y at A | y at B | Δy = y(B) − y(A) | slope Δy / Δt |
+
+- y is linearly interpolated between the two samples around the marker, so it does not depend on the sample rate. A cell is empty when the marker is outside the curve's data.
+- Δ values are signed: B left of A gives a negative Δt. The slope shows `–` when Δt is 0.
+- Times use the same format as the X axis. The first row is `x` when the X axis is not time.
+- With **Link Cursor** on, the markers are shared by all plots in the tab, and a new plot from a split gets them too.
+- Markers and readout are part of the plot, so **Copy image** and **Save image** include them.
+- Markers are not stored in the XML. Clearing one plot removes its markers only.
 
 ## Bugs and feature requests
 

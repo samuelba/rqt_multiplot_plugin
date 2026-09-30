@@ -206,6 +206,8 @@ TEST(CheatsheetDialog, tablesIncludePlotInteractions) {
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Left drag")));
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Right drag")));
   EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Right click")));
+  EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Shift + left click")));
+  EXPECT_TRUE(tableContainsText(*mouseTable, QStringLiteral("Drag a marker line")));
 }
 
 TEST(CheatsheetDialog, groupsActionsIntoTwoColumns) {
