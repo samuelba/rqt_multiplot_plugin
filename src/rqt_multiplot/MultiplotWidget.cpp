@@ -34,12 +34,14 @@
 #include <QSignalBlocker>
 #include <QSizePolicy>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QStyle>
 #include <QTimer>
 #include <QVBoxLayout>
 
 #include "rqt_multiplot/AboutDialog.hpp"
 #include "rqt_multiplot/CheatsheetDialog.hpp"
+#include "rqt_multiplot/CurveFilterPanelWidget.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotSplitter.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
@@ -87,7 +89,7 @@ void applySideIconButton(QPushButton* button) {
   button->setStyle(sideIconButtonStyle());
 }
 
-QPushButton* createSideIconRail(QWidget* parent) {
+QWidget* createSideIconRail(QWidget* parent) {
   auto* rail = new QWidget(parent);
   rail->setObjectName(QStringLiteral("sideIconRail"));
   rail->setFixedWidth(kSideIconButtonSize);
@@ -96,18 +98,23 @@ QPushButton* createSideIconRail(QWidget* parent) {
   auto* layout = new QVBoxLayout(rail);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
+  layout->addStretch(1);
+  return rail;
+}
 
+QPushButton* addSideIconButton(QWidget* rail, const QString& objectName, const QString& iconPath) {
   auto* button = new QPushButton(rail);
-  button->setObjectName(QStringLiteral("pushButtonTopicBrowser"));
+  button->setObjectName(objectName);
   button->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
   button->setFixedSize(kSideIconButtonSize, kSideIconButtonSize);
   button->setCursor(Qt::PointingHandCursor);
   button->setFlat(true);
   button->setCheckable(true);
   applySideIconButton(button);
-  setThemeIcon(button, QStringLiteral("resource/tree-view.svg"), QSize(kSideIconSize, kSideIconSize));
-  layout->addWidget(button, 0, Qt::AlignTop);
-  layout->addStretch(1);
+  setThemeIcon(button, iconPath, QSize(kSideIconSize, kSideIconSize));
+
+  auto* layout = qobject_cast<QVBoxLayout*>(rail->layout());
+  layout->insertWidget(layout->count() - 1, button, 0, Qt::AlignTop);
   return button;
 }
 
@@ -152,9 +159,13 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
       messageTypeRegistry_(new MessageTypeRegistry(this)),
       packageRegistry_(new PackageRegistry(this)),
       topicBrowser_(nullptr),
-      topicBrowserSplitter_(nullptr),
+      curveFilterPanel_(nullptr),
+      sidePanelStack_(nullptr),
+      sidePanelSplitter_(nullptr),
       topicBrowserButton_(nullptr),
+      curveFilterButton_(nullptr),
       actionTopicBrowser_(nullptr),
+      actionCurveFilters_(nullptr),
       guardedDock_(nullptr),
       guardedCloseButton_(nullptr),
       closePromptCompleted_(false),
@@ -190,7 +201,7 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   ui_->plotTabWidget->setConfig(config_);
   ui_->plotTableConfigWidget->setPlotTabs(ui_->plotTabWidget);
   plotTabCurrentPlotTableChanged(ui_->plotTabWidget->getCurrentPlotTable());
-  setupTopicBrowser();
+  setupSidePanels();
   setupShortcuts();
   setupHelpMenu();
 
@@ -413,47 +424,67 @@ bool MultiplotWidget::isCloseButtonActivation(QObject* object, QEvent* event) co
   return false;
 }
 
-void MultiplotWidget::setupTopicBrowser() {
+void MultiplotWidget::setupSidePanels() {
   topicBrowser_ = new TopicBrowserWidget(ui_->frame);
-  topicBrowserSplitter_ = new PlotSplitter(Qt::Horizontal, ui_->frame);
-  topicBrowserSplitter_->setObjectName(QStringLiteral("topicBrowserSideSplitter"));
-  ui_->gridLayout->removeWidget(ui_->plotTabWidget);
-  topicBrowserSplitter_->addWidget(topicBrowser_);
-  topicBrowserSplitter_->addWidget(ui_->plotTabWidget);
-  topicBrowser_->setMinimumWidth(0);
-  topicBrowser_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-  topicBrowserSplitter_->setStretchFactor(0, 0);
-  topicBrowserSplitter_->setStretchFactor(1, 1);
-  topicBrowserSplitter_->setCollapsible(0, true);
-  topicBrowserSplitter_->setCollapsible(1, false);
+  curveFilterPanel_ = new CurveFilterPanelWidget(ui_->frame);
+  sidePanelStack_ = new QStackedWidget(ui_->frame);
+  sidePanelStack_->setObjectName(QStringLiteral("sidePanelStack"));
+  sidePanelStack_->addWidget(topicBrowser_);
+  sidePanelStack_->addWidget(curveFilterPanel_);
+  sidePanelStack_->setMinimumWidth(0);
+  sidePanelStack_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
 
-  topicBrowserButton_ = createSideIconRail(ui_->frame);
-  QWidget* sideIconRail = topicBrowserButton_->parentWidget();
+  sidePanelSplitter_ = new PlotSplitter(Qt::Horizontal, ui_->frame);
+  sidePanelSplitter_->setObjectName(QStringLiteral("topicBrowserSideSplitter"));
+  ui_->gridLayout->removeWidget(ui_->plotTabWidget);
+  sidePanelSplitter_->addWidget(sidePanelStack_);
+  sidePanelSplitter_->addWidget(ui_->plotTabWidget);
+  sidePanelSplitter_->setStretchFactor(0, 0);
+  sidePanelSplitter_->setStretchFactor(1, 1);
+  sidePanelSplitter_->setCollapsible(0, true);
+  sidePanelSplitter_->setCollapsible(1, false);
+
+  QWidget* sideIconRail = createSideIconRail(ui_->frame);
+  topicBrowserButton_ = addSideIconButton(sideIconRail, QStringLiteral("pushButtonTopicBrowser"), QStringLiteral("resource/tree-view.svg"));
+  curveFilterButton_ = addSideIconButton(sideIconRail, QStringLiteral("pushButtonCurveFilters"), QStringLiteral("resource/filter.svg"));
   ui_->gridLayout->setHorizontalSpacing(0);
   ui_->gridLayout->addWidget(sideIconRail, 0, 0);
-  ui_->gridLayout->addWidget(topicBrowserSplitter_, 0, 1);
+  ui_->gridLayout->addWidget(sidePanelSplitter_, 0, 1);
   ui_->gridLayout->setColumnStretch(0, 0);
   ui_->gridLayout->setColumnStretch(1, 1);
 
   actionTopicBrowser_ = new QAction(tr("Topic browser"), this);
   actionTopicBrowser_->setObjectName(QStringLiteral("actionTopicBrowser"));
   setThemeIcon(actionTopicBrowser_, QStringLiteral("resource/tree-view.svg"));
+  actionCurveFilters_ = new QAction(tr("Curve filters"), this);
+  actionCurveFilters_->setObjectName(QStringLiteral("actionCurveFilters"));
+  setThemeIcon(actionCurveFilters_, QStringLiteral("resource/filter.svg"));
   QMenu* viewMenu = ui_->menuBar->addMenu(tr("&View"));
   viewMenu->addAction(actionTopicBrowser_);
+  viewMenu->addAction(actionCurveFilters_);
 
-  connect(actionTopicBrowser_, &QAction::triggered, this, [this]() { config_->setTopicBrowserVisible(!config_->isTopicBrowserVisible()); });
-  connect(topicBrowserButton_, &QPushButton::toggled, config_, &MultiplotConfig::setTopicBrowserVisible);
-  connect(config_, &MultiplotConfig::topicBrowserVisibleChanged, this, [this]() { applyTopicBrowserState(); });
-  connect(config_, &MultiplotConfig::topicBrowserWidthChanged, this, [this](int width) {
-    const QList<int> sizes = topicBrowserSplitter_->sizes();
+  const auto toggle = [this](MultiplotConfig::SidePanel panel) { config_->toggleSidePanel(panel); };
+  connect(actionTopicBrowser_, &QAction::triggered, this, [toggle]() { toggle(MultiplotConfig::SidePanel::TopicBrowser); });
+  connect(actionCurveFilters_, &QAction::triggered, this, [toggle]() { toggle(MultiplotConfig::SidePanel::CurveFilters); });
+  connect(topicBrowserButton_, &QPushButton::clicked, this, [toggle]() { toggle(MultiplotConfig::SidePanel::TopicBrowser); });
+  connect(curveFilterButton_, &QPushButton::clicked, this, [toggle]() { toggle(MultiplotConfig::SidePanel::CurveFilters); });
+  connect(config_, &MultiplotConfig::sidePanelChanged, this, [this]() { applySidePanelState(); });
+  connect(config_, &MultiplotConfig::sidePanelWidthChanged, this, [this](int width) {
+    const QList<int> sizes = sidePanelSplitter_->sizes();
     if (sizes.isEmpty() || (sizes.first() != width)) {
-      applyTopicBrowserState();
+      applySidePanelState();
     }
   });
-  connect(topicBrowserSplitter_, &QSplitter::splitterMoved, this, &MultiplotWidget::topicBrowserSplitterMoved);
+  connect(sidePanelSplitter_, &QSplitter::splitterMoved, this, &MultiplotWidget::sidePanelSplitterMoved);
   connect(ui_->plotTabWidget, &PlotTabWidget::bagFilesImported, topicBrowser_, &TopicBrowserWidget::setBagFiles);
+  connect(ui_->plotTabWidget, &PlotTabWidget::currentPlotTableChanged, curveFilterPanel_, &CurveFilterPanelWidget::setPlotTable);
+  connect(ui_->plotTabWidget, &PlotTabWidget::curveFiltersRequested, this, [this](PlotConfig* plotConfig) {
+    config_->setSidePanel(MultiplotConfig::SidePanel::CurveFilters);
+    curveFilterPanel_->selectPlot(plotConfig);
+  });
+  curveFilterPanel_->setPlotTable(ui_->plotTabWidget->getCurrentPlotTable());
 
-  applyTopicBrowserState();
+  applySidePanelState();
 }
 
 void MultiplotWidget::setupShortcuts() {
@@ -526,6 +557,9 @@ void MultiplotWidget::setupShortcuts() {
   actionTopicBrowser_->setShortcut(keySequence(Qt::CTRL, Qt::Key_B));
   actionTopicBrowser_->setShortcutContext(Qt::WidgetWithChildrenShortcut);
   addAction(actionTopicBrowser_);
+  actionCurveFilters_->setShortcut(keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_F));
+  actionCurveFilters_->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+  addAction(actionCurveFilters_);
 
   QMenu* viewMenu = nullptr;
   for (QAction* action : ui_->menuBar->actions()) {
@@ -582,29 +616,40 @@ void MultiplotWidget::openAbout() {
   dialog.exec();
 }
 
-void MultiplotWidget::applyTopicBrowserState() {
-  const bool visible = config_->isTopicBrowserVisible();
-  const QSignalBlocker buttonBlocker(topicBrowserButton_);
-  topicBrowserButton_->setChecked(visible);
-  topicBrowserButton_->setToolTip(visible ? tr("Hide topic browser") : tr("Show topic browser"));
-  topicBrowser_->setVisible(visible);
-  if (!visible) {
+void MultiplotWidget::applySidePanelState() {
+  const MultiplotConfig::SidePanel panel = config_->getSidePanel();
+  const bool topicBrowserVisible = (panel == MultiplotConfig::SidePanel::TopicBrowser);
+  const bool curveFiltersVisible = (panel == MultiplotConfig::SidePanel::CurveFilters);
+  {
+    const QSignalBlocker topicBlocker(topicBrowserButton_);
+    const QSignalBlocker filterBlocker(curveFilterButton_);
+    topicBrowserButton_->setChecked(topicBrowserVisible);
+    curveFilterButton_->setChecked(curveFiltersVisible);
+  }
+  topicBrowserButton_->setToolTip(topicBrowserVisible ? tr("Hide topic browser") : tr("Show topic browser"));
+  curveFilterButton_->setToolTip(curveFiltersVisible ? tr("Hide curve filters") : tr("Show curve filters"));
+
+  if (panel == MultiplotConfig::SidePanel::None) {
+    sidePanelStack_->setVisible(false);
     return;
   }
 
-  const int width = std::max(1, config_->getTopicBrowserWidth());
-  const int total = std::max(topicBrowserSplitter_->width(), width + 1);
-  topicBrowserSplitter_->setSizes({width, std::max(1, total - width)});
+  sidePanelStack_->setCurrentWidget(topicBrowserVisible ? static_cast<QWidget*>(topicBrowser_) : curveFilterPanel_);
+  sidePanelStack_->setVisible(true);
+
+  const int width = std::max(1, config_->getSidePanelWidth());
+  const int total = std::max(sidePanelSplitter_->width(), width + 1);
+  sidePanelSplitter_->setSizes({width, std::max(1, total - width)});
 }
 
-void MultiplotWidget::topicBrowserSplitterMoved(int /*pos*/, int /*index*/) {
-  if (!config_->isTopicBrowserVisible()) {
+void MultiplotWidget::sidePanelSplitterMoved(int /*pos*/, int /*index*/) {
+  if (config_->getSidePanel() == MultiplotConfig::SidePanel::None) {
     return;
   }
 
-  const QList<int> sizes = topicBrowserSplitter_->sizes();
+  const QList<int> sizes = sidePanelSplitter_->sizes();
   if (!sizes.isEmpty() && (sizes.first() > 0)) {
-    config_->setTopicBrowserWidth(sizes.first());
+    config_->setSidePanelWidth(sizes.first());
   }
 }
 

@@ -31,7 +31,9 @@ namespace rqt_multiplot {
 class MultiplotConfig : public Config {
   Q_OBJECT
  public:
-  static constexpr int kDefaultTopicBrowserWidth = 280;
+  static constexpr int kDefaultSidePanelWidth = 280;
+
+  enum class SidePanel { None, TopicBrowser, CurveFilters };
 
   explicit MultiplotConfig(QObject* parent);
   ~MultiplotConfig() override;
@@ -52,10 +54,13 @@ class MultiplotConfig : public Config {
   bool isOpenGLCanvasEnabled() const;
   void setPlotTitleStyle(const PlotTitleStyle& style);
   PlotTitleStyle plotTitleStyle() const;
+  void setSidePanel(SidePanel panel);
+  SidePanel getSidePanel() const;
+  void toggleSidePanel(SidePanel panel);
   void setTopicBrowserVisible(bool visible);
   bool isTopicBrowserVisible() const;
-  void setTopicBrowserWidth(int width);
-  int getTopicBrowserWidth() const;
+  void setSidePanelWidth(int width);
+  int getSidePanelWidth() const;
   bool isPreferencesOverridden() const;
   void setPreferencesOverridden(bool overridden);
   void applyUserDefaults();
@@ -79,8 +84,8 @@ class MultiplotConfig : public Config {
   void themeChanged(const QString& themeId);
   void openGLCanvasChanged(bool enabled);
   void plotTitleStyleChanged(const PlotTitleStyle& style);
-  void topicBrowserVisibleChanged(bool visible);
-  void topicBrowserWidthChanged(int width);
+  void sidePanelChanged(MultiplotConfig::SidePanel panel);
+  void sidePanelWidthChanged(int width);
 
  private:
   QVector<PlotTableConfig*> tableConfigs_;
@@ -90,10 +95,11 @@ class MultiplotConfig : public Config {
   bool openGLCanvasEnabled_;
   PlotTitleStyle plotTitleStyle_;
   bool preferencesOverridden_;
-  bool topicBrowserVisible_;
-  int topicBrowserWidth_;
+  SidePanel sidePanel_;
+  int sidePanelWidth_;
 
-  void readTopicBrowserState(QDataStream& stream);
+  void readSidePanelState(QDataStream& stream);
+  void loadSidePanelState(QSettings& settings);
   PlotTableConfig* createTab(const QString& title);
   void applyThemeColorsTo(PlotTableConfig* table) const;
   void applyThemeColors();

@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <memory>
 #include <optional>
 
 #include <QList>
@@ -31,6 +32,7 @@
 
 #include "rqt_multiplot/BoundingRectangle.hpp"
 #include "rqt_multiplot/CurveConfig.hpp"
+#include "rqt_multiplot/CurveFilter.hpp"
 #include "rqt_multiplot/MessageBroker.hpp"
 #include "rqt_multiplot/SnapshotHistory.hpp"
 
@@ -51,6 +53,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   void setBroker(MessageBroker* broker);
   MessageBroker* getBroker() const;
   CurveData* getData() const;
+  const CurveData* getRawData() const;
   CurveDataSequencer* getDataSequencer() const;
   QPair<double, double> getPreferredAxisScale(CurveConfig::Axis axis) const;
   BoundingRectangle getPreferredScale() const;
@@ -63,6 +66,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   void run();
   void pause();
   void clear();
+  void copyDataFrom(const PlotCurve& source);
 
  signals:
   void preferredScaleChanged(const BoundingRectangle& bounds);
@@ -74,6 +78,8 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   MessageBroker* broker_;
 
   CurveData* data_;
+  std::unique_ptr<CurveData> rawData_;
+  CurveFilterChain filterChain_;
   CurveDataSequencer* dataSequencer_;
   SnapshotHistory snapshotHistory_;
   QList<QwtPlotCurve*> ghosts_;
@@ -84,6 +90,11 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   CurveAxisConfig::UnitConversion appliedUnitConversion_[2];
 
   void createDataBackend();
+  CurveData* newDataBackend() const;
+  bool isFilterActive() const;
+  void rebuildFilterChain();
+  void replayFilters();
+  void notifyDataReplaced(const BoundingRectangle& oldBounds);
   void rescaleStoredAxis(CurveConfig::Axis axis, double factor);
   void syncAppliedUnitConversions();
   void updateSnapshotHistoryCapacity();
@@ -99,8 +110,9 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   void configColorConfigCurrentColorChanged(const QColor& color);
   void configStyleConfigChanged();
   void configDataConfigChanged();
+  void configFilterChainConfigChanged();
 
-  void dataSequencerPointReceived(const QPointF& point);
+  void dataSequencerPointReceived(const QPointF& receivedPoint);
   void dataSequencerSeriesReceived(const QVector<QPointF>& points);
 };
 

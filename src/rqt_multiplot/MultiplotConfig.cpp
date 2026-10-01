@@ -37,6 +37,7 @@ namespace {
 constexpr quint32 kTabsStreamMagic = 0x52544D31;
 constexpr auto kPreferencesStreamMarker = "__rtp_prefs_v2__";
 constexpr auto kTopicBrowserStreamMarker = "__rtp_topic_browser_v1__";
+constexpr auto kSidePanelStreamMarker = "__rtp_side_panel_v1__";
 constexpr quint64 kMaxStreamTabs = 256;
 constexpr auto kTimeZoneLocal = "local";
 constexpr auto kTimeZoneUtc = "utc";
@@ -58,6 +59,38 @@ QString normalizeTimeZoneId(const QString& timeZoneId) {
   return QString::fromLatin1(kTimeZoneLocal);
 }
 
+QString sidePanelKey(MultiplotConfig::SidePanel panel) {
+  switch (panel) {
+    case MultiplotConfig::SidePanel::TopicBrowser:
+      return QStringLiteral("topic_browser");
+    case MultiplotConfig::SidePanel::CurveFilters:
+      return QStringLiteral("curve_filters");
+    case MultiplotConfig::SidePanel::None:
+    default:
+      return QStringLiteral("none");
+  }
+}
+
+MultiplotConfig::SidePanel sidePanelFromKey(const QString& key) {
+  if (key == QLatin1String("topic_browser")) {
+    return MultiplotConfig::SidePanel::TopicBrowser;
+  }
+  if (key == QLatin1String("curve_filters")) {
+    return MultiplotConfig::SidePanel::CurveFilters;
+  }
+  return MultiplotConfig::SidePanel::None;
+}
+
+MultiplotConfig::SidePanel sidePanelFromInt(qint32 value) {
+  if (value == static_cast<qint32>(MultiplotConfig::SidePanel::TopicBrowser)) {
+    return MultiplotConfig::SidePanel::TopicBrowser;
+  }
+  if (value == static_cast<qint32>(MultiplotConfig::SidePanel::CurveFilters)) {
+    return MultiplotConfig::SidePanel::CurveFilters;
+  }
+  return MultiplotConfig::SidePanel::None;
+}
+
 }  // namespace
 
 MultiplotConfig::MultiplotConfig(QObject* parent)
@@ -68,8 +101,8 @@ MultiplotConfig::MultiplotConfig(QObject* parent)
       openGLCanvasEnabled_(false),
       plotTitleStyle_(PlotTitleStyle::factory()),
       preferencesOverridden_(false),
-      topicBrowserVisible_(false),
-      topicBrowserWidth_(kDefaultTopicBrowserWidth) {
+      sidePanel_(SidePanel::None),
+      sidePanelWidth_(kDefaultSidePanelWidth) {
   createTab("Tab 1");
   applyUserDefaults();
 }
@@ -230,32 +263,60 @@ PlotTitleStyle MultiplotConfig::plotTitleStyle() const {
   return plotTitleStyle_;
 }
 
-void MultiplotConfig::setTopicBrowserVisible(bool visible) {
-  if (visible == topicBrowserVisible_) {
+void MultiplotConfig::setSidePanel(SidePanel panel) {
+  if (panel == sidePanel_) {
     return;
   }
 
-  topicBrowserVisible_ = visible;
-  emit topicBrowserVisibleChanged(visible);
+  sidePanel_ = panel;
+  emit sidePanelChanged(panel);
   emit changed();
+}
+
+MultiplotConfig::SidePanel MultiplotConfig::getSidePanel() const {
+  return sidePanel_;
+}
+
+void MultiplotConfig::toggleSidePanel(SidePanel panel) {
+  setSidePanel((sidePanel_ == panel) ? SidePanel::None : panel);
+}
+
+void MultiplotConfig::setTopicBrowserVisible(bool visible) {
+  if (visible) {
+    setSidePanel(SidePanel::TopicBrowser);
+  } else if (sidePanel_ == SidePanel::TopicBrowser) {
+    setSidePanel(SidePanel::None);
+  }
 }
 
 bool MultiplotConfig::isTopicBrowserVisible() const {
-  return topicBrowserVisible_;
+  return sidePanel_ == SidePanel::TopicBrowser;
 }
 
-void MultiplotConfig::setTopicBrowserWidth(int width) {
-  if (width == topicBrowserWidth_) {
+void MultiplotConfig::setSidePanelWidth(int width) {
+  if (width == sidePanelWidth_) {
     return;
   }
 
-  topicBrowserWidth_ = width;
-  emit topicBrowserWidthChanged(width);
+  sidePanelWidth_ = width;
+  emit sidePanelWidthChanged(width);
   emit changed();
 }
 
-int MultiplotConfig::getTopicBrowserWidth() const {
-  return topicBrowserWidth_;
+int MultiplotConfig::getSidePanelWidth() const {
+  return sidePanelWidth_;
+}
+
+void MultiplotConfig::loadSidePanelState(QSettings& settings) {
+  if (settings.contains(QStringLiteral("side_panel"))) {
+    setSidePanel(sidePanelFromKey(settings.value(QStringLiteral("side_panel")).toString()));
+  } else {
+    const bool legacyVisible = settings.value(QStringLiteral("topic_browser_visible"), false).toBool();
+    setSidePanel(legacyVisible ? SidePanel::TopicBrowser : SidePanel::None);
+  }
+
+  const QVariant legacyWidth = settings.value(QStringLiteral("topic_browser_width"), kDefaultSidePanelWidth);
+  setSidePanelWidth(settings.value(QStringLiteral("side_panel_width"), legacyWidth).toInt());
 }
 
 bool MultiplotConfig::isPreferencesOverridden() const {
@@ -298,8 +359,10 @@ void MultiplotConfig::save(QSettings& settings) const {
     settings.remove("plot_title_color");
   }
   settings.setValue("current_tab", static_cast<uint>(currentTabIndex_));
-  settings.setValue("topic_browser_visible", topicBrowserVisible_);
-  settings.setValue("topic_browser_width", topicBrowserWidth_);
+  settings.remove("topic_browser_visible");
+  settings.remove("topic_browser_width");
+  settings.setValue("side_panel", sidePanelKey(sidePanel_));
+  settings.setValue("side_panel_width", sidePanelWidth_);
   settings.beginGroup("tabs");
 
   for (int index = 0; index < tableConfigs_.count(); ++index) {
@@ -327,8 +390,7 @@ void MultiplotConfig::load(QSettings& settings) {
     return;
   }
 
-  setTopicBrowserVisible(settings.value(QStringLiteral("topic_browser_visible"), false).toBool());
-  setTopicBrowserWidth(settings.value(QStringLiteral("topic_browser_width"), kDefaultTopicBrowserWidth).toInt());
+  loadSidePanelState(settings);
   preferencesOverridden_ = hasPreferenceOverride;
   if (hasPreferenceOverride) {
     timeZoneId_ = normalizeTimeZoneId(settings.value(QStringLiteral("time_zone"), QString::fromLatin1(kTimeZoneLocal)).toString());
@@ -360,8 +422,8 @@ void MultiplotConfig::reset() {
   createTab("Tab 1");
   currentTabIndex_ = 0;
   preferencesOverridden_ = false;
-  setTopicBrowserVisible(false);
-  setTopicBrowserWidth(kDefaultTopicBrowserWidth);
+  setSidePanel(SidePanel::None);
+  setSidePanelWidth(kDefaultSidePanelWidth);
   applyUserDefaults();
 
   emit tabsChanged();
@@ -391,27 +453,33 @@ void MultiplotConfig::write(QDataStream& stream) const {
     stream << plotTitleStyle_.customColor.name();
   }
 
-  stream << QString::fromLatin1(kTopicBrowserStreamMarker);
-  stream << topicBrowserVisible_;
-  stream << static_cast<qint32>(topicBrowserWidth_);
+  stream << QString::fromLatin1(kSidePanelStreamMarker);
+  stream << static_cast<qint32>(sidePanel_);
+  stream << static_cast<qint32>(sidePanelWidth_);
 }
 
-void MultiplotConfig::readTopicBrowserState(QDataStream& stream) {
+void MultiplotConfig::readSidePanelState(QDataStream& stream) {
   if (stream.atEnd()) {
     return;
   }
 
   QString marker;
-  bool visible = false;
-  qint32 width = kDefaultTopicBrowserWidth;
+  qint32 width = kDefaultSidePanelWidth;
   stream >> marker;
-  if (marker != QLatin1String(kTopicBrowserStreamMarker)) {
-    return;
-  }
-  stream >> visible >> width;
-  if (stream.status() == QDataStream::Ok) {
-    setTopicBrowserVisible(visible);
-    setTopicBrowserWidth(width);
+  if (marker == QLatin1String(kSidePanelStreamMarker)) {
+    qint32 panel = 0;
+    stream >> panel >> width;
+    if (stream.status() == QDataStream::Ok) {
+      setSidePanel(sidePanelFromInt(panel));
+      setSidePanelWidth(width);
+    }
+  } else if (marker == QLatin1String(kTopicBrowserStreamMarker)) {
+    bool visible = false;
+    stream >> visible >> width;
+    if (stream.status() == QDataStream::Ok) {
+      setSidePanel(visible ? SidePanel::TopicBrowser : SidePanel::None);
+      setSidePanelWidth(width);
+    }
   }
 }
 
@@ -432,8 +500,8 @@ void MultiplotConfig::read(QDataStream& stream) {
   in.setByteOrder(stream.byteOrder());
   in.setFloatingPointPrecision(stream.floatingPointPrecision());
 
-  setTopicBrowserVisible(false);
-  setTopicBrowserWidth(kDefaultTopicBrowserWidth);
+  setSidePanel(SidePanel::None);
+  setSidePanelWidth(kDefaultSidePanelWidth);
 
   quint32 magic = 0;
   in >> magic;
@@ -478,7 +546,7 @@ void MultiplotConfig::read(QDataStream& stream) {
         } else {
           applyUserDefaults();
         }
-        readTopicBrowserState(in);
+        readSidePanelState(in);
       } else {
         preferencesOverridden_ = true;
         setTimeZoneId(marker);
@@ -533,8 +601,8 @@ MultiplotConfig& MultiplotConfig::operator=(const MultiplotConfig& src) {
   openGLCanvasEnabled_ = src.openGLCanvasEnabled_;
   plotTitleStyle_ = src.plotTitleStyle_;
   preferencesOverridden_ = src.preferencesOverridden_;
-  setTopicBrowserVisible(src.topicBrowserVisible_);
-  setTopicBrowserWidth(src.topicBrowserWidth_);
+  setSidePanel(src.sidePanel_);
+  setSidePanelWidth(src.sidePanelWidth_);
   applyThemeColors();
 
   emit tabsChanged();

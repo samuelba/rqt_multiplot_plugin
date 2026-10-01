@@ -304,4 +304,115 @@ TEST(PlotWidget, destroyingAfterPlottedSamplesDoesNotCrash) {
   delete widget;
 }
 
+void feedPoints(PlotCurve& curve, const QVector<QPointF>& points) {
+  for (const auto& point : points) {
+    ASSERT_TRUE(QMetaObject::invokeMethod(&curve, "dataSequencerPointReceived", Qt::DirectConnection, Q_ARG(QPointF, point)));
+  }
+}
+
+QVector<QPointF> curvePoints(const rqt_multiplot::CurveData& data) {
+  QVector<QPointF> points;
+  for (size_t index = 0; index < data.getNumPoints(); ++index) {
+    points.append(data.getPoint(index));
+  }
+  return points;
+}
+
+rqt_multiplot::CurveFilterSpec movingAverageSpec(int windowSize) {
+  auto spec = rqt_multiplot::defaultCurveFilterSpec(rqt_multiplot::CurveFilterType::MovingAverage);
+  spec.windowSize = windowSize;
+  return spec;
+}
+
+const QVector<QPointF> kFilterInput{{0.0, 1.0}, {1.0, 3.0}, {2.0, -2.0}, {3.0, 6.0}, {4.0, 0.5}};
+
+TEST(PlotCurve, chainChangeReplaysSameAsLiveFiltering) {
+  ensureApplication();
+
+  CurveConfig liveConfig;
+  configureReceiptTimeCurve(&liveConfig);
+  liveConfig.getFilterChainConfig()->setFilters({movingAverageSpec(2)});
+  PlotCurve live;
+  live.setConfig(&liveConfig);
+  live.run();
+  feedPoints(live, kFilterInput);
+
+  CurveConfig replayConfig;
+  configureReceiptTimeCurve(&replayConfig);
+  PlotCurve replay;
+  replay.setConfig(&replayConfig);
+  replay.run();
+  feedPoints(replay, kFilterInput);
+  replayConfig.getFilterChainConfig()->setFilters({movingAverageSpec(2)});
+
+  EXPECT_EQ(curvePoints(*replay.getData()), curvePoints(*live.getData()));
+  EXPECT_EQ(curvePoints(*replay.getRawData()), kFilterInput);
+}
+
+TEST(PlotCurve, removingChainRestoresRawPoints) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+  config.getFilterChainConfig()->setFilters({rqt_multiplot::defaultCurveFilterSpec(rqt_multiplot::CurveFilterType::Derivative)});
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.run();
+  feedPoints(curve, kFilterInput);
+  ASSERT_EQ(curve.getData()->getNumPoints(), 4U);
+
+  config.getFilterChainConfig()->setFilters({});
+
+  EXPECT_EQ(curvePoints(*curve.getData()), kFilterInput);
+}
+
+TEST(PlotCurve, unitChangeReplaysNonLinearFilter) {
+  ensureApplication();
+
+  auto threshold = rqt_multiplot::defaultCurveFilterSpec(rqt_multiplot::CurveFilterType::Threshold);
+  threshold.comparison = rqt_multiplot::CurveFilterComparison::Greater;
+  threshold.thresholdA = 1.0;
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+  config.getFilterChainConfig()->setFilters({threshold});
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.run();
+  feedPoints(curve, {{0.0, 0.5}, {1.0, 2.0}});
+
+  config.getAxisConfig(CurveConfig::Y)->setUnitConversion(CurveAxisConfig::RadiansToDegrees);
+
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{0.0, 1.0}, {1.0, 1.0}}));
+}
+
+TEST(PlotCurve, clearResetsFilterState) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+  config.getFilterChainConfig()->setFilters({rqt_multiplot::defaultCurveFilterSpec(rqt_multiplot::CurveFilterType::Integral)});
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.run();
+  feedPoints(curve, {{0.0, 1.0}, {1.0, 1.0}});
+
+  curve.clear();
+  feedPoints(curve, {{5.0, 2.0}, {6.0, 2.0}});
+
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{5.0, 0.0}, {6.0, 2.0}}));
+  EXPECT_EQ(curve.getRawData()->getNumPoints(), 2U);
+}
+
+TEST(PlotCurve, snapshotCurveIgnoresFilters) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureSnapshotCurve(&config);
+  config.getFilterChainConfig()->setFilters({movingAverageSpec(2)});
+  PlotCurve curve;
+  curve.setConfig(&config);
+
+  EXPECT_EQ(curve.getRawData(), curve.getData());
+}
+
 }  // namespace

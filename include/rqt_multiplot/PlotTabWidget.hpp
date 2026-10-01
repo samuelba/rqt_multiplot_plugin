@@ -32,6 +32,7 @@ class QToolButton;
 namespace rqt_multiplot {
 
 class BagReader;
+class PlotConfig;
 class PlotTableWidget;
 
 class PlotTabWidget : public QWidget {
@@ -65,6 +66,7 @@ class PlotTabWidget : public QWidget {
   void jobFinished(const QString& toolTip);
   void jobFailed(const QString& toolTip);
   void bagFilesImported(const QStringList& fileNames, bool replace);
+  void curveFiltersRequested(PlotConfig* config);
 
  private:
   QTabWidget* tabWidget_;

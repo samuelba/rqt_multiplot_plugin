@@ -25,6 +25,7 @@
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveColorConfig.hpp"
 #include "rqt_multiplot/CurveDataConfig.hpp"
+#include "rqt_multiplot/CurveFilterChainConfig.hpp"
 #include "rqt_multiplot/CurveStyleConfig.hpp"
 
 namespace rqt_multiplot {
@@ -45,6 +46,7 @@ class CurveConfig : public Config {
   CurveColorConfig* getColorConfig() const;
   CurveStyleConfig* getStyleConfig() const;
   CurveDataConfig* getDataConfig() const;
+  CurveFilterChainConfig* getFilterChainConfig() const;
   void setSubscriberQueueSize(size_t queueSize);
   size_t getSubscriberQueueSize() const;
 
@@ -67,6 +69,7 @@ class CurveConfig : public Config {
   CurveColorConfig* colorConfig_;
   CurveStyleConfig* styleConfig_;
   CurveDataConfig* dataConfig_;
+  CurveFilterChainConfig* filterChainConfig_;
   size_t subscriberQueueSize_;
 
  private slots:
@@ -74,6 +77,7 @@ class CurveConfig : public Config {
   void colorConfigChanged();
   void styleConfigChanged();
   void dataConfigChanged();
+  void filterChainConfigChanged();
 };
 
 }  // namespace rqt_multiplot

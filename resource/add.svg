@@ -3,9 +3,9 @@
    id="icon"
    width="32"
    height="32"
-   viewBox="2 2 28 28"
+   viewBox="1 1 30 30"
    version="1.1"
-   sodipodi:docname="add-curve.svg"
+   sodipodi:docname="add.svg"
    inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -22,7 +22,7 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="36.375"
      inkscape:cx="15.986254"
-     inkscape:cy="20.398625"
+     inkscape:cy="16"
      inkscape:window-width="2560"
      inkscape:window-height="1375"
      inkscape:window-x="0"
@@ -38,20 +38,15 @@
       }
     </style>
   </defs>
-  <path
-     d="m 11.982818,14.477663 c 1.4854,0 1.510712,0.01206 2.642612,1.596564 1.312,1.8369 2.165812,2.104467 4.680412,2.104467 5.6709,0 10.666598,-10.59756 10.886598,-11.80756 l -1.77536,-0.3584 c -0.4822,2.6411 -5.717438,10.16596 -9.111238,10.16596 -1.4854,0 -1.921112,0.317828 -3.053012,-1.266667 -1.312,-1.8369 -1.755412,-2.434364 -4.270012,-2.434364 C 7.7968179,12.477663 5.5552,20.4043 4,24.7617 V 2 H 2 v 26 c 0.00138,1.103998 0.8960015,1.998623 2,2 H 16.501718 V 28 H 5.0439 C 6.5544,22.8574 8.9462179,14.477663 11.982818,14.477663 Z"
-     id="path1"
-     sodipodi:nodetypes="scsccscsccccccccs" />
+  <polygon
+     points="5,15 5,17 15,17 15,27 17,27 17,17 27,17 27,15 17,15 17,5 15,5 15,15 "
+     id="polygon1" />
   <rect
      id="_Transparent_Rectangle_"
-     data-name="&lt;Transparent Rectangle&gt;"
+     data-name="&amp;lt;Transparent Rectangle&amp;gt;"
      class="cls-1"
      width="32"
      height="32"
      x="0"
      y="0" />
-  <polygon
-     points="31,24 27,24 27,20 25,20 25,24 21,24 21,26 25,26 25,30 27,30 27,26 31,26 "
-     id="polygon1"
-     transform="translate(-1)" />
 </svg>

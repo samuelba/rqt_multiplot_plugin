@@ -255,6 +255,7 @@ void PlotTabWidget::connectPlotTableJobs(PlotTableWidget* plotTable) {
   connect(plotTable, SIGNAL(jobProgressChanged(double)), this, SLOT(plotTableJobProgressChanged(double)));
   connect(plotTable, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
   connect(plotTable, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
+  connect(plotTable, &PlotTableWidget::curveFiltersRequested, this, &PlotTabWidget::curveFiltersRequested);
 }
 
 void PlotTabWidget::completeTableJob(PlotTableWidget* plotTable) {

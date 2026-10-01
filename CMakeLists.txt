@@ -121,6 +121,12 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/CurveDataListTimeFrame.cpp
   src/rqt_multiplot/CurveDataSequencer.cpp
   src/rqt_multiplot/CurveDataVector.cpp
+  src/rqt_multiplot/CurveFilter.cpp
+  src/rqt_multiplot/CurveFilterChainConfig.cpp
+  src/rqt_multiplot/CurveFilterChainWidget.cpp
+  src/rqt_multiplot/CurveFilterDropDialog.cpp
+  src/rqt_multiplot/CurveFilterPanelWidget.cpp
+  src/rqt_multiplot/CurveFilterParamsWidget.cpp
   src/rqt_multiplot/CurveStatistics.cpp
   src/rqt_multiplot/CurveItemWidget.cpp
   src/rqt_multiplot/CurveListWidget.cpp
@@ -259,6 +265,12 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/CurveDataListTimeFrame.hpp
   include/rqt_multiplot/CurveDataSequencer.hpp
   include/rqt_multiplot/CurveDataVector.hpp
+  include/rqt_multiplot/CurveFilter.hpp
+  include/rqt_multiplot/CurveFilterChainConfig.hpp
+  include/rqt_multiplot/CurveFilterChainWidget.hpp
+  include/rqt_multiplot/CurveFilterDropDialog.hpp
+  include/rqt_multiplot/CurveFilterPanelWidget.hpp
+  include/rqt_multiplot/CurveFilterParamsWidget.hpp
   include/rqt_multiplot/CurveItemWidget.hpp
   include/rqt_multiplot/CurveListWidget.hpp
   include/rqt_multiplot/CurveStyleConfig.hpp
@@ -515,6 +527,9 @@ if(BUILD_TESTING)
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
     test/CurveDataVectorTest.cpp
+    test/CurveFilterTest.cpp
+    test/CurveFilterChainConfigTest.cpp
+    test/CurveFilterWidgetsTest.cpp
     test/CurveStatisticsTest.cpp
     test/CurveValuesWidgetTest.cpp
     test/DataStatisticsDialogTest.cpp

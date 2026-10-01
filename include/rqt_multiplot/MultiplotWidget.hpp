@@ -33,6 +33,7 @@
 class QAction;
 class QPushButton;
 class QSplitter;
+class QStackedWidget;
 
 namespace Ui {
 
@@ -42,6 +43,7 @@ class MultiplotWidget;
 
 namespace rqt_multiplot {
 
+class CurveFilterPanelWidget;
 class PlotTableWidget;
 class TopicBrowserWidget;
 
@@ -76,10 +78,10 @@ class MultiplotWidget : public QWidget {
   void installCloseGuard();
   void installStandaloneMenu();
   bool isCloseButtonActivation(QObject* object, QEvent* event) const;
-  void setupTopicBrowser();
+  void setupSidePanels();
   void setupShortcuts();
   void setupHelpMenu();
-  void applyTopicBrowserState();
+  void applySidePanelState();
 
   Ui::MultiplotWidget* ui_;
 
@@ -89,9 +91,13 @@ class MultiplotWidget : public QWidget {
   PackageRegistry* packageRegistry_;
 
   TopicBrowserWidget* topicBrowser_;
-  QSplitter* topicBrowserSplitter_;
+  CurveFilterPanelWidget* curveFilterPanel_;
+  QStackedWidget* sidePanelStack_;
+  QSplitter* sidePanelSplitter_;
   QPushButton* topicBrowserButton_;
+  QPushButton* curveFilterButton_;
   QAction* actionTopicBrowser_;
+  QAction* actionCurveFilters_;
 
   QObject* guardedDock_;
   QAbstractButton* guardedCloseButton_;
@@ -108,7 +114,7 @@ class MultiplotWidget : public QWidget {
   void openKeyboardShortcuts();
   void openAbout();
   void configThemeChanged(const QString& themeId);
-  void topicBrowserSplitterMoved(int pos, int index);
+  void sidePanelSplitterMoved(int pos, int index);
 };
 
 }  // namespace rqt_multiplot

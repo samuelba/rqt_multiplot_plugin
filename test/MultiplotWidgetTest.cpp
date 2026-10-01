@@ -242,7 +242,7 @@ TEST(MultiplotWidget, topicBrowserUsesConfiguredWidth) {
   MultiplotWidget widget;
   widget.resize(900, 480);
   widget.show();
-  widget.getConfig()->setTopicBrowserWidth(310);
+  widget.getConfig()->setSidePanelWidth(310);
   widget.getConfig()->setTopicBrowserVisible(true);
   QApplication::processEvents();
 

@@ -38,9 +38,9 @@ namespace rqt_multiplot {
 PlotConfigWidget::PlotConfigWidget(QWidget* parent) : QWidget(parent), ui_(new Ui::PlotConfigWidget()), config_(new PlotConfig(this)) {
   ui_->setupUi(this);
 
-  setThemeIcon(ui_->pushButtonAddCurve, QStringLiteral("resource/add-curve.svg"), QSize(16, 16));
-  setThemeIcon(ui_->pushButtonEditCurve, QStringLiteral("resource/edit-curve.svg"), QSize(16, 16));
-  setThemeIcon(ui_->pushButtonRemoveCurves, QStringLiteral("resource/remove-curve.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonAddCurve, QStringLiteral("resource/add.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonEditCurve, QStringLiteral("resource/edit.svg"), QSize(16, 16));
+  setThemeIcon(ui_->pushButtonRemoveCurves, QStringLiteral("resource/trash-can.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonMoveCurveUp, QStringLiteral("resource/move-up.svg"), QSize(16, 16));
   setThemeIcon(ui_->pushButtonMoveCurveDown, QStringLiteral("resource/move-down.svg"), QSize(16, 16));
 
