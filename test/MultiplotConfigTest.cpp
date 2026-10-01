@@ -302,7 +302,7 @@ TEST(MultiplotConfig, topicBrowserIsHiddenByDefault) {
   MultiplotConfig config(nullptr);
 
   EXPECT_FALSE(config.isTopicBrowserVisible());
-  EXPECT_EQ(config.getTopicBrowserWidth(), MultiplotConfig::kDefaultTopicBrowserWidth);
+  EXPECT_EQ(config.getSidePanelWidth(), MultiplotConfig::kDefaultSidePanelWidth);
 }
 
 TEST(MultiplotConfig, savesAndLoadsTopicBrowserState) {
@@ -313,7 +313,7 @@ TEST(MultiplotConfig, savesAndLoadsTopicBrowserState) {
   {
     MultiplotConfig config(nullptr);
     config.setTopicBrowserVisible(true);
-    config.setTopicBrowserWidth(333);
+    config.setSidePanelWidth(333);
     QSettings settings(path, XmlSettings::format);
     beginMultiplot(settings);
     config.save(settings);
@@ -328,13 +328,13 @@ TEST(MultiplotConfig, savesAndLoadsTopicBrowserState) {
   settings.endGroup();
 
   EXPECT_TRUE(loaded.isTopicBrowserVisible());
-  EXPECT_EQ(loaded.getTopicBrowserWidth(), 333);
+  EXPECT_EQ(loaded.getSidePanelWidth(), 333);
 }
 
 TEST(MultiplotConfig, roundTripsTopicBrowserStateThroughDataStream) {
   MultiplotConfig source(nullptr);
   source.setTopicBrowserVisible(true);
-  source.setTopicBrowserWidth(321);
+  source.setSidePanelWidth(321);
 
   QBuffer buffer;
   buffer.open(QIODevice::ReadWrite);
@@ -347,7 +347,77 @@ TEST(MultiplotConfig, roundTripsTopicBrowserStateThroughDataStream) {
   loaded.read(in);
 
   EXPECT_TRUE(loaded.isTopicBrowserVisible());
-  EXPECT_EQ(loaded.getTopicBrowserWidth(), 321);
+  EXPECT_EQ(loaded.getSidePanelWidth(), 321);
+}
+
+TEST(MultiplotConfig, savesAndLoadsCurveFiltersSidePanel) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "side_panel.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    config.setSidePanel(MultiplotConfig::SidePanel::CurveFilters);
+    config.setSidePanelWidth(345);
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getSidePanel(), MultiplotConfig::SidePanel::CurveFilters);
+  EXPECT_FALSE(loaded.isTopicBrowserVisible());
+  EXPECT_EQ(loaded.getSidePanelWidth(), 345);
+}
+
+TEST(MultiplotConfig, loadsLegacyTopicBrowserKeys) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "legacy_topic_browser.xml");
+
+  {
+    MultiplotConfig config(nullptr);
+    QSettings settings(path, XmlSettings::format);
+    beginMultiplot(settings);
+    config.save(settings);
+    settings.remove("side_panel");
+    settings.remove("side_panel_width");
+    settings.setValue("topic_browser_visible", true);
+    settings.setValue("topic_browser_width", 299);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  MultiplotConfig loaded(nullptr);
+  QSettings settings(path, XmlSettings::format);
+  beginMultiplot(settings);
+  loaded.load(settings);
+  settings.endGroup();
+
+  EXPECT_EQ(loaded.getSidePanel(), MultiplotConfig::SidePanel::TopicBrowser);
+  EXPECT_EQ(loaded.getSidePanelWidth(), 299);
+}
+
+TEST(MultiplotConfig, sidePanelsAreExclusiveAndToggle) {
+  MultiplotConfig config(nullptr);
+
+  config.setTopicBrowserVisible(true);
+  config.toggleSidePanel(MultiplotConfig::SidePanel::CurveFilters);
+  EXPECT_EQ(config.getSidePanel(), MultiplotConfig::SidePanel::CurveFilters);
+  EXPECT_FALSE(config.isTopicBrowserVisible());
+
+  config.setTopicBrowserVisible(false);
+  EXPECT_EQ(config.getSidePanel(), MultiplotConfig::SidePanel::CurveFilters);
+
+  config.toggleSidePanel(MultiplotConfig::SidePanel::CurveFilters);
+  EXPECT_EQ(config.getSidePanel(), MultiplotConfig::SidePanel::None);
 }
 
 TEST(MultiplotConfig, streamWithoutTopicBrowserStateResetsToDefaults) {
@@ -362,11 +432,11 @@ TEST(MultiplotConfig, streamWithoutTopicBrowserStateResetsToDefaults) {
   QDataStream in(&buffer);
   MultiplotConfig loaded(nullptr);
   loaded.setTopicBrowserVisible(true);
-  loaded.setTopicBrowserWidth(500);
+  loaded.setSidePanelWidth(500);
   loaded.read(in);
 
   EXPECT_FALSE(loaded.isTopicBrowserVisible());
-  EXPECT_EQ(loaded.getTopicBrowserWidth(), MultiplotConfig::kDefaultTopicBrowserWidth);
+  EXPECT_EQ(loaded.getSidePanelWidth(), MultiplotConfig::kDefaultSidePanelWidth);
 }
 
 TEST(MultiplotConfig, loadsLegacyTableStreamOntoSingleTab) {

@@ -43,6 +43,7 @@ CurveConfigWidget::CurveConfigWidget(QWidget* parent)
   ui_->curveColorConfigWidget->setConfig(config_->getColorConfig());
   ui_->curveStyleConfigWidget->setConfig(config_->getStyleConfig());
   ui_->curveDataConfigWidget->setConfig(config_->getDataConfig());
+  ui_->curveFilterChainWidget->setChainConfig(config_->getFilterChainConfig());
 
   connect(config_, SIGNAL(titleChanged(const QString&)), this, SLOT(configTitleChanged(const QString&)));
   connect(config_, SIGNAL(subscriberQueueSizeChanged(size_t)), this, SLOT(configSubscriberQueueSizeChanged(size_t)));

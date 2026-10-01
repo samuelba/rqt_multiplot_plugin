@@ -542,6 +542,7 @@ void PlotTableWidget::connectPlotWidget(PlotWidget* plot) {
   connect(plot, SIGNAL(stateChanged(int)), this, SLOT(plotStateChanged(int)));
   connect(plot, SIGNAL(splitRequested(Qt::Orientation, bool)), this, SLOT(plotSplitRequested(Qt::Orientation, bool)));
   connect(plot, SIGNAL(closeRequested()), this, SLOT(plotCloseRequested()));
+  connect(plot, &PlotWidget::curveFiltersRequested, this, &PlotTableWidget::curveFiltersRequested);
 }
 
 void PlotTableWidget::connectPlotCursor(PlotWidget* plot) {

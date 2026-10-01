@@ -30,6 +30,7 @@ CurveConfig::CurveConfig(QObject* parent, QString title, size_t subscriberQueueS
       colorConfig_(new CurveColorConfig(this)),
       styleConfig_(new CurveStyleConfig(this)),
       dataConfig_(new CurveDataConfig(this)),
+      filterChainConfig_(new CurveFilterChainConfig(this)),
       subscriberQueueSize_(subscriberQueueSize) {
   axisConfig_[X] = new CurveAxisConfig(this);
   axisConfig_[Y] = new CurveAxisConfig(this);
@@ -41,6 +42,7 @@ CurveConfig::CurveConfig(QObject* parent, QString title, size_t subscriberQueueS
   connect(styleConfig_, SIGNAL(changed()), this, SLOT(styleConfigChanged()));
 
   connect(dataConfig_, SIGNAL(changed()), this, SLOT(dataConfigChanged()));
+  connect(filterChainConfig_, SIGNAL(changed()), this, SLOT(filterChainConfigChanged()));
 }
 
 CurveConfig::~CurveConfig() = default;
@@ -80,6 +82,10 @@ CurveDataConfig* CurveConfig::getDataConfig() const {
   return dataConfig_;
 }
 
+CurveFilterChainConfig* CurveConfig::getFilterChainConfig() const {
+  return filterChainConfig_;
+}
+
 void CurveConfig::setSubscriberQueueSize(size_t queueSize) {
   if (queueSize != subscriberQueueSize_) {
     subscriberQueueSize_ = queueSize;
@@ -117,6 +123,10 @@ void CurveConfig::save(QSettings& settings) const {
   dataConfig_->save(settings);
   settings.endGroup();
 
+  settings.beginGroup("filters");
+  filterChainConfig_->save(settings);
+  settings.endGroup();
+
   settings.setValue("subscriber_queue_size", QVariant::fromValue<qulonglong>(subscriberQueueSize_));
 }
 
@@ -144,6 +154,10 @@ void CurveConfig::load(QSettings& settings) {
   dataConfig_->load(settings);
   settings.endGroup();
 
+  settings.beginGroup("filters");
+  filterChainConfig_->load(settings);
+  settings.endGroup();
+
   setSubscriberQueueSize(settings.value("subscriber_queue_size", 100).toULongLong());
 }
 
@@ -157,6 +171,7 @@ void CurveConfig::reset() {
   styleConfig_->reset();
 
   dataConfig_->reset();
+  filterChainConfig_->reset();
 
   setSubscriberQueueSize(100);
 }
@@ -173,6 +188,8 @@ void CurveConfig::write(QDataStream& stream) const {
   dataConfig_->write(stream);
 
   stream << (quint64)subscriberQueueSize_;
+
+  filterChainConfig_->write(stream);
 }
 
 void CurveConfig::read(QDataStream& stream) {
@@ -192,6 +209,8 @@ void CurveConfig::read(QDataStream& stream) {
 
   stream >> subscriberQueueSize;
   setSubscriberQueueSize(subscriberQueueSize);
+
+  filterChainConfig_->read(stream);
 }
 
 CurveConfig& CurveConfig::operator=(const CurveConfig& src) {
@@ -208,6 +227,7 @@ CurveConfig& CurveConfig::operator=(const CurveConfig& src) {
   *styleConfig_ = *src.styleConfig_;
 
   *dataConfig_ = *src.dataConfig_;
+  *filterChainConfig_ = *src.filterChainConfig_;
 
   setSubscriberQueueSize(src.subscriberQueueSize_);
 
@@ -227,6 +247,10 @@ void CurveConfig::styleConfigChanged() {
 }
 
 void CurveConfig::dataConfigChanged() {
+  emit changed();
+}
+
+void CurveConfig::filterChainConfigChanged() {
   emit changed();
 }
 

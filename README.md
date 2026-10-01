@@ -29,6 +29,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **[Diagnostic messages](#diagnostic-messages)** — plot diagnostic messages from the `/diagnostics` or `/diagnostics_agg` topic
 - **[Topic metrics](#topic-metrics)** — plot the rate, bandwidth, and delay of a topic, as `ros2 topic hz`, `bw`, and `delay` show them
 - **[Topic browser](#topic-browser)** — browse live and bag topics, then drag'n'drop a field onto a plot
+- **[Curve filters](#curve-filters)** — ordered chain on a curve's Y series: derivative, integral, moving average, low-pass, and others. Drag a filter onto a plot, or edit the chain in the curve dialog
 - **[Markers](#markers)** — two vertical markers A and B per plot, with Δt and per-curve Δy and slope, to measure latency, rise time, or settling time
 
 Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an axis, grid on/off, drag-and-drop of curves between plot legends.
@@ -140,6 +141,7 @@ These apply while focus is inside the Multiplot window. The full list is under *
 | Ctrl+PgDown / Ctrl+PgUp | Next / previous tab |
 | Alt+1 ... Alt+9 | Select tab 1-9 |
 | Ctrl+B | Topic browser |
+| Ctrl+Shift+F | Curve filters |
 | Ctrl+Shift+B | Curve values (active tab) |
 | Ctrl+G | Grid (active tab) |
 | Ctrl+I / Ctrl+Shift+I | Import bag files / add bag files |
@@ -178,6 +180,8 @@ Useful curve options:
 - **Circular buffer** / **Time frame** — keep a fixed number of points or the last *n* seconds
 
 Whole-array fields use a different curve mode. See [Array curves](#array-curves).
+
+The **Filters** tab edits the [curve filter](#curve-filters) chain for this curve: add, remove, reorder, and set parameters. The same editor is in the curve-filters sidebar.
 
 ### Import a bag
 
@@ -310,6 +314,36 @@ The tree-view button on the left of the plot area, or **View → Topic browser**
 - A dynamic array lists elements after one message arrives, up to 100.
 - Each topic has a **Topic metrics** node. Drag a metric, or the node for all metrics, onto a plot to add [topic metric](#topic-metrics) curves. Delay metrics show only for messages with a header.
 - Dropping a topic root opens a dialog with two lists: **Metrics** (none checked) and **Fields**. Numeric fields are checked. Arrays show as wildcard fields (`position/*`, array vs index) and are not checked. Only the checked items are added.
+
+## Curve filters
+
+A filter chain transforms the Y values of one curve. Each filter takes the output of the one before it. X stays the sample time, except **Moving average** with **Compensate lag**, which places the point at the center of its window. The raw series is kept and replayed when the chain, a parameter, or a rad/deg conversion changes, so the plot, statistics, markers, cursor readout, curve-values sidebar, and CSV/TXT export all show the filtered series. The chain is stored in the curve XML.
+
+Array snapshot curves (array vs index, wildcard fields) cannot take filters.
+
+Open the sidebar with **View → Curve filters**, the filter button on the left rail, or Ctrl+Shift+F.
+
+| Action | Result |
+| --- | --- |
+| Drag a filter onto a plot | **Absolute** and **Time since previous point** apply to every curve that can take a filter. The others open a dialog for the parameters and which curves to include. Cancel adds nothing |
+| Double-click a filter | Append it to the curve selected in the sidebar. Parameters are the defaults, or the last ones chosen for that type in a drop dialog |
+| Right click a plot → **Filter curves...** | Open the sidebar on a curve of that plot |
+| **Add filtered copy** | Add a second curve on the same plot, titled `name [filtered]`, with the same points and chain. The original curve does not change |
+
+| Filter | Result | Parameters |
+| --- | --- | --- |
+| Derivative | dy/dx. Drops the first point, and any point with no positive step | Step between points, or a fixed step |
+| Integral | Running integral of y over x (trapezoid). Starts at 0 | Step between points, or a fixed step |
+| Moving average | Mean of the last N samples | Window size (default 10). Optional lag compensation |
+| Moving RMS | Root mean square of the last N samples | Window size (default 10) |
+| Moving variance | Variance of the last N samples, or the standard deviation | Window size (default 10). Optional standard deviation |
+| Low-pass | First-order low-pass. A larger time constant is smoother and lags more | Time constant (default 0.1 s) |
+| Absolute | \|y\| | |
+| Scale/offset | y × scale + offset | Scale (default 1), offset (default 0) |
+| Threshold | 1 when the condition is true, else 0 | y = A, y < A, y ≤ A, y > A, y ≥ A, or A ≤ y ≤ B |
+| Outlier removal | Drops a one-sample spike larger than the factor times the step before it. Delays the curve by one sample | Spike factor (default 100) |
+| Time since previous point | dx, the gap to the previous point. Drops the first point | |
+| Samples count | Number of samples in the last T milliseconds, this point included | Window (default 1000 ms) |
 
 ## Markers
 

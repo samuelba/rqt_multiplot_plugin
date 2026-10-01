@@ -136,6 +136,7 @@ class PlotWidget : public QWidget {
   void stateChanged(int state);
   void splitRequested(Qt::Orientation orientation, bool insertBefore);
   void closeRequested();
+  void curveFiltersRequested(PlotConfig* config);
   void cleared();
   void userScaleLockedChanged(bool locked);
   void canvasChanged();
@@ -165,6 +166,7 @@ class PlotWidget : public QWidget {
   QAction* actionContextClearMarkers_;
   double contextMenuX_;
   QAction* actionContextConfigure_;
+  QAction* actionContextFilterCurves_;
   QMenu* menuContextSplit_;
   QAction* actionContextShowLegend_;
   QAction* actionContextMaximizeRestore_;
@@ -213,6 +215,7 @@ class PlotWidget : public QWidget {
 
   bool acceptsDrop(const QMimeData* mimeData, const QObject* source) const;
   bool chooseDroppedTopicFields(const QMimeData* mimeData, QVector<TopicFieldRef>& refs);
+  bool addDroppedCurveFilter(CurveFilterType type);
   void addTopicFieldCurves(const QVector<TopicFieldRef>& refs);
   void makeCurveTitleUnique(CurveConfig* curveConfig) const;
   void updateAxisTitle(PlotAxesConfig::Axis axis);

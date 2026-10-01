@@ -31,7 +31,8 @@ constexpr auto kThemeFilterProperty = "rqt_multiplot_theme_filter";
 
 bool needsVisibleCheckBorder(const QWidget* widget) {
   for (const QWidget* current = widget; current != nullptr; current = current->parentWidget()) {
-    if (current->objectName() == QLatin1String("topicBrowserList") || current->objectName() == QLatin1String("topicDropDialog")) {
+    if (current->objectName() == QLatin1String("topicBrowserList") || current->objectName() == QLatin1String("topicDropDialog") ||
+        current->objectName() == QLatin1String("curveFilterDropDialog")) {
       return true;
     }
   }

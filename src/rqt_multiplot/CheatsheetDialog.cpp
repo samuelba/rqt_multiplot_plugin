@@ -226,6 +226,8 @@ std::vector<Section> rightSections() {
        true,
        {
            shortcutRow(keySequence(Qt::CTRL, Qt::Key_B), dialogText("Show or hide the topic browser")),
+           shortcutRow(keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_F),
+                       dialogText("Show or hide the curve filters")),
            shortcutRow(keySequence(static_cast<int>(Qt::CTRL) | static_cast<int>(Qt::SHIFT), Qt::Key_B),
                        dialogText("Show or hide curve values")),
            shortcutRow(keySequence(Qt::CTRL, Qt::Key_G), dialogText("Show or hide the grid")),

@@ -186,10 +186,14 @@ TEST(KeyboardShortcuts, viewAndFileActionsHaveShortcuts) {
   ASSERT_NE(menuBar, nullptr);
   QMenu* viewMenu = findMenu(*menuBar, QStringLiteral("&View"));
   ASSERT_NE(viewMenu, nullptr);
-  EXPECT_EQ(menuActionTexts(*viewMenu),
-            QStringList({QStringLiteral("Topic browser"), QStringLiteral("Curve values"), QStringLiteral("Grid")}));
+  EXPECT_EQ(menuActionTexts(*viewMenu), QStringList({QStringLiteral("Topic browser"), QStringLiteral("Curve filters"),
+                                                     QStringLiteral("Curve values"), QStringLiteral("Grid")}));
 
   const auto* topicBrowser = widget.findChild<QAction*>(QStringLiteral("actionTopicBrowser"));
+  const auto* curveFilters = widget.findChild<QAction*>(QStringLiteral("actionCurveFilters"));
+  ASSERT_NE(curveFilters, nullptr);
+  expectWidgetShortcut(*curveFilters, QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_F));
+  expectIcon(*curveFilters, "resource/filter.svg");
   const auto* curveValues = widget.findChild<QAction*>(QStringLiteral("actionToggleCurveValues"));
   const auto* grid = widget.findChild<QAction*>(QStringLiteral("actionToggleGrid"));
   const auto* importBags = widget.findChild<QAction*>(QStringLiteral("actionImportBagFile"));

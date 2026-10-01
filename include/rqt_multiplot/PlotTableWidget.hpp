@@ -91,6 +91,7 @@ class PlotTableWidget : public QWidget {
 
  signals:
   void plotPausedChanged();
+  void curveFiltersRequested(PlotConfig* config);
   void jobStarted(const QString& toolTip);
   void jobProgressChanged(double progress);
   void jobFinished(const QString& toolTip);

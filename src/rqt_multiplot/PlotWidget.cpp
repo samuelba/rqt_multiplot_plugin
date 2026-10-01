@@ -59,6 +59,7 @@
 #include "rqt_multiplot/AxisTimeFormat.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveData.hpp"
+#include "rqt_multiplot/CurveFilterDropDialog.hpp"
 #include "rqt_multiplot/DataStatisticsDialog.hpp"
 #include "rqt_multiplot/OffsetScaleDraw.hpp"
 #include "rqt_multiplot/OffsetScaleEngine.hpp"
@@ -137,6 +138,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       actionContextClearMarkers_(nullptr),
       contextMenuX_(0.0),
       actionContextConfigure_(nullptr),
+      actionContextFilterCurves_(nullptr),
       menuContextSplit_(new QMenu(tr("Split"), menuContext_)),
       actionContextShowLegend_(nullptr),
       actionContextMaximizeRestore_(nullptr),
@@ -784,6 +786,11 @@ void PlotWidget::buildContextMenu() {
   actionContextConfigure_->setObjectName(QStringLiteral("actionContextConfigure"));
   setContextMenuIcon(actionContextConfigure_, QStringLiteral("resource/settings-edit.svg"));
 
+  actionContextFilterCurves_ = menuContext_->addAction(tr("Filter curves..."));
+  actionContextFilterCurves_->setObjectName(QStringLiteral("actionContextFilterCurves"));
+  setContextMenuIcon(actionContextFilterCurves_, QStringLiteral("resource/filter.svg"));
+  connect(actionContextFilterCurves_, &QAction::triggered, this, [this]() { emit curveFiltersRequested(config_); });
+
   menuContextSplit_->setObjectName(QStringLiteral("menuContextSplit"));
   menuContext_->addMenu(menuContextSplit_);
   setContextMenuIcon(menuContextSplit_->menuAction(), QStringLiteral("resource/split/layout.svg"));
@@ -1041,6 +1048,11 @@ void PlotWidget::dropEvent(QDropEvent* event) {
     CurveConfig* curveConfig = config_->addCurve();
     stream >> *curveConfig;
     makeCurveTitleUnique(curveConfig);
+  } else if (const std::optional<CurveFilterType> filterType = decodeCurveFilterMimeData(mimeData)) {
+    if (!addDroppedCurveFilter(*filterType)) {
+      event->ignore();
+      return;
+    }
   } else {
     QVector<TopicFieldRef> refs;
     if (!chooseDroppedTopicFields(mimeData, refs)) {
@@ -1085,7 +1097,24 @@ bool PlotWidget::acceptsDrop(const QMimeData* mimeData, const QObject* source) c
   if (mimeData->hasFormat(CurveConfig::MimeType)) {
     return source != legend_;
   }
+  if (mimeData->hasFormat(kCurveFilterMimeType)) {
+    return decodeCurveFilterMimeData(mimeData).has_value() && !CurveFilterDropDialog::filterableCurveIndices(*config_).isEmpty();
+  }
   return mimeData->hasFormat(kTopicFieldsMimeType);
+}
+
+bool PlotWidget::addDroppedCurveFilter(CurveFilterType type) {
+  const std::optional<CurveFilterDropDialog::Result> result = CurveFilterDropDialog::ask(this, type, *config_);
+  if (!result.has_value() || result->curveIndices.isEmpty()) {
+    return false;
+  }
+  for (const int index : result->curveIndices) {
+    CurveConfig* curveConfig = config_->getCurveConfig(static_cast<size_t>(index));
+    if (curveConfig != nullptr) {
+      curveConfig->getFilterChainConfig()->addFilter(result->spec);
+    }
+  }
+  return true;
 }
 
 void PlotWidget::addTopicFieldCurves(const QVector<TopicFieldRef>& refs) {
