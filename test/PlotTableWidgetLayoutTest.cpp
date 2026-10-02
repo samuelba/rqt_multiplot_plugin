@@ -2,10 +2,15 @@
 
 #include <QApplication>
 #include <QEventLoop>
+#include <QFile>
+#include <QImage>
 #include <QList>
+#include <QPainter>
+#include <QPixmap>
 #include <QSettings>
 #include <QSplitter>
 #include <QTemporaryDir>
+#include <QTimeZone>
 #include <QTimer>
 
 #include <gtest/gtest.h>
@@ -15,6 +20,7 @@
 #include "rqt_multiplot/PlotLayoutConfig.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
+#include "rqt_multiplot/PlotTitleStyle.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
 
 namespace {
@@ -535,6 +541,67 @@ TEST(PlotTableWidget, restoresSidebarWidthFromConfig) {
   const QList<int> sizes = splitter->sizes();
   ASSERT_GE(sizes.count(), 1);
   EXPECT_NEAR(sizes.at(0), 320, 20);
+}
+
+TEST(PlotTableWidget, rendersAndReplacesItsConfig) {
+  ensureApplication();
+  QTemporaryDir tempDir;
+  ASSERT_TRUE(tempDir.isValid());
+
+  PlotTableConfig config(nullptr);
+  config.getPlotConfig(0, 0)->addCurve();
+  PlotTableWidget widget;
+  widget.resize(640, 480);
+  widget.setConfig(&config);
+  widget.show();
+  waitForLayout();
+
+  widget.setTimeZone(QTimeZone::utc());
+  EXPECT_EQ(widget.getTimeZone(), QTimeZone::utc());
+  widget.setOpenGLCanvasEnabled(false);
+  EXPECT_FALSE(widget.isOpenGLCanvasEnabled());
+  widget.setPlotTitleStyle(rqt_multiplot::PlotTitleStyle());
+  EXPECT_EQ(widget.getNumRows(), 1u);
+  EXPECT_EQ(widget.getNumColumns(), 1u);
+  EXPECT_EQ(widget.getPlotWidget(0, 0), widget.getPlotWidgets().front());
+  EXPECT_EQ(widget.getPlotWidget(3, 3), nullptr);
+
+  config.setBackgroundColor(Qt::white);
+  config.setLinkScale(true);
+  config.setTrackPoints(true);
+  config.setTimeAxisFormat(PlotTableConfig::DateTime);
+  config.setGridVisible(false);
+
+  widget.resetZoom();
+  widget.requestReplot();
+  widget.forceReplot();
+  config.splitPlot(widget.getPlotWidget(0, 0)->getConfig(), Qt::Horizontal);
+  waitForLayout();
+  widget.resetEvenDistribution();
+
+  QStringList titles;
+  QList<QStringList> rows;
+  widget.writeFormattedCurveAxisTitles(titles);
+  widget.writeFormattedCurveData(rows);
+
+  QPixmap pixmap(320, 240);
+  pixmap.fill(Qt::white);
+  widget.renderToPixmap(pixmap);
+  EXPECT_FALSE(pixmap.isNull());
+
+  const QString imagePath = tempDir.filePath(QStringLiteral("table.png"));
+  const QString textPath = tempDir.filePath(QStringLiteral("table.csv"));
+  widget.saveToImageFile(imagePath);
+  widget.saveToTextFile(textPath);
+  EXPECT_TRUE(QFile::exists(imagePath));
+  EXPECT_TRUE(QFile::exists(textPath));
+
+  PlotTableConfig replacement(nullptr);
+  widget.setConfig(&replacement);
+  widget.setConfig(&config);
+  widget.setConfig(nullptr);
+  EXPECT_EQ(widget.getConfig(), nullptr);
+  EXPECT_EQ(widget.getNumRows(), 0u);
 }
 
 }  // namespace

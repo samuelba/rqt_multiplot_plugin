@@ -549,4 +549,183 @@ TEST(CurveDataSequencer, arrayIndexAxisIsNotConverted) {
   EXPECT_DOUBLE_EQ(points[2].x(), 2.0);
 }
 
+Message float64Message(double seconds, double value) {
+  auto compound = createMessagePrototype("std_msgs/msg/Float64");
+  (*compound)["data"] = value;
+  Message message;
+  message.setCompound(compound);
+  const auto whole = static_cast<int32_t>(seconds);
+  const auto nanos = static_cast<uint32_t>((seconds - static_cast<double>(whole)) * 1e9);
+  message.setReceiptTime(rclcpp::Time(whole, nanos, RCL_ROS_TIME));
+  return message;
+}
+
+void configureSplitTopics(CurveConfig& config) {
+  config.getAxisConfig(CurveConfig::X)->setTopic("/x");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/y");
+  config.getAxisConfig(CurveConfig::X)->setType("std_msgs/msg/Float64");
+  config.getAxisConfig(CurveConfig::Y)->setType("std_msgs/msg/Float64");
+  config.getAxisConfig(CurveConfig::X)->setField("data");
+  config.getAxisConfig(CurveConfig::Y)->setField("data");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageData);
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::MessageData);
+}
+
+class CountingBroker : public rqt_multiplot::MessageBroker {
+ public:
+  int subscriptions = 0;
+  int unsubscriptions = 0;
+  bool accept = true;
+
+  bool subscribe(const QString& /*topic*/, QObject* /*receiver*/, const char* /*method*/, const PropertyMap& /*properties*/,
+                 Qt::ConnectionType /*type*/) override {
+    ++subscriptions;
+    return accept;
+  }
+  bool unsubscribe(const QString& /*topic*/, QObject* /*receiver*/, const char* /*method*/) override {
+    ++unsubscriptions;
+    return true;
+  }
+};
+
+TEST(CurveDataSequencer, interpolatesTheAxisThatHasTheLaterSample) {
+  CurveConfig config;
+  configureSplitTopics(config);
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  EXPECT_EQ(sequencer.getConfig(), &config);
+
+  QVector<QPointF> points;
+  QObject::connect(&sequencer, &CurveDataSequencer::pointReceived, [&](const QPointF& point) { points.append(point); });
+
+  ASSERT_TRUE(deliver(sequencer, "subscriberXAxisMessageReceived", float64Message(0.0, 0.0)));
+  ASSERT_TRUE(deliver(sequencer, "subscriberXAxisMessageReceived", float64Message(2.0, 4.0)));
+  ASSERT_TRUE(deliver(sequencer, "subscriberYAxisMessageReceived", float64Message(1.0, 10.0)));
+  EXPECT_TRUE(points.isEmpty());
+  ASSERT_TRUE(deliver(sequencer, "subscriberYAxisMessageReceived", float64Message(3.0, 30.0)));
+  ASSERT_EQ(points.size(), 1);
+  EXPECT_DOUBLE_EQ(points[0].x(), 2.0);
+  EXPECT_DOUBLE_EQ(points[0].y(), 10.0);
+
+  CurveConfig otherConfig;
+  configureSplitTopics(otherConfig);
+  CurveDataSequencer other;
+  other.setConfig(&otherConfig);
+  QVector<QPointF> otherPoints;
+  QObject::connect(&other, &CurveDataSequencer::pointReceived, [&](const QPointF& point) { otherPoints.append(point); });
+  ASSERT_TRUE(deliver(other, "subscriberYAxisMessageReceived", float64Message(0.0, 0.0)));
+  ASSERT_TRUE(deliver(other, "subscriberYAxisMessageReceived", float64Message(2.0, 4.0)));
+  ASSERT_TRUE(deliver(other, "subscriberXAxisMessageReceived", float64Message(1.0, 10.0)));
+  ASSERT_TRUE(deliver(other, "subscriberXAxisMessageReceived", float64Message(3.0, 12.0)));
+  ASSERT_EQ(otherPoints.size(), 1);
+  EXPECT_DOUBLE_EQ(otherPoints[0].x(), 10.0);
+  EXPECT_DOUBLE_EQ(otherPoints[0].y(), 2.0);
+}
+
+TEST(CurveDataSequencer, subscribeUsesSeparateTopicsAndResubscribesOnConfigChange) {
+  CurveConfig config;
+  configureSplitTopics(config);
+  CountingBroker broker;
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&config);
+  sequencer.setBroker(&broker);
+  EXPECT_EQ(sequencer.getBroker(), &broker);
+  EXPECT_FALSE(sequencer.isSubscribed());
+
+  int subscribed = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::subscribed, [&]() { ++subscribed; });
+  sequencer.subscribe();
+  EXPECT_TRUE(sequencer.isSubscribed());
+  EXPECT_EQ(broker.subscriptions, 2);
+  EXPECT_EQ(subscribed, 1);
+
+  config.setSubscriberQueueSize(config.getSubscriberQueueSize() + 1);
+  EXPECT_GT(broker.unsubscriptions, 0);
+  EXPECT_TRUE(sequencer.isSubscribed());
+
+  config.getAxisConfig(CurveConfig::X)->setField("other");
+  EXPECT_TRUE(sequencer.isSubscribed());
+
+  sequencer.unsubscribe();
+  EXPECT_FALSE(sequencer.isSubscribed());
+
+  broker.accept = false;
+  sequencer.subscribe();
+  EXPECT_FALSE(sequencer.isSubscribed());
+}
+
+TEST(CurveDataSequencer, replacingConfigWhileSubscribedReconnects) {
+  CurveConfig first;
+  configureSplitTopics(first);
+  first.getAxisConfig(CurveConfig::X)->setTopic("/same");
+  first.getAxisConfig(CurveConfig::Y)->setTopic("/same");
+  CurveConfig second;
+  configureSplitTopics(second);
+  CountingBroker broker;
+  CountingBroker other;
+  CurveDataSequencer sequencer;
+  sequencer.setConfig(&first);
+  sequencer.setBroker(&broker);
+  sequencer.subscribe();
+  const int afterFirst = broker.subscriptions;
+
+  sequencer.setConfig(&second);
+  EXPECT_EQ(sequencer.getConfig(), &second);
+  EXPECT_GT(broker.subscriptions, afterFirst);
+  EXPECT_TRUE(sequencer.isSubscribed());
+
+  sequencer.setBroker(&other);
+  EXPECT_EQ(sequencer.getBroker(), &other);
+  EXPECT_TRUE(sequencer.isSubscribed());
+  EXPECT_GT(other.subscriptions, 0);
+}
+
+TEST(CurveDataSequencer, ignoresMessagesWithoutConfigAndMismatchedSnapshots) {
+  CurveDataSequencer sequencer;
+  EXPECT_TRUE(deliver(sequencer, "subscriberMessageReceived", float64Message(0.0, 1.0)));
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/other");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::ArrayIndex);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/*");
+  EXPECT_EQ(CurveDataSequencer::snapshotIncompatibilityReason(config), QStringLiteral("Array curves require the same topic on both axes"));
+
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::ArrayIndex);
+  EXPECT_EQ(CurveDataSequencer::snapshotIncompatibilityReason(config), QStringLiteral("Only one axis can be array index"));
+
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::MessageData);
+  config.getAxisConfig(CurveConfig::Y)->setField("position/*");
+  sequencer.setConfig(&config);
+  int seriesCount = 0;
+  QObject::connect(&sequencer, &CurveDataSequencer::seriesReceived, [&](const QVector<QPointF>&) { ++seriesCount; });
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", Message()));
+  EXPECT_EQ(seriesCount, 0);
+
+  auto joints = jointStateMessage();
+  auto& effort = (*joints.getCompound())["effort"].as<ros_babel_fish::ArrayMessage<double>>();
+  effort.push_back(1.0);
+  config.getAxisConfig(CurveConfig::X)->setField("position/*");
+  config.getAxisConfig(CurveConfig::X)->setFieldType(CurveAxisConfig::MessageData);
+  config.getAxisConfig(CurveConfig::Y)->setField("effort/*");
+  ASSERT_TRUE(deliver(sequencer, "subscriberMessageReceived", joints));
+  EXPECT_EQ(seriesCount, 1);
+}
+
+TEST(CurveDataSequencer, yArrayIndexPairsWithWildcardX) {
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::Y)->setTopic("/array");
+  config.getAxisConfig(CurveConfig::X)->setField("position/*");
+  config.getAxisConfig(CurveConfig::Y)->setFieldType(CurveAxisConfig::ArrayIndex);
+
+  QVector<QPointF> points;
+  ASSERT_TRUE(CurveDataSequencer::tryBuildSnapshotSeries(jointStateMessage(), config, points));
+  ASSERT_EQ(points.size(), 3);
+  EXPECT_DOUBLE_EQ(points[0].y(), 0.0);
+  EXPECT_DOUBLE_EQ(points[2].x(), 3.0);
+  EXPECT_DOUBLE_EQ(points[2].y(), 2.0);
+}
+
 }  // namespace

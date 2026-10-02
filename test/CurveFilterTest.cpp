@@ -212,6 +212,49 @@ TEST(CurveFilter, emptyChainPassesPointsThrough) {
   EXPECT_EQ(runFilter(chain, {{1.0, 2.0}}), QVector<QPointF>({{1.0, 2.0}}));
 }
 
+TEST(CurveFilter, summaryDescribesEachTypeAndComparison) {
+  for (const auto type : rqt_multiplot::allCurveFilterTypes()) {
+    const auto spec = specOf(type);
+    const QString summary = rqt_multiplot::curveFilterSummary(spec);
+    EXPECT_FALSE(summary.isEmpty());
+    EXPECT_FALSE(rqt_multiplot::curveFilterTypeName(type).isEmpty());
+    EXPECT_FALSE(rqt_multiplot::curveFilterTypeDescription(type).isEmpty());
+
+    auto filter = rqt_multiplot::createCurveFilter(spec);
+    ASSERT_NE(filter, nullptr);
+    filter->process(QPointF(0.0, 1.0));
+    filter->process(QPointF(1.0, 2.0));
+    filter->reset();
+  }
+
+  auto threshold = specOf(CurveFilterType::Threshold);
+  threshold.thresholdA = 1.0;
+  threshold.comparison = CurveFilterComparison::Equal;
+  expectYValues(runFilter(threshold, {{0.0, 1.0}, {1.0, 2.0}}), QVector<double>({1.0, 0.0}));
+  threshold.comparison = CurveFilterComparison::LessEqual;
+  expectYValues(runFilter(threshold, {{0.0, 1.0}, {1.0, 2.0}}), QVector<double>({1.0, 0.0}));
+  threshold.comparison = CurveFilterComparison::Greater;
+  expectYValues(runFilter(threshold, {{0.0, 1.0}, {1.0, 2.0}}), QVector<double>({0.0, 1.0}));
+
+  auto fixed = specOf(CurveFilterType::Derivative);
+  fixed.useFixedStep = true;
+  fixed.fixedStep = 0.5;
+  EXPECT_TRUE(rqt_multiplot::curveFilterSummary(fixed).contains(QStringLiteral("dt")));
+
+  auto variance = specOf(CurveFilterType::MovingVariance);
+  variance.standardDeviation = true;
+  EXPECT_TRUE(rqt_multiplot::curveFilterSummary(variance).contains(QStringLiteral("std dev")));
+
+  auto range = specOf(CurveFilterType::Threshold);
+  range.comparison = CurveFilterComparison::Range;
+  EXPECT_TRUE(rqt_multiplot::curveFilterSummary(range).contains(QStringLiteral("in")));
+
+  auto unknown = specOf(CurveFilterType::Absolute);
+  unknown.type = static_cast<CurveFilterType>(99);
+  EXPECT_EQ(rqt_multiplot::createCurveFilter(unknown), nullptr);
+  EXPECT_EQ(rqt_multiplot::curveFilterTypeName(unknown.type), rqt_multiplot::curveFilterTypeName(CurveFilterType::Derivative));
+}
+
 TEST(CurveFilter, typeKeysRoundTrip) {
   for (const auto type : rqt_multiplot::allCurveFilterTypes()) {
     EXPECT_EQ(rqt_multiplot::curveFilterTypeFromKey(rqt_multiplot::curveFilterTypeKey(type)), type);

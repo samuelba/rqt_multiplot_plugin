@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
+#include <QApplication>
 #include <QDir>
+#include <QFile>
+#include <QPainter>
 #include <QString>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -23,6 +26,7 @@ using rqt_multiplot::initialExportDialogDirectory;
 using rqt_multiplot::kExportImageHeight;
 using rqt_multiplot::kExportImageWidth;
 using rqt_multiplot::rememberSessionExportDirectory;
+using rqt_multiplot::renderExportImage;
 using rqt_multiplot::setSessionLastExportDirectory;
 using rqt_multiplot::suffixFromNameFilter;
 using rqt_multiplot::writeCurveTable;
@@ -145,6 +149,32 @@ TEST(PlotExport, rememberSessionExportDirectoryUpdatesInitialDirectory) {
   rememberSessionExportDirectory(QStringLiteral("/var/out/data.csv"));
   EXPECT_EQ(initialExportDialogDirectory(), QStringLiteral("/var/out"));
   setSessionLastExportDirectory({});
+}
+
+TEST(PlotExport, rendersPngSvgAndPdfAndRejectsUnwritablePng) {
+  if (QApplication::instance() == nullptr) {
+    qputenv("QT_QPA_PLATFORM", "offscreen");
+    static int argc = 1;
+    static char arg0[] = "test_rqt_multiplot";
+    static char* argv[] = {arg0, nullptr};
+    new QApplication(argc, argv);
+  }
+  QTemporaryDir tempDir;
+  ASSERT_TRUE(tempDir.isValid());
+  const auto draw = [](QPainter& painter, const QRectF& bounds) { painter.fillRect(bounds, Qt::red); };
+
+  const QString png = tempDir.filePath(QStringLiteral("plot.png"));
+  const QString svg = tempDir.filePath(QStringLiteral("plot.svg"));
+  const QString pdf = tempDir.filePath(QStringLiteral("plot.pdf"));
+  EXPECT_TRUE(renderExportImage(png, draw));
+  EXPECT_TRUE(renderExportImage(svg, draw));
+  EXPECT_TRUE(renderExportImage(pdf, draw));
+  EXPECT_TRUE(QFile::exists(png));
+  EXPECT_GT(QFile(png).size(), 0);
+  EXPECT_TRUE(QFile::exists(svg));
+  EXPECT_TRUE(QFile::exists(pdf));
+
+  EXPECT_FALSE(renderExportImage(QStringLiteral("/proc/does-not-exist/plot.png"), draw));
 }
 
 }  // namespace

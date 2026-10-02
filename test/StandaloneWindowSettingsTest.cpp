@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <QApplication>
+#include <QSettings>
 #include <QTemporaryDir>
 #include <QWidget>
 
@@ -40,6 +41,23 @@ TEST(StandaloneWindowSettings, roundTripsGeometryAndHistory) {
   EXPECT_EQ(loaded.geometry, savedGeometry);
   EXPECT_EQ(loaded.maxConfigHistoryLength, 8u);
   EXPECT_EQ(loaded.configHistory, history);
+
+  StandaloneWindowSettings::testSettingsFile_.clear();
+}
+
+TEST(StandaloneWindowSettings, loadsHistoryWrittenWithoutCount) {
+  ensureApplication();
+  QTemporaryDir tempDir;
+  ASSERT_TRUE(tempDir.isValid());
+  StandaloneWindowSettings::testSettingsFile_ = tempDir.filePath(QStringLiteral("legacy.ini"));
+
+  QSettings settings(StandaloneWindowSettings::testSettingsFile_, QSettings::IniFormat);
+  settings.setValue(QStringLiteral("history/config_0"), QStringLiteral("file:///legacy.xml"));
+  settings.setValue(QStringLiteral("history/config_1"), QStringLiteral("file:///other.xml"));
+  settings.sync();
+
+  const StandaloneWindowState loaded = StandaloneWindowSettings::load();
+  EXPECT_EQ(loaded.configHistory, QStringList({QStringLiteral("file:///legacy.xml"), QStringLiteral("file:///other.xml")}));
 
   StandaloneWindowSettings::testSettingsFile_.clear();
 }

@@ -1,5 +1,8 @@
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include <geometry_msgs/msg/twist.hpp>
@@ -9,6 +12,7 @@
 
 #include <gtest/gtest.h>
 #include <ros_babel_fish/babel_fish.hpp>
+#include <ros_babel_fish/exceptions/babel_fish_exception.hpp>
 #include <ros_babel_fish/messages/array_message.hpp>
 
 #include "rqt_multiplot/MessageFieldAccess.hpp"
@@ -33,6 +37,15 @@ using rqt_multiplot::normalizeTypeName;
 using rqt_multiplot::tryGetDiagnosticValue;
 using rqt_multiplot::tryGetNumericSeries;
 using rqt_multiplot::tryGetNumericValue;
+
+// ros_babel_fish 4.x push_back() casts to std::vector. Lyrical char[] and uint8[] are
+// rosidl::Buffer, so that cast segfaults. resize() and assign() use introspection pointers.
+template <typename Array, typename Value>
+void appendArrayElement(Array& array, Value value) {
+  const std::size_t index = array.size();
+  array.resize(index + 1);
+  array.assign(index, value);
+}
 
 TEST(MessageFieldAccess, normalizesRos1TypeNames) {
   EXPECT_EQ(normalizeTypeName("std_msgs/Header"), "std_msgs/msg/Header");
@@ -417,6 +430,97 @@ TEST(MessageFieldAccess, deserializesSerializedMessage) {
   const auto* data = getMember(*decoded, "data");
   ASSERT_NE(data, nullptr);
   EXPECT_DOUBLE_EQ(getNumericValue(*data), 42.0);
+}
+
+TEST(MessageFieldAccess, readsEveryBuiltinNumericType) {
+  auto message = createMessagePrototype("test_msgs/msg/BasicTypes");
+  ASSERT_NE(message, nullptr);
+  (*message)["bool_value"] = true;
+  (*message)["byte_value"] = static_cast<uint8_t>(7);
+  (*message)["char_value"] = static_cast<uint8_t>(65);
+  (*message)["float32_value"] = 1.5f;
+  (*message)["float64_value"] = 2.5;
+  (*message)["int8_value"] = static_cast<int8_t>(-3);
+  (*message)["uint8_value"] = static_cast<uint8_t>(9);
+  (*message)["int16_value"] = static_cast<int16_t>(-300);
+  (*message)["uint16_value"] = static_cast<uint16_t>(400);
+  (*message)["int32_value"] = static_cast<int32_t>(-5000);
+  (*message)["uint32_value"] = static_cast<uint32_t>(6000);
+  (*message)["int64_value"] = static_cast<int64_t>(-70000);
+  (*message)["uint64_value"] = static_cast<uint64_t>(80000);
+
+  const rqt_multiplot::MessageFieldType fieldType = fieldTypeFromMessage(*message);
+  EXPECT_FALSE(fieldType.members.isEmpty());
+
+  const std::vector<std::pair<const char*, double>> expected = {
+      {"bool_value", 1.0},      {"byte_value", 7.0},       {"char_value", 65.0},     {"float32_value", 1.5},  {"float64_value", 2.5},
+      {"int8_value", -3.0},     {"uint8_value", 9.0},      {"int16_value", -300.0},  {"uint16_value", 400.0}, {"int32_value", -5000.0},
+      {"uint32_value", 6000.0}, {"int64_value", -70000.0}, {"uint64_value", 80000.0}};
+  for (const auto& [name, value] : expected) {
+    double read = 0.0;
+    ASSERT_TRUE(tryGetNumericValue(*message, name, read)) << name;
+    EXPECT_DOUBLE_EQ(read, value) << name;
+  }
+
+  EXPECT_FALSE(hasHeader(*message));
+  EXPECT_THROW(getStamp(*message), ros_babel_fish::BabelFishException);
+}
+
+TEST(MessageFieldAccess, readsUnboundedAndBoundedPrimitiveArrays) {
+  auto unbounded = createMessagePrototype("test_msgs/msg/UnboundedSequences");
+  ASSERT_NE(unbounded, nullptr);
+  appendArrayElement((*unbounded)["bool_values"].as<ros_babel_fish::ArrayMessage<bool>>(), true);
+  appendArrayElement((*unbounded)["byte_values"].as<ros_babel_fish::ArrayMessage<uint8_t>>(), static_cast<uint8_t>(4));
+  appendArrayElement((*unbounded)["char_values"].as<ros_babel_fish::ArrayMessage<uint8_t>>(), static_cast<uint8_t>(66));
+  appendArrayElement((*unbounded)["float32_values"].as<ros_babel_fish::ArrayMessage<float>>(), 1.25f);
+  appendArrayElement((*unbounded)["float64_values"].as<ros_babel_fish::ArrayMessage<double>>(), 2.25);
+  appendArrayElement((*unbounded)["int8_values"].as<ros_babel_fish::ArrayMessage<int8_t>>(), static_cast<int8_t>(-8));
+  appendArrayElement((*unbounded)["uint8_values"].as<ros_babel_fish::ArrayMessage<uint8_t>>(), static_cast<uint8_t>(8));
+  appendArrayElement((*unbounded)["int16_values"].as<ros_babel_fish::ArrayMessage<int16_t>>(), static_cast<int16_t>(-16));
+  appendArrayElement((*unbounded)["uint16_values"].as<ros_babel_fish::ArrayMessage<uint16_t>>(), static_cast<uint16_t>(16));
+  appendArrayElement((*unbounded)["int32_values"].as<ros_babel_fish::ArrayMessage<int32_t>>(), static_cast<int32_t>(-32));
+  appendArrayElement((*unbounded)["uint32_values"].as<ros_babel_fish::ArrayMessage<uint32_t>>(), static_cast<uint32_t>(32));
+  appendArrayElement((*unbounded)["int64_values"].as<ros_babel_fish::ArrayMessage<int64_t>>(), static_cast<int64_t>(-64));
+  appendArrayElement((*unbounded)["uint64_values"].as<ros_babel_fish::ArrayMessage<uint64_t>>(), static_cast<uint64_t>(64));
+
+  const char* fields[] = {"bool_values",   "byte_values",  "char_values",  "float32_values", "float64_values",
+                          "int8_values",   "uint8_values", "int16_values", "uint16_values",  "int32_values",
+                          "uint32_values", "int64_values", "uint64_values"};
+  for (const char* field : fields) {
+    std::vector<double> values;
+    ASSERT_TRUE(tryGetNumericSeries(*unbounded, std::string(field) + "/*", values)) << field;
+    ASSERT_EQ(values.size(), 1u) << field;
+    double element = 0.0;
+    ASSERT_TRUE(tryGetNumericValue(*unbounded, std::string(field) + "/0", element)) << field;
+    EXPECT_DOUBLE_EQ(element, values[0]) << field;
+  }
+
+  std::vector<double> values;
+  EXPECT_FALSE(tryGetNumericSeries(*unbounded, "float64_values/not-an-index/*", values));
+
+  auto bounded = createMessagePrototype("test_msgs/msg/BoundedSequences");
+  ASSERT_NE(bounded, nullptr);
+  appendArrayElement((*bounded)["float64_values"].as<ros_babel_fish::BoundedArrayMessage<double>>(), 3.5);
+  double boundedValue = 0.0;
+  ASSERT_TRUE(tryGetNumericValue(*bounded, "float64_values/0", boundedValue));
+  EXPECT_DOUBLE_EQ(boundedValue, 3.5);
+
+  auto emptyPoses = createMessagePrototype("geometry_msgs/msg/PoseArray");
+  ASSERT_NE(emptyPoses, nullptr);
+  const auto poseType = fieldTypeFromMessage((*emptyPoses)["poses"]);
+  EXPECT_EQ(poseType.kind, rqt_multiplot::MessageFieldType::Array);
+  EXPECT_NE(poseType.elementType, nullptr);
+
+  auto emptyBasic = createMessagePrototype("test_msgs/msg/BoundedSequences");
+  ASSERT_NE(emptyBasic, nullptr);
+  const auto basicType = fieldTypeFromMessage((*emptyBasic)["basic_types_values"]);
+  EXPECT_EQ(basicType.kind, rqt_multiplot::MessageFieldType::Array);
+
+  auto fixed = createMessagePrototype("test_msgs/msg/Arrays");
+  ASSERT_NE(fixed, nullptr);
+  const auto fixedType = fieldTypeFromMessage((*fixed)["float64_values"]);
+  EXPECT_FALSE(fixedType.isDynamicArray);
+  EXPECT_GT(fixedType.arraySize, 0);
 }
 
 }  // namespace

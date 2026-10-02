@@ -36,4 +36,9 @@ TEST(AmentIndex, readIndexResourceReturnsFalseForUnknownName) {
   EXPECT_FALSE(readIndexResource("rosidl_interfaces", "not_a_real_package_xyz", content));
 }
 
+TEST(AmentIndex, readIndexResourceReturnsFalseWhenLookupThrows) {
+  std::string content = "unchanged";
+  EXPECT_FALSE(readIndexResource("", "", content));
+}
+
 }  // namespace

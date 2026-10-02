@@ -49,6 +49,18 @@ TEST(LaunchOptions, parsesPluginStyleArgumentsWithoutProgramName) {
   EXPECT_EQ(options.configUrl, QStringLiteral("file:///cfg.xml"));
 }
 
+TEST(LaunchOptions, rejectsUnknownOption) {
+  LaunchOptions options;
+  EXPECT_EQ(parseLaunchOptions(QStringList{QStringLiteral("multiplot"), QStringLiteral("--not-a-real-option")}, options),
+            LaunchParseStatus::Error);
+}
+
+TEST(LaunchOptions, pluginStyleEmptyArgumentsUseDefaultProgramName) {
+  LaunchOptions options;
+  EXPECT_EQ(parseLaunchOptions(QStringList(), options), LaunchParseStatus::Ok);
+  EXPECT_FALSE(options.runAllOnStart);
+}
+
 TEST(LaunchOptions, helpRequestedWhenProcessHelpEnabled) {
   ensureApplication();
   LaunchOptions options;

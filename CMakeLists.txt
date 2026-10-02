@@ -527,12 +527,24 @@ if(BUILD_TESTING)
     ${rqt_multiplot_test_MOCS}
     test/BagTopicLoaderTest.cpp
     test/CurveAxisConfigTest.cpp
+    test/CurveAxisConfigWidgetTest.cpp
+    test/MessageFieldStackTest.cpp
+    test/UrlItemModelTest.cpp
+    test/PlotCursorReadoutTest.cpp
+    test/PlotTableConfigWidgetTest.cpp
+    test/PlotInteractionTest.cpp
+    test/WidgetPaintTest.cpp
+    test/CoverageEdgesTest.cpp
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
     test/CurveConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
+    test/CurveDataListTest.cpp
     test/CurveDataVectorTest.cpp
+    test/BitOperationsTest.cpp
+    test/FileSchemeTest.cpp
+    test/ThreadedTimerTest.cpp
     test/CurveFilterTest.cpp
     test/CurveFilterChainConfigTest.cpp
     test/CurveFilterWidgetsTest.cpp

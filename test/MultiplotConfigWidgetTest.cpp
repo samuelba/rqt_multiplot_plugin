@@ -167,4 +167,23 @@ TEST_F(MultiplotConfigWidgetTest, applySavePromptIconsSetsSaveAndDiscard) {
   EXPECT_FALSE(discardButton->icon().isNull());
 }
 
+TEST_F(MultiplotConfigWidgetTest, historyLengthDropsTheOldestEntries) {
+  ensureApplication();
+
+  MultiplotConfig config(nullptr);
+  MultiplotConfigWidget widget;
+  widget.setConfig(&config);
+  widget.setMaxConfigUrlHistoryLength(2);
+  widget.setConfigUrlHistory({QStringLiteral("file:///one.xml"), QStringLiteral("file:///two.xml"), QStringLiteral("file:///three.xml")});
+  const QStringList history = widget.getConfigUrlHistory();
+  ASSERT_EQ(history.size(), 2);
+  EXPECT_EQ(history.at(0), QStringLiteral("file:///one.xml"));
+  widget.setMaxConfigUrlHistoryLength(1);
+  EXPECT_EQ(widget.getMaxConfigUrlHistoryLength(), 1u);
+  EXPECT_EQ(widget.getConfigUrlHistory().size(), 1);
+  EXPECT_FALSE(widget.isFile(QStringLiteral("file:///missing.xml")));
+  EXPECT_NE(widget.getActionNew(), nullptr);
+  EXPECT_NE(widget.getActionClearHistory(), nullptr);
+}
+
 }  // namespace
