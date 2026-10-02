@@ -4,7 +4,11 @@
 #include <vector>
 
 #include <QApplication>
+#include <QMetaObject>
+#include <QObject>
 #include <QVector>
+
+#include <ros_babel_fish/messages/array_message.hpp>
 
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <rclcpp/time.hpp>
@@ -14,6 +18,8 @@
 #include <gtest/gtest.h>
 
 #include "rqt_multiplot/DiagnosticKeySampler.hpp"
+#include "rqt_multiplot/Message.hpp"
+#include "rqt_multiplot/MessageFieldAccess.hpp"
 
 namespace {
 
@@ -131,6 +137,47 @@ TEST(DiagnosticKeySampler, bagScanFailsForTopicWithoutMessages) {
   EXPECT_EQ(result.changed, 0);
   EXPECT_EQ(result.failed, 1);
   std::filesystem::remove_all(root);
+}
+
+TEST(DiagnosticKeySampler, liveMessageMergesKeysAndEmptyMessageIsIgnored) {
+  ensureApplication();
+  using rqt_multiplot::Message;
+  qRegisterMetaType<Message>("Message");
+  DiagnosticKeySampler sampler;
+  sampler.sampleLive(QStringLiteral("/diagnostics"));
+
+  Message empty;
+  ASSERT_TRUE(QMetaObject::invokeMethod(&sampler, "subscriberMessageReceived", Qt::DirectConnection,
+                                        Q_ARG(QString, QStringLiteral("/diagnostics")), Q_ARG(Message, empty)));
+  EXPECT_TRUE(sampler.getKeys().isEmpty());
+
+  auto compound = rqt_multiplot::createMessagePrototype("diagnostic_msgs/msg/DiagnosticArray");
+  ASSERT_NE(compound, nullptr);
+  auto& status = (*compound)["status"].as<ros_babel_fish::CompoundArrayMessage>().appendEmpty();
+  status["name"] = std::string("cpu");
+  auto& values = status["values"].as<ros_babel_fish::CompoundArrayMessage>().appendEmpty();
+  values["key"] = std::string("load");
+  values["value"] = std::string("1.0");
+  Message message;
+  message.setCompound(compound);
+
+  int changes = 0;
+  QObject::connect(&sampler, &DiagnosticKeySampler::keysChanged, [&](const QVector<DiagnosticKeyRef>&) { ++changes; });
+  ASSERT_TRUE(QMetaObject::invokeMethod(&sampler, "subscriberMessageReceived", Qt::DirectConnection,
+                                        Q_ARG(QString, QStringLiteral("/diagnostics")), Q_ARG(Message, message)));
+  EXPECT_EQ(changes, 1);
+  ASSERT_EQ(sampler.getKeys().size(), 1);
+  EXPECT_EQ(sampler.getKeys().at(0).status, QStringLiteral("cpu"));
+  EXPECT_EQ(sampler.getKeys().at(0).key, QStringLiteral("load"));
+
+  ASSERT_TRUE(QMetaObject::invokeMethod(&sampler, "subscriberMessageReceived", Qt::DirectConnection,
+                                        Q_ARG(QString, QStringLiteral("/diagnostics")), Q_ARG(Message, message)));
+  EXPECT_EQ(changes, 1);
+
+  sampler.stopLive();
+  ASSERT_TRUE(QMetaObject::invokeMethod(&sampler, "subscriberMessageReceived", Qt::DirectConnection,
+                                        Q_ARG(QString, QStringLiteral("/diagnostics")), Q_ARG(Message, message)));
+  EXPECT_EQ(sampler.getKeys().size(), 1);
 }
 
 }  // namespace

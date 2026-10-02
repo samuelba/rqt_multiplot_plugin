@@ -3,7 +3,9 @@
 #include <QAction>
 #include <QApplication>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialogButtonBox>
+#include <QDoubleSpinBox>
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QLabel>
@@ -334,6 +336,68 @@ TEST_F(CurveFilterWidgets, sideRailPanelsAreExclusive) {
   topicButton->click();
   EXPECT_EQ(widget.getConfig()->getSidePanel(), MultiplotConfig::SidePanel::None);
   EXPECT_FALSE(topicButton->isChecked());
+}
+
+TEST_F(CurveFilterWidgets, paramsWidgetEditsEveryFilterType) {
+  CurveFilterParamsWidget widget;
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::Derivative));
+  auto* fixedStep = widget.findChild<QCheckBox*>(QStringLiteral("fixedStepCheckBox"));
+  auto* step = widget.findChild<QDoubleSpinBox*>(QStringLiteral("fixedStepSpinBox"));
+  ASSERT_NE(fixedStep, nullptr);
+  ASSERT_NE(step, nullptr);
+  fixedStep->setChecked(true);
+  step->setValue(0.25);
+  EXPECT_TRUE(widget.getSpec().useFixedStep);
+  EXPECT_DOUBLE_EQ(widget.getSpec().fixedStep, 0.25);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::Integral));
+  EXPECT_NE(widget.findChild<QCheckBox*>(QStringLiteral("fixedStepCheckBox")), nullptr);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::MovingRms));
+  widget.findChild<QSpinBox*>(QStringLiteral("windowSizeSpinBox"))->setValue(6);
+  widget.findChild<QCheckBox*>(QStringLiteral("compensateLagCheckBox"))->setChecked(true);
+  EXPECT_EQ(widget.getSpec().windowSize, 6);
+  EXPECT_TRUE(widget.getSpec().compensateLag);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::MovingVariance));
+  widget.findChild<QCheckBox*>(QStringLiteral("standardDeviationCheckBox"))->setChecked(true);
+  EXPECT_TRUE(widget.getSpec().standardDeviation);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::LowPass));
+  widget.findChild<QDoubleSpinBox*>(QStringLiteral("timeConstantSpinBox"))->setValue(0.4);
+  EXPECT_DOUBLE_EQ(widget.getSpec().timeConstant, 0.4);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::ScaleOffset));
+  widget.findChild<QDoubleSpinBox*>(QStringLiteral("scaleSpinBox"))->setValue(3.0);
+  widget.findChild<QDoubleSpinBox*>(QStringLiteral("offsetSpinBox"))->setValue(-1.5);
+  EXPECT_DOUBLE_EQ(widget.getSpec().scale, 3.0);
+  EXPECT_DOUBLE_EQ(widget.getSpec().offset, -1.5);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::Threshold));
+  auto* comparison = widget.findChild<QComboBox*>(QStringLiteral("comparisonComboBox"));
+  auto* thresholdB = widget.findChild<QDoubleSpinBox*>(QStringLiteral("thresholdBSpinBox"));
+  ASSERT_NE(comparison, nullptr);
+  ASSERT_NE(thresholdB, nullptr);
+  EXPECT_FALSE(thresholdB->isEnabled());
+  comparison->setCurrentIndex(comparison->findData(static_cast<int>(rqt_multiplot::CurveFilterComparison::Range)));
+  EXPECT_TRUE(thresholdB->isEnabled());
+  widget.findChild<QDoubleSpinBox*>(QStringLiteral("thresholdASpinBox"))->setValue(0.5);
+  thresholdB->setValue(1.5);
+  EXPECT_EQ(widget.getSpec().comparison, rqt_multiplot::CurveFilterComparison::Range);
+  EXPECT_DOUBLE_EQ(widget.getSpec().thresholdA, 0.5);
+  EXPECT_DOUBLE_EQ(widget.getSpec().thresholdB, 1.5);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::OutlierRemoval));
+  widget.findChild<QDoubleSpinBox*>(QStringLiteral("outlierFactorSpinBox"))->setValue(12.0);
+  EXPECT_DOUBLE_EQ(widget.getSpec().outlierFactor, 12.0);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::SamplesCount));
+  widget.findChild<QSpinBox*>(QStringLiteral("windowMillisecondsSpinBox"))->setValue(250);
+  EXPECT_EQ(widget.getSpec().windowMilliseconds, 250);
+
+  widget.setSpec(defaultCurveFilterSpec(CurveFilterType::TimeSincePrevious));
+  EXPECT_NE(widget.findChild<QLabel*>(QStringLiteral("noParametersLabel")), nullptr);
 }
 
 }  // namespace

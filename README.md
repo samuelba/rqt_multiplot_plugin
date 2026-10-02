@@ -1,6 +1,7 @@
 # Rqt Multiplot Plugin
 
 [![CI](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/samuelba/rqt_multiplot_plugin/actions/workflows/ci.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/samuelba/rqt_multiplot_plugin/branch/main/graph/badge.svg)](https://codecov.io/gh/samuelba/rqt_multiplot_plugin)
 
 Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourceforge.io)). Nested splits and tabs give a layout that is not a strict grid. Subscribe to live topics or import a rosbag2, then inspect values with a linked cursor and a curve-values sidebar. Runs as its own window or as an rqt plugin.
 
@@ -428,6 +429,16 @@ Run unit tests:
 ```bash
 colcon test --packages-select rqt_multiplot --ctest-args " -L" "^(unit_testing|unit_testing_clang_tidy)$"
 ```
+
+### Coverage
+
+Line and branch coverage for the C++ sources (`src/` and `include/`). Run from the colcon workspace root:
+
+```bash
+./src/rqt_multiplot_plugin/scripts/coverage.sh
+```
+
+The HTML report is `coverage/index.html`. CI uploads that directory as the `coverage-html` artifact.
 
 ### Debian packaging
 

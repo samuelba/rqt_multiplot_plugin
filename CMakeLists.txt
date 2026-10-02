@@ -21,6 +21,12 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Werror)
 endif()
 
+option(RQT_MULTIPLOT_COVERAGE "Build with gcov instrumentation" OFF)
+if(RQT_MULTIPLOT_COVERAGE)
+  add_compile_options(--coverage -O0)
+  add_link_options(--coverage)
+endif()
+
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -521,12 +527,24 @@ if(BUILD_TESTING)
     ${rqt_multiplot_test_MOCS}
     test/BagTopicLoaderTest.cpp
     test/CurveAxisConfigTest.cpp
+    test/CurveAxisConfigWidgetTest.cpp
+    test/MessageFieldStackTest.cpp
+    test/UrlItemModelTest.cpp
+    test/PlotCursorReadoutTest.cpp
+    test/PlotTableConfigWidgetTest.cpp
+    test/PlotInteractionTest.cpp
+    test/WidgetPaintTest.cpp
+    test/CoverageEdgesTest.cpp
     test/CurveStyleConfigTest.cpp
     test/CurveStyleConfigWidgetTest.cpp
     test/CurveConfigWidgetTest.cpp
     test/CurveDataSequencerTest.cpp
     test/CurveDataPolicyTest.cpp
+    test/CurveDataListTest.cpp
     test/CurveDataVectorTest.cpp
+    test/BitOperationsTest.cpp
+    test/FileSchemeTest.cpp
+    test/ThreadedTimerTest.cpp
     test/CurveFilterTest.cpp
     test/CurveFilterChainConfigTest.cpp
     test/CurveFilterWidgetsTest.cpp

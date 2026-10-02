@@ -11,6 +11,7 @@
 #include <QLabel>
 #include <QMargins>
 #include <QMessageBox>
+#include <QMetaType>
 #include <QMouseEvent>
 #include <QPoint>
 #include <QPointF>
@@ -27,6 +28,7 @@
 #include "rqt_multiplot/MultiplotWidget.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotTableConfig.hpp"
+#include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/TopicBrowserWidget.hpp"
 #include "rqt_multiplot/XmlSettings.hpp"
 
@@ -374,6 +376,18 @@ TEST(MultiplotWidget, savePromptAppearsWhileDockIsVisible) {
   EXPECT_TRUE(widgetVisibleDuringPrompt);
 
   delete dock;
+}
+
+TEST(MultiplotWidget, urlChangeSetsTheWindowTitle) {
+  ensureApplication();
+  MultiplotWidget widget;
+  widget.show();
+  ASSERT_TRUE(
+      QMetaObject::invokeMethod(&widget, "configWidgetCurrentConfigUrlChanged", Q_ARG(QString, QStringLiteral("file:///tmp/layout.xml"))));
+  EXPECT_TRUE(widget.windowTitle().contains(QStringLiteral("layout.xml")));
+  using rqt_multiplot::PlotTableWidget;
+  qRegisterMetaType<PlotTableWidget*>("PlotTableWidget*");
+  ASSERT_TRUE(QMetaObject::invokeMethod(&widget, "plotTabCurrentPlotTableChanged", Q_ARG(PlotTableWidget*, nullptr)));
 }
 
 }  // namespace

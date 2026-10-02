@@ -10,6 +10,7 @@
 
 #include <rmw/rmw.h>
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>
+#include <rclcpp/exceptions.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <ros_babel_fish/babel_fish.hpp>
 #include <ros_babel_fish/idl/exceptions.hpp>
@@ -214,4 +215,62 @@ TEST_F(RuntimeTypeSupportProviderTest, reportsMissingPublisher) {
   const auto start = std::chrono::steady_clock::now();
   EXPECT_THROW(fish_->get_message_type_support("not_installed_msgs/msg/Nothing"), ros_babel_fish::TypeSupportException);
   EXPECT_LT(std::chrono::steady_clock::now() - start, std::chrono::seconds(1));
+}
+
+TEST_F(RuntimeTypeSupportProviderTest, servesInstalledServiceAndActionTypes) {
+  EXPECT_NE(fish_->get_service_type_support("test_msgs/srv/BasicTypes"), nullptr);
+  EXPECT_NE(fish_->get_action_type_support("test_msgs/action/Fibonacci"), nullptr);
+}
+
+TEST(RuntimeTypeSupportProvider, missingNodeCannotAskAPublisher) {
+  if (!rclcpp::ok()) {
+    rclcpp::init(0, nullptr);
+  }
+  auto provider = std::make_shared<rt::RuntimeTypeSupportProvider>([] { return rclcpp::Node::SharedPtr(); }, false);
+  ros_babel_fish::BabelFish fish(std::vector<ros_babel_fish::TypeSupportProvider::SharedPtr>{provider});
+  EXPECT_THROW(fish.get_message_type_support("not_installed_msgs/msg/Nothing"), ros_babel_fish::TypeSupportException);
+}
+
+TEST_F(RuntimeTypeSupportProviderTest, serializedSubscriptionRejectsUnsupportedDelivery) {
+  ros_babel_fish::BabelFish localFish;
+  const auto typeSupport = localFish.get_message_type_support("std_msgs/msg/Float64");
+  ASSERT_NE(typeSupport, nullptr);
+
+  int callbacks = 0;
+  auto subscription = std::make_shared<rqt_multiplot::SerializedSubscription>(listenerNode_->get_node_base_interface().get(), typeSupport,
+                                                                              "/runtime_types/subscription_stubs", rclcpp::QoS(1),
+                                                                              [&](const rclcpp::SerializedMessage&) { ++callbacks; });
+
+  EXPECT_FALSE(subscription->getTypeSupport().name.empty());
+
+  auto first = subscription->create_serialized_message();
+  ASSERT_NE(first, nullptr);
+  subscription->return_serialized_message(first);
+  EXPECT_EQ(first, nullptr);
+  auto reused = subscription->create_serialized_message();
+  ASSERT_NE(reused, nullptr);
+
+  auto shared = subscription->create_message();
+  auto extra = shared;
+  subscription->return_message(shared);
+  extra.reset();
+
+  rclcpp::MessageInfo info;
+  auto delivered = subscription->create_message();
+  EXPECT_THROW(subscription->handle_message(delivered, info), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->handle_loaned_message(nullptr, info), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->get_shared_dynamic_message_type(), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->get_shared_dynamic_message(), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->get_shared_dynamic_serialization_support(), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->create_dynamic_message(), rclcpp::exceptions::UnimplementedError);
+  rclcpp::dynamic_typesupport::DynamicMessage::SharedPtr dynamicMessage;
+  EXPECT_THROW(subscription->return_dynamic_message(dynamicMessage), rclcpp::exceptions::UnimplementedError);
+  EXPECT_THROW(subscription->handle_dynamic_message(dynamicMessage, info), rclcpp::exceptions::UnimplementedError);
+
+  std::shared_ptr<rclcpp::SerializedMessage> empty;
+  subscription->handle_serialized_message(empty, info);
+  EXPECT_EQ(callbacks, 0);
+  auto payload = std::make_shared<rclcpp::SerializedMessage>(0);
+  subscription->handle_serialized_message(payload, info);
+  EXPECT_EQ(callbacks, 1);
 }

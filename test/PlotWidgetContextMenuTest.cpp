@@ -1,9 +1,16 @@
 #include <cstdlib>
 
+#include <QAction>
 #include <QApplication>
+#include <QFile>
+#include <QImage>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QMetaObject>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QTemporaryDir>
+#include <QTimeZone>
 
 #include <gtest/gtest.h>
 #include <qwt/qwt_plot.h>
@@ -13,8 +20,10 @@
 #include "rqt_multiplot/CurveData.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotConfig.hpp"
+#include "rqt_multiplot/PlotCursor.hpp"
 #include "rqt_multiplot/PlotCurve.hpp"
 #include "rqt_multiplot/PlotMarkerPair.hpp"
+#include "rqt_multiplot/PlotTableConfig.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
 #include "rqt_multiplot/PlotZoomer.hpp"
 
@@ -258,6 +267,134 @@ TEST(PlotWidget, resetZoomVerticalRestoresYAndKeepsX) {
 
   delete widget->getConfig();
   delete widget;
+}
+
+QAction* splitAction(PlotWidget& widget, const QString& text) {
+  auto* menu = widget.findChild<QMenu*>(QStringLiteral("menuContextSplit"));
+  if (menu == nullptr) {
+    return nullptr;
+  }
+  for (QAction* action : menu->actions()) {
+    if (action->text() == text) {
+      return action;
+    }
+  }
+  return nullptr;
+}
+
+TEST(PlotWidget, menuActionsEmitSplitAndToggleLegendWithoutDialogs) {
+  ensureApplication();
+  PlotWidget* widget = makePlotWithData();
+  widget->resize(400, 300);
+  widget->show();
+
+  Qt::Orientation orientation = Qt::Horizontal;
+  bool before = true;
+  int splits = 0;
+  QObject::connect(widget, &PlotWidget::splitRequested, [&](Qt::Orientation received, bool receivedBefore) {
+    orientation = received;
+    before = receivedBefore;
+    ++splits;
+  });
+
+  ASSERT_NE(splitAction(*widget, QStringLiteral("Split left")), nullptr);
+  splitAction(*widget, QStringLiteral("Split left"))->trigger();
+  splitAction(*widget, QStringLiteral("Split right"))->trigger();
+  splitAction(*widget, QStringLiteral("Split up"))->trigger();
+  splitAction(*widget, QStringLiteral("Split down"))->trigger();
+  EXPECT_EQ(splits, 4);
+  EXPECT_EQ(orientation, Qt::Vertical);
+  EXPECT_FALSE(before);
+
+  auto* legend = widget->getConfig()->getLegendConfig();
+  ASSERT_NE(legend, nullptr);
+  const bool wasVisible = legend->isVisible();
+  widget->findChild<QAction*>(QStringLiteral("actionContextShowLegend"))->trigger();
+  EXPECT_EQ(legend->isVisible(), !wasVisible);
+
+  widget->findChild<QAction*>(QStringLiteral("actionContextResetZoom"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextResetZoomHorizontal"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextResetZoomVertical"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextMarkerA"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextMarkerB"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextClearMarkers"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextCopyImage"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextDataStatistics"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextMaximizeRestore"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextRunPause"))->trigger();
+  widget->findChild<QAction*>(QStringLiteral("actionContextClear"))->trigger();
+
+  auto* cursor = widget->getCursor();
+  ASSERT_NE(cursor, nullptr);
+  cursor->setXOffset(1.0);
+  cursor->setYOffset(2.0);
+  cursor->setTimeZone(QTimeZone(QByteArray("UTC")));
+  cursor->setTrackPoints(true);
+  cursor->setActive(true, QPointF(1.0, 1.0));
+  cursor->setCurrentPosition(QPointF(5.0, 5.0));
+  EXPECT_FALSE(cursor->formatCoordinate(5.0, true).isEmpty());
+  EXPECT_FALSE(cursor->formatCoordinate(5.0, false).isEmpty());
+  QImage image(widget->width(), widget->height(), QImage::Format_ARGB32_Premultiplied);
+  image.fill(Qt::white);
+  QPainter painter(&image);
+  cursor->drawRubberBand(&painter);
+  EXPECT_FALSE(cursor->rubberBandMask().isEmpty() && cursor->arePointsTracked() == false);
+
+  PlotConfig* original = widget->getConfig();
+  auto* replacement = new PlotConfig();
+  widget->setConfig(replacement);
+  widget->setConfig(original);
+  delete replacement;
+  delete original;
+  delete widget;
+}
+
+TEST(PlotWidget, playbackAndScaleSlotsChangeThePlot) {
+  ensureApplication();
+  QTemporaryDir tempDir;
+  ASSERT_TRUE(tempDir.isValid());
+  PlotWidget* widget = makePlotWithData();
+  widget->resize(400, 300);
+  widget->show();
+  widget->setCanChangeState(true);
+  widget->setCanClose(true);
+  widget->setTimeAxisFormat(rqt_multiplot::PlotTableConfig::DateTime);
+  widget->setTimeZone(QTimeZone::utc());
+  widget->setGridVisible(true);
+  widget->setGridForegroundColor(Qt::black);
+  widget->setState(PlotWidget::Maximized);
+  widget->setXScaleLocked(true);
+  widget->setYScaleLocked(false);
+  widget->syncScaleLocksFrom(*widget);
+  widget->resetZoomHorizontal();
+  widget->resetZoomVertical();
+  widget->run();
+  widget->pause();
+
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "pushButtonRunPauseClicked"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "pushButtonClearClicked"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "lineEditTitleTextChanged", Q_ARG(QString, QStringLiteral("Joints"))));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "lineEditTitleEditingFinished"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "pushButtonStateClicked"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "pushButtonSplitClicked"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "pushButtonCloseClicked"));
+  ASSERT_TRUE(QMetaObject::invokeMethod(widget, "timerTimeout"));
+
+  const QString imagePath = tempDir.filePath(QStringLiteral("plot.png"));
+  const QString textPath = tempDir.filePath(QStringLiteral("plot.csv"));
+  widget->saveToImageFile(imagePath);
+  widget->saveToTextFile(textPath);
+  EXPECT_TRUE(QFile::exists(imagePath));
+  EXPECT_GT(QFile(textPath).size(), 0);
+
+  widget->setXScaleLocked(true);
+  widget->setUserScaleLocked(false);
+  auto* broker = widget->getBroker();
+  widget->setBroker(broker);
+  widget->getConfig()->clearCurves();
+  PlotConfig* config = widget->getConfig();
+  delete widget;
+  delete config;
 }
 
 }  // namespace
