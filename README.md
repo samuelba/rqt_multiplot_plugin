@@ -23,6 +23,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer; click a legend item to hide a curve
 - **Curve values** — collapsible per-tab list of each curve's latest X and Y, grouped by plot
 - **Time axes** — message receipt time, start from zero, date-time labels, or raw stamps. Time zone in **File → Preferences** (local, UTC, or IANA). Optional plot-level **Time window** (last *N* seconds)
+- **Log scale** — optional log scale on a plot's X or Y axis. Values <= 0 are drawn below the axis. Time axes stay linear, and a log plot stays out of linked scale
 - **Light and dark** — theme and plot-title size, weight, and color under **File → Preferences**. Changes apply to the open plots
 - **Configs and export** — **File** menu: open/save XML (`file://`, `home://`, `package://`); import or add bags; export PNG, SVG, PDF, TXT, or CSV. Unsaved layout changes prompt on close. Older row×column files still load
 - **Data statistics** — right click on a plot to open the data statistics dialog, showing the mean, std, min, max, median, mode, range, count, RMS, and sum of the data

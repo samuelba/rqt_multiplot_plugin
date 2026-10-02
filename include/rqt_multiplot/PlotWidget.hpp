@@ -18,6 +18,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <QAction>
 #include <QColor>
 #include <QEvent>
@@ -100,6 +102,9 @@ class PlotWidget : public QWidget {
   bool isXScaleLocked() const;
   void setYScaleLocked(bool locked);
   bool isYScaleLocked() const;
+  bool isXLogScale() const;
+  bool isYLogScale() const;
+  bool usesLogScale() const;
   void syncScaleLocksFrom(const PlotWidget& source);
   void resetZoom();
   void resetZoomHorizontal();
@@ -219,6 +224,12 @@ class PlotWidget : public QWidget {
   void addTopicFieldCurves(const QVector<TopicFieldRef>& refs);
   void makeCurveTitleUnique(CurveConfig* curveConfig) const;
   void updateAxisTitle(PlotAxesConfig::Axis axis);
+  bool isAxisLogScale(PlotAxesConfig::Axis axis) const;
+  void updateAxisScaleEngine(PlotAxesConfig::Axis axis);
+  void installAxisScaleEngine(int axisId, bool logarithmic, bool withOffset);
+  void applyAxisScale(int axisId, double minimum, double maximum, bool logarithmic);
+  std::optional<double> minimumPositive(CurveConfig::Axis axis) const;
+  void clampLogAxis(BoundingRectangle& bounds, CurveConfig::Axis axis) const;
   void applyPlotTitleStyle();
   bool axisLabelsFromZero(CurveConfig::Axis axis) const;
   bool axisUsesTimeFormat(CurveConfig::Axis axis) const;
@@ -227,6 +238,7 @@ class PlotWidget : public QWidget {
   void updateAxisTimeLabels();
   void applyAxisTimeOffsets();
   void updateGridPen();
+  void updateGridLines();
   void buildSplitMenu();
   void buildContextMenu();
   void updateContextMenuState();

@@ -28,7 +28,7 @@ class PlotAxisConfig : public Config {
   enum TitleType { AutoTitle, CustomTitle };
 
   explicit PlotAxisConfig(QObject* parent = nullptr, TitleType titleType = AutoTitle, QString customTitle = "Untitled Axis",
-                          bool titleVisible = true);
+                          bool titleVisible = true, bool logScale = false);
   ~PlotAxisConfig() override;
 
   void setTitleType(TitleType type);
@@ -37,6 +37,8 @@ class PlotAxisConfig : public Config {
   const QString& getCustomTitle() const;
   void setTitleVisible(bool visible);
   bool isTitleVisible() const;
+  void setLogScale(bool logarithmic);
+  bool isLogScale() const;
 
   void save(QSettings& settings) const override;
   void load(QSettings& settings) override;
@@ -51,11 +53,13 @@ class PlotAxisConfig : public Config {
   void titleTypeChanged(int type);
   void customTitleChanged(const QString& title);
   void titleVisibleChanged(bool visible);
+  void logScaleChanged(bool logarithmic);
 
  private:
   TitleType titleType_;
   QString customTitle_;
   bool titleVisible_;
+  bool logScale_;
 };
 
 }  // namespace rqt_multiplot

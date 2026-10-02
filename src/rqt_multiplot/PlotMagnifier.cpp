@@ -22,12 +22,49 @@
 
 #include <qwt/qwt_plot.h>
 #include <qwt/qwt_scale_div.h>
+#include <qwt/qwt_scale_map.h>
 
 #include "rqt_multiplot/PlotMouseBindings.hpp"
 
 #include "rqt_multiplot/PlotMagnifier.hpp"
 
 namespace rqt_multiplot {
+
+namespace {
+
+void rescaleAxis(QwtPlot* plot, int axisId, double factor) {
+  if (factor == 1.0) {
+    return;
+  }
+
+  const auto axis = static_cast<QwtPlot::Axis>(axisId);
+#if QWT_VERSION >= 0x060100
+  const QwtScaleDiv& scaleDiv = plot->axisScaleDiv(axis);
+#else
+  const QwtScaleDiv& scaleDiv = *plot->axisScaleDiv(axis);
+#endif
+
+#if QWT_VERSION < 0x060100
+  if (!scaleDiv.isValid()) {
+    return;
+  }
+#endif
+
+  const QwtScaleMap map = plot->canvasMap(axis);
+  const double transformedLower = map.transform(scaleDiv.lowerBound());
+  const double transformedUpper = map.transform(scaleDiv.upperBound());
+  const double center = 0.5 * (transformedLower + transformedUpper);
+  const double halfWidth = 0.5 * std::fabs(transformedUpper - transformedLower) * factor;
+  const double first = map.invTransform(center - halfWidth);
+  const double second = map.invTransform(center + halfWidth);
+  if (first < second) {
+    plot->setAxisScale(axis, first, second);
+  } else if (second < first) {
+    plot->setAxisScale(axis, second, first);
+  }
+}
+
+}  // namespace
 
 PlotMagnifier::PlotMagnifier(QWidget* canvas) : QwtPlotMagnifier(canvas), magnifying_(false), dragStarted_(false) {}
 
@@ -45,33 +82,8 @@ void PlotMagnifier::rescale(double xFactor, double yFactor) {
 
   plot()->setAutoReplot(false);
 
-#if QWT_VERSION >= 0x060100
-  const QwtScaleDiv& xScaleDiv = plot()->axisScaleDiv(QwtPlot::xBottom);
-  const QwtScaleDiv& yScaleDiv = plot()->axisScaleDiv(QwtPlot::yLeft);
-#else
-  const QwtScaleDiv& xScaleDiv = *plot()->axisScaleDiv(QwtPlot::xBottom);
-  const QwtScaleDiv& yScaleDiv = *plot()->axisScaleDiv(QwtPlot::yLeft);
-#endif
-
-#if QWT_VERSION < 0x060100
-  if (xScaleDiv.isValid())
-#endif
-  {
-    double center = xScaleDiv.lowerBound() + 0.5 * xScaleDiv.range();
-    double width = xScaleDiv.range() * fx;
-
-    plot()->setAxisScale(QwtPlot::xBottom, center - 0.5 * width, center + 0.5 * width);
-  }
-
-#if QWT_VERSION < 0x060100
-  if (yScaleDiv.isValid())
-#endif
-  {
-    double center = yScaleDiv.lowerBound() + 0.5 * yScaleDiv.range();
-    double width = yScaleDiv.range() * fy;
-
-    plot()->setAxisScale(QwtPlot::yLeft, center - 0.5 * width, center + 0.5 * width);
-  }
+  rescaleAxis(plot(), QwtPlot::xBottom, fx);
+  rescaleAxis(plot(), QwtPlot::yLeft, fy);
 
   plot()->setAutoReplot(autoReplot);
   plot()->replot();

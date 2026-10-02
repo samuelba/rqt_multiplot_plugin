@@ -22,8 +22,8 @@
 
 namespace rqt_multiplot {
 
-PlotAxisConfig::PlotAxisConfig(QObject* parent, TitleType titleType, QString customTitle, bool titleVisible)
-    : Config(parent), titleType_(titleType), customTitle_(std::move(customTitle)), titleVisible_(titleVisible) {}
+PlotAxisConfig::PlotAxisConfig(QObject* parent, TitleType titleType, QString customTitle, bool titleVisible, bool logScale)
+    : Config(parent), titleType_(titleType), customTitle_(std::move(customTitle)), titleVisible_(titleVisible), logScale_(logScale) {}
 
 PlotAxisConfig::~PlotAxisConfig() = default;
 
@@ -66,34 +66,52 @@ bool PlotAxisConfig::isTitleVisible() const {
   return titleVisible_;
 }
 
+void PlotAxisConfig::setLogScale(bool logarithmic) {
+  if (logarithmic != logScale_) {
+    logScale_ = logarithmic;
+
+    emit logScaleChanged(logarithmic);
+    emit changed();
+  }
+}
+
+bool PlotAxisConfig::isLogScale() const {
+  return logScale_;
+}
+
 void PlotAxisConfig::save(QSettings& settings) const {
   settings.setValue("title_type", titleType_);
   settings.setValue("custom_title", customTitle_);
   settings.setValue("title_visible", titleVisible_);
+  settings.setValue("log_scale", logScale_);
 }
 
 void PlotAxisConfig::load(QSettings& settings) {
   setTitleType(static_cast<TitleType>(settings.value("title_type", AutoTitle).toInt()));
   setCustomTitle(settings.value("custom_title", "Untitled Axis").toString());
   setTitleVisible(settings.value("title_visible", true).toBool());
+  setLogScale(settings.value("log_scale", false).toBool());
 }
 
 void PlotAxisConfig::reset() {
   setTitleType(AutoTitle);
   setCustomTitle("Untitled Axis");
   setTitleVisible(true);
+  setLogScale(false);
 }
 
 void PlotAxisConfig::write(QDataStream& stream) const {
   stream << (int)titleType_;
   stream << customTitle_;
   stream << titleVisible_;
+  stream << logScale_;
 }
 
 void PlotAxisConfig::read(QDataStream& stream) {
   int titleType = 0;
   QString customTitle;
   bool titleVisible = false;
+  bool logScale = false;
 
   stream >> titleType;
   setTitleType(static_cast<TitleType>(titleType));
@@ -101,12 +119,15 @@ void PlotAxisConfig::read(QDataStream& stream) {
   setCustomTitle(customTitle);
   stream >> titleVisible;
   setTitleVisible(titleVisible);
+  stream >> logScale;
+  setLogScale(logScale);
 }
 
 PlotAxisConfig& PlotAxisConfig::operator=(const PlotAxisConfig& src) {
   setTitleType(src.titleType_);
   setCustomTitle(src.customTitle_);
   setTitleVisible(src.titleVisible_);
+  setLogScale(src.logScale_);
 
   return *this;
 }

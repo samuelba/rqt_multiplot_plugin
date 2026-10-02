@@ -172,6 +172,27 @@ QPair<double, double> PlotCurve::getPreferredAxisScale(CurveConfig::Axis axis) c
   return axisBounds;
 }
 
+std::optional<double> PlotCurve::getMinimumPositive(CurveConfig::Axis axis) const {
+  std::optional<double> minimum;
+  const auto consider = [&minimum](double value) {
+    if (value > 0.0 && (!minimum.has_value() || value < *minimum)) {
+      minimum = value;
+    }
+  };
+
+  if (data_ != nullptr) {
+    for (size_t index = 0; index < data_->getNumPoints(); ++index) {
+      consider(data_->getValue(index, axis));
+    }
+  }
+  for (const auto& frame : snapshotHistory_.frames()) {
+    for (const auto& point : frame) {
+      consider((axis == CurveConfig::X) ? point.x() : point.y());
+    }
+  }
+  return minimum;
+}
+
 BoundingRectangle PlotCurve::getPreferredScale() const {
   if (!isVisible()) {
     return BoundingRectangle();
