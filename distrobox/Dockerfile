@@ -82,7 +82,8 @@ RUN --mount=type=cache,id=apt-cache-${ROS_DISTRO},target=/var/cache/apt \
     libvulkan1 \
     mesa-vulkan-drivers \
     python3 \
-    python3-pip
+    python3-pip \
+    gcovr
 
 ARG CCACHE_VERSION=4.12.2
 ARG CCACHE_SHA256=630c34ec94d451b200f5b14a6a25580d6a45bc80c394b7e0b93e33556eee5d32
