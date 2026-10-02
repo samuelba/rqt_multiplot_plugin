@@ -49,6 +49,7 @@
 #include <qwt/qwt_plot_grid.h>
 #include <qwt/qwt_plot_picker.h>
 #include <qwt/qwt_plot_renderer.h>
+#include <qwt/qwt_scale_engine.h>
 #include <qwt/qwt_scale_widget.h>
 #include <qwt/qwt_text.h>
 
@@ -57,6 +58,7 @@
 
 #include "rqt_multiplot/ArrayDropDialog.hpp"
 #include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/ClampedLogTransform.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveData.hpp"
 #include "rqt_multiplot/CurveFilterDropDialog.hpp"
@@ -117,6 +119,10 @@ class BoolGuard {
 };
 
 constexpr QSize kContextMenuIconSize(16, 16);
+constexpr double kLinearFlatPadding = 0.1;
+constexpr double kLogDecade = 10.0;
+constexpr double kLogFallbackMinimum = 1.0;
+constexpr double kLogFallbackMaximum = 10.0;
 
 void setContextMenuIcon(QAction* action, const QString& relativePath) {
   setThemeIcon(action, relativePath, kContextMenuIconSize);
@@ -227,8 +233,7 @@ PlotWidget::PlotWidget(QWidget* parent)
   grid_->attach(ui_->plot);
   grid_->enableX(true);
   grid_->enableY(true);
-  grid_->enableXMin(false);
-  grid_->enableYMin(false);
+  updateGridLines();
   grid_->setVisible(false);
   updateGridPen();
   markers_ = new PlotMarkerPair(ui_->plot, this);
@@ -378,6 +383,8 @@ void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
   }
   timeAxisFormat_ = format;
   updateAxisTimeLabels();
+  updateAxisScaleEngine(PlotAxesConfig::X);
+  updateAxisScaleEngine(PlotAxesConfig::Y);
 }
 
 PlotTableConfig::TimeAxisFormat PlotWidget::getTimeAxisFormat() const {
@@ -423,21 +430,18 @@ BoundingRectangle PlotWidget::getPreferredScale() const {
     bounds += curves_[index]->getPreferredScale();
   }
 
+  if (bounds.isValid()) {
+    clampLogAxis(bounds, CurveConfig::X);
+    clampLogAxis(bounds, CurveConfig::Y);
+  }
+
   return bounds;
 }
 
 void PlotWidget::setCurrentScale(const BoundingRectangle& bounds) {
   if (bounds != currentBounds_) {
-    if (bounds.getMaximum().x() == bounds.getMinimum().x()) {
-      ui_->plot->setAxisScale(QwtPlot::xBottom, bounds.getMinimum().x() - 0.1, bounds.getMaximum().x() + 0.1);
-    } else if (bounds.getMaximum().x() > bounds.getMinimum().x()) {
-      ui_->plot->setAxisScale(QwtPlot::xBottom, bounds.getMinimum().x(), bounds.getMaximum().x());
-    }
-    if (bounds.getMaximum().y() == bounds.getMinimum().y()) {
-      ui_->plot->setAxisScale(QwtPlot::yLeft, bounds.getMinimum().y() - 0.1, bounds.getMaximum().y() + 0.1);
-    } else if (bounds.getMaximum().y() > bounds.getMinimum().y()) {
-      ui_->plot->setAxisScale(QwtPlot::yLeft, bounds.getMinimum().y(), bounds.getMaximum().y());
-    }
+    applyAxisScale(QwtPlot::xBottom, bounds.getMinimum().x(), bounds.getMaximum().x(), isXLogScale());
+    applyAxisScale(QwtPlot::yLeft, bounds.getMinimum().y(), bounds.getMaximum().y(), isYLogScale());
 
     rescale_ = false;
 
@@ -546,6 +550,159 @@ void PlotWidget::setYScaleLocked(bool locked) {
 
 bool PlotWidget::isYScaleLocked() const {
   return yScaleLocked_;
+}
+
+bool PlotWidget::isAxisLogScale(PlotAxesConfig::Axis axis) const {
+  if (config_ == nullptr) {
+    return false;
+  }
+  const PlotAxisConfig* axisConfig = config_->getAxesConfig()->getAxisConfig(axis);
+  if ((axisConfig == nullptr) || !axisConfig->isLogScale()) {
+    return false;
+  }
+  const CurveConfig::Axis curveAxis = (axis == PlotAxesConfig::X) ? CurveConfig::X : CurveConfig::Y;
+  return !axisUsesTimeFormat(curveAxis);
+}
+
+bool PlotWidget::isXLogScale() const {
+  return isAxisLogScale(PlotAxesConfig::X);
+}
+
+bool PlotWidget::isYLogScale() const {
+  return isAxisLogScale(PlotAxesConfig::Y);
+}
+
+bool PlotWidget::usesLogScale() const {
+  return isXLogScale() || isYLogScale();
+}
+
+void PlotWidget::installAxisScaleEngine(int axisId, bool logarithmic, bool withOffset) {
+  const auto axis = static_cast<QwtPlot::Axis>(axisId);
+  if (logarithmic) {
+    auto* engine = new QwtLogScaleEngine();
+    engine->setTransformation(new ClampedLogTransform());
+    ui_->plot->setAxisScaleEngine(axis, engine);
+    return;
+  }
+  if (withOffset) {
+    ui_->plot->setAxisScaleEngine(axis, new OffsetScaleEngine());
+    return;
+  }
+  ui_->plot->setAxisScaleEngine(axis, new QwtLinearScaleEngine());
+}
+
+void PlotWidget::updateAxisScaleEngine(PlotAxesConfig::Axis axis) {
+  const bool logarithmic = isAxisLogScale(axis);
+  const QwtPlot::Axis primary = (axis == PlotAxesConfig::X) ? QwtPlot::xBottom : QwtPlot::yLeft;
+  const QwtPlot::Axis mirror = (axis == PlotAxesConfig::X) ? QwtPlot::xTop : QwtPlot::yRight;
+  const bool alreadyLog = dynamic_cast<QwtLogScaleEngine*>(ui_->plot->axisScaleEngine(primary)) != nullptr;
+  if (logarithmic == alreadyLog) {
+    updateGridLines();
+    return;
+  }
+
+  installAxisScaleEngine(primary, logarithmic, true);
+  installAxisScaleEngine(mirror, logarithmic, false);
+
+  if (logarithmic) {
+#if QWT_VERSION >= 0x060100
+    const QwtScaleDiv& scale = ui_->plot->axisScaleDiv(primary);
+#else
+    const QwtScaleDiv& scale = *ui_->plot->axisScaleDiv(primary);
+#endif
+    if (scale.lowerBound() <= 0.0 || scale.upperBound() <= 0.0) {
+      const BoundingRectangle preferred = getPreferredScale();
+      const double lower = (axis == PlotAxesConfig::X) ? preferred.getMinimum().x() : preferred.getMinimum().y();
+      const double upper = (axis == PlotAxesConfig::X) ? preferred.getMaximum().x() : preferred.getMaximum().y();
+      if (upper > lower && lower > 0.0) {
+        ui_->plot->setAxisScale(primary, lower, upper);
+      } else {
+        ui_->plot->setAxisScale(primary, kLogFallbackMinimum, kLogFallbackMaximum);
+      }
+    }
+  }
+
+  rescale_ = true;
+  requestReplot();
+  updateGridLines();
+}
+
+void PlotWidget::applyAxisScale(int axisId, double minimum, double maximum, bool logarithmic) {
+  const auto axis = static_cast<QwtPlot::Axis>(axisId);
+  if (logarithmic) {
+    if (maximum == minimum) {
+      if (minimum > 0.0) {
+        ui_->plot->setAxisScale(axis, minimum / kLogDecade, minimum * kLogDecade);
+      } else {
+        ui_->plot->setAxisScale(axis, kLogFallbackMinimum, kLogFallbackMaximum);
+      }
+      return;
+    }
+    if (maximum > minimum) {
+      if (minimum <= 0.0) {
+        minimum = (maximum > 0.0) ? maximum / kLogDecade : kLogFallbackMinimum;
+      }
+      if (maximum <= minimum || minimum <= 0.0) {
+        ui_->plot->setAxisScale(axis, kLogFallbackMinimum, kLogFallbackMaximum);
+        return;
+      }
+      ui_->plot->setAxisScale(axis, minimum, maximum);
+    }
+    return;
+  }
+
+  if (maximum == minimum) {
+    ui_->plot->setAxisScale(axis, minimum - kLinearFlatPadding, maximum + kLinearFlatPadding);
+  } else if (maximum > minimum) {
+    ui_->plot->setAxisScale(axis, minimum, maximum);
+  }
+}
+
+std::optional<double> PlotWidget::minimumPositive(CurveConfig::Axis axis) const {
+  std::optional<double> minimum;
+  for (PlotCurve* curve : curves_) {
+    if ((curve == nullptr) || !curve->isVisible()) {
+      continue;
+    }
+    const std::optional<double> curveMinimum = curve->getMinimumPositive(axis);
+    if (curveMinimum.has_value() && (!minimum.has_value() || *curveMinimum < *minimum)) {
+      minimum = curveMinimum;
+    }
+  }
+  return minimum;
+}
+
+void PlotWidget::clampLogAxis(BoundingRectangle& bounds, CurveConfig::Axis axis) const {
+  if (!isAxisLogScale((axis == CurveConfig::X) ? PlotAxesConfig::X : PlotAxesConfig::Y)) {
+    return;
+  }
+
+  QPointF& minimumPoint = bounds.getMinimum();
+  QPointF& maximumPoint = bounds.getMaximum();
+  double lower = (axis == CurveConfig::X) ? minimumPoint.x() : minimumPoint.y();
+  double upper = (axis == CurveConfig::X) ? maximumPoint.x() : maximumPoint.y();
+  if (lower > 0.0 && upper > lower) {
+    return;
+  }
+
+  const std::optional<double> positive = minimumPositive(axis);
+  if (positive.has_value() && upper > *positive) {
+    lower = *positive;
+  } else if (positive.has_value()) {
+    lower = *positive;
+    upper = *positive;
+  } else {
+    lower = kLogFallbackMinimum;
+    upper = kLogFallbackMaximum;
+  }
+
+  if (axis == CurveConfig::X) {
+    minimumPoint.setX(lower);
+    maximumPoint.setX(upper);
+  } else {
+    minimumPoint.setY(lower);
+    maximumPoint.setY(upper);
+  }
 }
 
 void PlotWidget::syncScaleLocksFrom(const PlotWidget& source) {
@@ -716,6 +873,23 @@ void PlotWidget::updateGridPen() {
   penColor.setAlpha(64);
   QPen pen(penColor, 0.0, Qt::DotLine);
   grid_->setMajorPen(pen);
+  grid_->setMinorPen(pen);
+  if (gridVisible_) {
+    requestReplot();
+  }
+}
+
+void PlotWidget::updateGridLines() {
+  if (grid_ == nullptr) {
+    return;
+  }
+  const bool minorX = isXLogScale();
+  const bool minorY = isYLogScale();
+  if ((grid_->xMinEnabled() == minorX) && (grid_->yMinEnabled() == minorY)) {
+    return;
+  }
+  grid_->enableXMin(minorX);
+  grid_->enableYMin(minorY);
   if (gridVisible_) {
     requestReplot();
   }
@@ -1502,10 +1676,12 @@ void PlotWidget::configTimeWindowLengthChanged(int /*length*/) {
 
 void PlotWidget::configXAxisConfigChanged() {
   updateAxisTitle(PlotAxesConfig::X);
+  updateAxisScaleEngine(PlotAxesConfig::X);
 }
 
 void PlotWidget::configYAxisConfigChanged() {
   updateAxisTitle(PlotAxesConfig::Y);
+  updateAxisScaleEngine(PlotAxesConfig::Y);
 }
 
 void PlotWidget::configLegendConfigChanged() {

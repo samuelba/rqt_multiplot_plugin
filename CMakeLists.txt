@@ -168,6 +168,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/MessageTypeRegistry.cpp
   src/rqt_multiplot/OffsetScaleDraw.cpp
   src/rqt_multiplot/OffsetScaleEngine.cpp
+  src/rqt_multiplot/ClampedLogTransform.cpp
   src/rqt_multiplot/LaunchOptions.cpp
   src/rqt_multiplot/MultiplotConfig.cpp
   src/rqt_multiplot/MultiplotConfigWidget.cpp
@@ -487,6 +488,7 @@ install(PROGRAMS
   scripts/rqt_multiplot
   scripts/publish_array_demo.py
   scripts/publish_diagnostics_demo.py
+  scripts/publish_fft_demo.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -558,6 +560,8 @@ if(BUILD_TESTING)
     test/MessageSubscriberTest.cpp
     test/MessageTopicRegistryTest.cpp
     test/OffsetScaleDrawTest.cpp
+    test/ClampedLogTransformTest.cpp
+    test/PlotLogScaleTest.cpp
     test/LaunchOptionsTest.cpp
     test/MultiplotConfigTest.cpp
     test/MultiplotConfigWidgetTest.cpp

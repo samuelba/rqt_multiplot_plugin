@@ -56,6 +56,7 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   const CurveData* getRawData() const;
   CurveDataSequencer* getDataSequencer() const;
   QPair<double, double> getPreferredAxisScale(CurveConfig::Axis axis) const;
+  std::optional<double> getMinimumPositive(CurveConfig::Axis axis) const;
   BoundingRectangle getPreferredScale() const;
   void setVisible(bool on) override;
   QList<QwtLegendData> legendData() const override;

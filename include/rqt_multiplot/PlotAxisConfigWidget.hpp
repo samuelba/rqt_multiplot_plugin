@@ -48,10 +48,12 @@ class PlotAxisConfigWidget : public QWidget {
   void configTitleTypeChanged(int type);
   void configCustomTitleChanged(const QString& title);
   void configTitleVisibleChanged(bool visible);
+  void configLogScaleChanged(bool logarithmic);
 
   void checkBoxTitleAutoStateChanged(int state);
   void lineEditTitleEditingFinished();
   void checkBoxTitleVisibleStateChanged(int state);
+  void checkBoxLogScaleStateChanged(int state);
 };
 
 }  // namespace rqt_multiplot

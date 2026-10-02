@@ -383,6 +383,9 @@ void PlotTableWidget::storeSplitterRatios() {
 
 bool PlotTableWidget::anyPlotUserScaleLocked() const {
   for (PlotWidget* plot : plotWidgets_) {
+    if (plot->usesLogScale()) {
+      continue;
+    }
     if (plot->isUserScaleLocked()) {
       return true;
     }
@@ -398,7 +401,9 @@ void PlotTableWidget::updatePlotScale(const BoundingRectangle& bounds, PlotWidge
     BoundingRectangle currentBounds;
 
     for (PlotWidget* plot : plotWidgets_) {
-      currentBounds += plot->getCurrentScale();
+      if (!plot->usesLogScale()) {
+        currentBounds += plot->getCurrentScale();
+      }
     }
 
     if (bounds.getMaximum().x() <= bounds.getMinimum().x()) {
@@ -413,7 +418,7 @@ void PlotTableWidget::updatePlotScale(const BoundingRectangle& bounds, PlotWidge
   }
 
   for (PlotWidget* plot : plotWidgets_) {
-    if (excluded != plot) {
+    if (excluded != plot && !plot->usesLogScale()) {
       plot->setCurrentScale(validBounds);
     }
   }
@@ -498,8 +503,13 @@ QWidget* PlotTableWidget::createNodeWidget(PlotLayoutConfig* node, QHash<PlotCon
     plot->setGridForegroundColor(config_->getForegroundColor());
     plot->setGridVisible(config_->isGridVisible());
     plot->applyPlotChrome();
-    if (config_->isScaleLinked() && !plotWidgets_.isEmpty()) {
-      plot->setCurrentScale(plotWidgets_.front()->getCurrentScale());
+    if (config_->isScaleLinked() && !plot->usesLogScale()) {
+      for (PlotWidget* existing : plotWidgets_) {
+        if (!existing->usesLogScale()) {
+          plot->setCurrentScale(existing->getCurrentScale());
+          break;
+        }
+      }
     }
     if (config_->isCursorLinked() && !plotWidgets_.isEmpty()) {
       plot->getMarkers()->setPositions(plotWidgets_.front()->getMarkers()->positions());
@@ -731,6 +741,14 @@ void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds)
     return;
   }
 
+  auto* plot = dynamic_cast<PlotWidget*>(sender());
+  if ((plot != nullptr) && plot->usesLogScale()) {
+    if (shouldApplyPreferredScale(true, plot->isXScaleLocked(), plot->isYScaleLocked())) {
+      plot->setCurrentScale(bounds);
+    }
+    return;
+  }
+
   if (shouldIgnoreLinkedPreferredScale(config_->isScaleLinked(), anyPlotUserScaleLocked())) {
     return;
   }
@@ -738,15 +756,16 @@ void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds)
   if (config_->isScaleLinked()) {
     BoundingRectangle preferredBounds;
 
-    for (PlotWidget* plot : plotWidgets_) {
-      preferredBounds += plot->getPreferredScale();
+    for (PlotWidget* candidate : plotWidgets_) {
+      if (!candidate->usesLogScale()) {
+        preferredBounds += candidate->getPreferredScale();
+      }
     }
 
     updatePlotScale(preferredBounds);
     return;
   }
 
-  auto* plot = dynamic_cast<PlotWidget*>(sender());
   if ((plot != nullptr) && shouldApplyPreferredScale(true, plot->isXScaleLocked(), plot->isYScaleLocked())) {
     plot->setCurrentScale(bounds);
   }
@@ -758,21 +777,26 @@ void PlotTableWidget::plotUserScaleLockedChanged(bool /*locked*/) {
   }
 
   auto* source = dynamic_cast<PlotWidget*>(sender());
-  if (source == nullptr) {
+  if ((source == nullptr) || source->usesLogScale()) {
     return;
   }
 
   for (PlotWidget* plot : plotWidgets_) {
-    if (plot != source) {
+    if (plot != source && !plot->usesLogScale()) {
       plot->syncScaleLocksFrom(*source);
     }
   }
 }
 
 void PlotTableWidget::plotCurrentScaleChanged(const BoundingRectangle& bounds) {
-  if ((config_ != nullptr) && config_->isScaleLinked()) {
-    updatePlotScale(bounds, dynamic_cast<PlotWidget*>(sender()));
+  if ((config_ == nullptr) || !config_->isScaleLinked()) {
+    return;
   }
+  auto* plot = dynamic_cast<PlotWidget*>(sender());
+  if ((plot != nullptr) && plot->usesLogScale()) {
+    return;
+  }
+  updatePlotScale(bounds, plot);
 }
 
 void PlotTableWidget::plotCursorActiveChanged(bool active) {

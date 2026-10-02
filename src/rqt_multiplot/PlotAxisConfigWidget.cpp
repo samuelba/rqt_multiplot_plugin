@@ -28,6 +28,7 @@ PlotAxisConfigWidget::PlotAxisConfigWidget(QWidget* parent) : QWidget(parent), u
   connect(ui_->lineEditTitle, SIGNAL(editingFinished()), this, SLOT(lineEditTitleEditingFinished()));
   connect(ui_->checkBoxTitleAuto, SIGNAL(stateChanged(int)), this, SLOT(checkBoxTitleAutoStateChanged(int)));
   connect(ui_->checkBoxTitleVisible, SIGNAL(stateChanged(int)), this, SLOT(checkBoxTitleVisibleStateChanged(int)));
+  connect(ui_->checkBoxLogScale, SIGNAL(stateChanged(int)), this, SLOT(checkBoxLogScaleStateChanged(int)));
 }
 
 PlotAxisConfigWidget::~PlotAxisConfigWidget() {
@@ -40,6 +41,7 @@ void PlotAxisConfigWidget::setConfig(PlotAxisConfig* config) {
       disconnect(config_, SIGNAL(titleTypeChanged(int)), this, SLOT(configTitleTypeChanged(int)));
       disconnect(config_, SIGNAL(customTitleChanged(const QString&)), this, SLOT(configCustomTitleChanged(const QString&)));
       disconnect(config_, SIGNAL(titleVisibleChanged(bool)), this, SLOT(configTitleVisibleChanged(bool)));
+      disconnect(config_, SIGNAL(logScaleChanged(bool)), this, SLOT(configLogScaleChanged(bool)));
     }
 
     config_ = config;
@@ -48,10 +50,12 @@ void PlotAxisConfigWidget::setConfig(PlotAxisConfig* config) {
       connect(config, SIGNAL(titleTypeChanged(int)), this, SLOT(configTitleTypeChanged(int)));
       connect(config, SIGNAL(customTitleChanged(const QString&)), this, SLOT(configCustomTitleChanged(const QString&)));
       connect(config, SIGNAL(titleVisibleChanged(bool)), this, SLOT(configTitleVisibleChanged(bool)));
+      connect(config, SIGNAL(logScaleChanged(bool)), this, SLOT(configLogScaleChanged(bool)));
 
       configTitleTypeChanged(config->getTitleType());
       configCustomTitleChanged(config->getCustomTitle());
       configTitleVisibleChanged(config->isTitleVisible());
+      configLogScaleChanged(config->isLogScale());
     }
   }
 }
@@ -89,6 +93,16 @@ void PlotAxisConfigWidget::lineEditTitleEditingFinished() {
 void PlotAxisConfigWidget::checkBoxTitleVisibleStateChanged(int state) {
   if (config_ != nullptr) {
     config_->setTitleVisible(state == Qt::Checked);
+  }
+}
+
+void PlotAxisConfigWidget::configLogScaleChanged(bool logarithmic) {
+  ui_->checkBoxLogScale->setCheckState(logarithmic ? Qt::Checked : Qt::Unchecked);
+}
+
+void PlotAxisConfigWidget::checkBoxLogScaleStateChanged(int state) {
+  if (config_ != nullptr) {
+    config_->setLogScale(state == Qt::Checked);
   }
 }
 

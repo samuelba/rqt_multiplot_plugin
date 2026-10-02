@@ -157,6 +157,7 @@ TEST(PlotConfig, writesAndReadsAxesAndLegend) {
   source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setTitleType(PlotAxisConfig::CustomTitle);
   source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setCustomTitle("Altitude");
   source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setTitleVisible(false);
+  source.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setLogScale(true);
   source.getLegendConfig()->setVisible(false);
   source.setPlotRate(12.5);
   source.setTimeWindowEnabled(true);
@@ -178,6 +179,8 @@ TEST(PlotConfig, writesAndReadsAxesAndLegend) {
   EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->getTitleType(), PlotAxisConfig::CustomTitle);
   EXPECT_EQ(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->getCustomTitle(), QString("Altitude"));
   EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->isTitleVisible());
+  EXPECT_TRUE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->isLogScale());
+  EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->isLogScale());
   EXPECT_FALSE(loaded.getLegendConfig()->isVisible());
   EXPECT_DOUBLE_EQ(loaded.getPlotRate(), 12.5);
   EXPECT_TRUE(loaded.isTimeWindowEnabled());
@@ -281,6 +284,64 @@ TEST(PlotConfig, removeCurveEmitsCurveRemoved) {
 
   EXPECT_EQ(removedIndex, 0u);
   EXPECT_EQ(config.getNumCurves(), 1u);
+}
+
+TEST(PlotAxisConfig, assignmentAndResetCopyLogScale) {
+  PlotAxisConfig source;
+  EXPECT_FALSE(source.isLogScale());
+  source.setLogScale(true);
+
+  PlotAxisConfig copy;
+  copy = source;
+  EXPECT_TRUE(copy.isLogScale());
+
+  source.reset();
+  EXPECT_FALSE(source.isLogScale());
+}
+
+TEST(PlotConfig, xmlRoundTripKeepsLogScaleAndDefaultsWhenMissing) {
+  QTemporaryDir dir;
+  ASSERT_TRUE(dir.isValid());
+  const QString path = settingsPath(dir, "log-scale.xml");
+
+  {
+    PlotConfig config;
+    config.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setLogScale(true);
+    QSettings settings(path, rqt_multiplot::XmlSettings::format);
+    settings.beginGroup("rqt_multiplot");
+    config.save(settings);
+    settings.endGroup();
+    settings.sync();
+  }
+
+  {
+    PlotConfig loaded;
+    QSettings settings(path, rqt_multiplot::XmlSettings::format);
+    settings.beginGroup("rqt_multiplot");
+    loaded.load(settings);
+    settings.endGroup();
+    EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->isLogScale());
+    EXPECT_TRUE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->isLogScale());
+  }
+
+  {
+    QSettings settings(path, rqt_multiplot::XmlSettings::format);
+    settings.beginGroup("rqt_multiplot");
+    settings.remove("axes/axes/x_axis/log_scale");
+    settings.remove("axes/axes/y_axis/log_scale");
+    settings.endGroup();
+    settings.sync();
+  }
+
+  PlotConfig loaded;
+  loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->setLogScale(true);
+  loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->setLogScale(true);
+  QSettings settings(path, rqt_multiplot::XmlSettings::format);
+  settings.beginGroup("rqt_multiplot");
+  loaded.load(settings);
+  settings.endGroup();
+  EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::X)->isLogScale());
+  EXPECT_FALSE(loaded.getAxesConfig()->getAxisConfig(PlotAxesConfig::Y)->isLogScale());
 }
 
 }  // namespace
