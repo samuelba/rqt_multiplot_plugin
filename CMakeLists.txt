@@ -653,13 +653,6 @@ if(BUILD_TESTING)
     endif()
   endforeach()
 
-  find_package(ament_cmake_clang_format REQUIRED)
-  ament_clang_format(
-    src include test
-    CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
-    --clang-format-version 23
-  )
-
   ament_add_test(test_run_clang_tidy
     COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/test/test_run_clang_tidy.py
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -668,16 +661,35 @@ if(BUILD_TESTING)
   )
   set_tests_properties(test_run_clang_tidy PROPERTIES LABELS "unit_testing_clang_tidy")
 
-  ament_add_test(clang_tidy
-    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_clang_tidy.py
-      --compile-commands ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
-      --source-root ${CMAKE_CURRENT_SOURCE_DIR}
-      --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    TIMEOUT 1800
-    GENERATE_RESULT_FOR_RETURN_CODE_ZERO
-  )
-  set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linting")
+  # Devel and CI jobs mount this file. They do not provide clang-format 23 or clang-tidy 23.
+  # -DRQT_MULTIPLOT_CLANG_LINT=ON/OFF overrides the skip. GitHub Actions does not mount it.
+  set(_enable_clang_lint ON)
+  if(DEFINED RQT_MULTIPLOT_CLANG_LINT)
+    set(_enable_clang_lint "${RQT_MULTIPLOT_CLANG_LINT}")
+  elseif(EXISTS "/tmp/ros_buildfarm/scripts/devel/build_and_test.py")
+    set(_enable_clang_lint OFF)
+    message(STATUS "rqt_multiplot: skipping clang-format and clang-tidy on the ROS buildfarm")
+  endif()
+
+  if(_enable_clang_lint)
+    find_package(ament_cmake_clang_format REQUIRED)
+    ament_clang_format(
+      src include test
+      CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/.clang-format
+      --clang-format-version 23
+    )
+
+    ament_add_test(clang_tidy
+      COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_clang_tidy.py
+        --compile-commands ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+        --source-root ${CMAKE_CURRENT_SOURCE_DIR}
+        --config ${CMAKE_CURRENT_SOURCE_DIR}/.clang-tidy
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+      TIMEOUT 1800
+      GENERATE_RESULT_FOR_RETURN_CODE_ZERO
+    )
+    set_tests_properties(clang_tidy PROPERTIES LABELS "clang_tidy;linting")
+  endif()
 endif()
 
 ament_package()
