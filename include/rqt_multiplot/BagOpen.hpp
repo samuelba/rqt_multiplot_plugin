@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -26,6 +28,7 @@ class RuntimeTypeSupportProvider;
 
 rosbag2_storage::StorageOptions storageOptionsForUri(const std::string& uri);
 void openBag(rosbag2_cpp::Reader& reader, const std::string& uri);
+std::optional<int64_t> bagStartTimeNs(const std::string& uri);
 
 // Registers the bag's ros2msg schemas of types that are not installed. Returns the registered type names.
 std::vector<std::string> registerMessageDefinitions(rosbag2_cpp::Reader& reader, runtime_types::RuntimeTypeSupportProvider& provider);

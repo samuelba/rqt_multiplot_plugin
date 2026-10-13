@@ -146,6 +146,7 @@ TEST(MultiplotFileMenu, hasFileMenuWithExpectedActions) {
                    QStringLiteral("Save configuration as..."), QStringLiteral("<separator>"), QStringLiteral("Clear configuration history"),
                    QStringLiteral("<separator>"), QStringLiteral("Import from bag files..."), QStringLiteral("Add bag files..."),
                    QStringLiteral("Import from bag directory..."), QStringLiteral("Add bag directory..."), QStringLiteral("<separator>"),
+                   QStringLiteral("Overlay bag files..."), QStringLiteral("Overlay offsets..."), QStringLiteral("<separator>"),
                    QStringLiteral("Export to image file..."), QStringLiteral("Export to text file..."), QStringLiteral("<separator>"),
                    QStringLiteral("Preferences...")}));
 }

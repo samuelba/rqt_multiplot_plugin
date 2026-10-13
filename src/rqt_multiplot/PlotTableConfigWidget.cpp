@@ -19,15 +19,19 @@
 #include <QAction>
 #include <QFileDialog>
 #include <QKeySequence>
+#include <QMessageBox>
 #include <QSignalBlocker>
 
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotExport.hpp"
 
+#include "rqt_multiplot/BagOverlayDialog.hpp"
+#include "rqt_multiplot/BagOverlaySession.hpp"
 #include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/PlotTabWidget.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
 #include "rqt_multiplot/PlotWidget.hpp"
+#include "rqt_multiplot/Theme.hpp"
 
 #include <ui_PlotTableConfigWidget.h>
 
@@ -50,11 +54,14 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
       actionAddBagFiles_(new QAction(tr("Add bag files..."), this)),
       actionImportBagDirectory_(new QAction(tr("Import from bag directory..."), this)),
       actionAddBagDirectory_(new QAction(tr("Add bag directory..."), this)),
+      actionOverlayBagFiles_(new QAction(tr("Overlay bag files..."), this)),
+      actionOverlayOffsets_(new QAction(tr("Overlay offsets..."), this)),
       actionExportImageFile_(new QAction(tr("Export to image file..."), this)),
       actionExportTextFile_(new QAction(tr("Export to text file..."), this)),
       config_(nullptr),
       plotTabs_(nullptr),
       plotTable_(nullptr),
+      overlayDialog_(nullptr),
       playbackJobCount_(0),
       lastJobFailure_(),
       lastBagDirectory_() {
@@ -64,6 +71,10 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   actionAddBagFiles_->setObjectName(QStringLiteral("actionAddBagFiles"));
   actionImportBagDirectory_->setObjectName(QStringLiteral("actionImportBagDirectory"));
   actionAddBagDirectory_->setObjectName(QStringLiteral("actionAddBagDirectory"));
+  actionOverlayBagFiles_->setObjectName(QStringLiteral("actionOverlayBagFiles"));
+  actionOverlayOffsets_->setObjectName(QStringLiteral("actionOverlayOffsets"));
+  actionOverlayBagFiles_->setToolTip(tr("Overlay 2 to 3 bags on the same plots, aligned at their start"));
+  actionOverlayOffsets_->setEnabled(false);
   actionExportImageFile_->setObjectName(QStringLiteral("actionExportImageFile"));
   actionExportTextFile_->setObjectName(QStringLiteral("actionExportTextFile"));
   actionImportBagFile_->setShortcut(keySequence(Qt::CTRL, Qt::Key_I));
@@ -74,6 +85,7 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   setThemeIcon(actionAddBagFiles_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionImportBagDirectory_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionAddBagDirectory_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
+  setThemeIcon(actionOverlayBagFiles_, QStringLiteral("resource/data-import.svg"), QSize(16, 16));
   setThemeIcon(actionExportImageFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
   setThemeIcon(actionExportTextFile_, QStringLiteral("resource/data-export.svg"), QSize(16, 16));
 
@@ -96,6 +108,8 @@ PlotTableConfigWidget::PlotTableConfigWidget(QWidget* parent)
   connect(actionAddBagFiles_, SIGNAL(triggered()), this, SLOT(menuAddBagFilesTriggered()));
   connect(actionImportBagDirectory_, SIGNAL(triggered()), this, SLOT(menuImportBagDirectoryTriggered()));
   connect(actionAddBagDirectory_, SIGNAL(triggered()), this, SLOT(menuAddBagDirectoryTriggered()));
+  connect(actionOverlayBagFiles_, SIGNAL(triggered()), this, SLOT(menuOverlayBagFilesTriggered()));
+  connect(actionOverlayOffsets_, SIGNAL(triggered()), this, SLOT(menuOverlayOffsetsTriggered()));
   connect(actionExportImageFile_, SIGNAL(triggered()), this, SLOT(menuExportImageFileTriggered()));
   connect(actionExportTextFile_, SIGNAL(triggered()), this, SLOT(menuExportTextFileTriggered()));
 
@@ -214,8 +228,47 @@ QAction* PlotTableConfigWidget::getActionAddBagDirectory() const {
   return actionAddBagDirectory_;
 }
 
+QAction* PlotTableConfigWidget::getActionOverlayBagFiles() const {
+  return actionOverlayBagFiles_;
+}
+
+QAction* PlotTableConfigWidget::getActionOverlayOffsets() const {
+  return actionOverlayOffsets_;
+}
+
 QAction* PlotTableConfigWidget::getActionExportImageFile() const {
   return actionExportImageFile_;
+}
+
+BagOverlaySession* PlotTableConfigWidget::getOverlaySession() const {
+  if (plotTabs_ != nullptr) {
+    return plotTabs_->getOverlaySession();
+  }
+  return (plotTable_ != nullptr) ? plotTable_->getOverlaySession() : nullptr;
+}
+
+BagOverlayDialog* PlotTableConfigWidget::getOverlayDialog() const {
+  return overlayDialog_;
+}
+
+bool PlotTableConfigWidget::loadOverlayBagPaths(const QStringList& paths) {
+  const QString remembered = bagDirectoryToRemember(paths);
+  if (!remembered.isEmpty()) {
+    lastBagDirectory_ = remembered;
+  }
+
+  if (plotTabs_ != nullptr) {
+    return plotTabs_->loadOverlayBagFiles(paths);
+  }
+  return (plotTable_ != nullptr) && plotTable_->loadOverlayBagFiles(paths);
+}
+
+void PlotTableConfigWidget::updateOverlayActions() {
+  BagOverlaySession* session = getOverlaySession();
+  actionOverlayOffsets_->setEnabled((session != nullptr) && session->isActive());
+  if (overlayDialog_ != nullptr) {
+    overlayDialog_->setSession(session);
+  }
 }
 
 QAction* PlotTableConfigWidget::getActionExportTextFile() const {
@@ -223,6 +276,10 @@ QAction* PlotTableConfigWidget::getActionExportTextFile() const {
 }
 
 void PlotTableConfigWidget::unbindPlaybackSignals() {
+  if (BagOverlaySession* session = getOverlaySession()) {
+    disconnect(session, nullptr, this, nullptr);
+  }
+
   if (plotTabs_ != nullptr) {
     disconnect(plotTabs_, SIGNAL(plotPausedChanged()), this, SLOT(plotTablePlotPausedChanged()));
     disconnect(plotTabs_, SIGNAL(jobStarted(const QString&)), this, SLOT(plotTableJobStarted(const QString&)));
@@ -255,6 +312,12 @@ void PlotTableConfigWidget::bindPlaybackSignals() {
     connect(plotTable_, SIGNAL(jobFinished(const QString&)), this, SLOT(plotTableJobFinished(const QString&)));
     connect(plotTable_, SIGNAL(jobFailed(const QString&)), this, SLOT(plotTableJobFailed(const QString&)));
   }
+
+  if (BagOverlaySession* session = getOverlaySession()) {
+    connect(session, &BagOverlaySession::loaded, this, &PlotTableConfigWidget::updateOverlayActions);
+    connect(session, &BagOverlaySession::cleared, this, &PlotTableConfigWidget::updateOverlayActions);
+  }
+  updateOverlayActions();
 
   if (plotTabs_ != nullptr || plotTable_ != nullptr) {
     plotTablePlotPausedChanged();
@@ -431,6 +494,32 @@ void PlotTableConfigWidget::menuAddBagDirectoryTriggered() {
   if (dialog.exec() == QDialog::Accepted) {
     loadBagPaths(dialog.selectedFiles(), false);
   }
+}
+
+void PlotTableConfigWidget::menuOverlayBagFilesTriggered() {
+  QFileDialog dialog(this, "Overlay Bag Files", initialBagDialogDirectory(lastBagDirectory_), "ROS 2 bags (*.mcap *.db3);;All files (*)");
+
+  dialog.setAcceptMode(QFileDialog::AcceptOpen);
+  dialog.setFileMode(QFileDialog::ExistingFiles);
+
+  if ((dialog.exec() == QDialog::Accepted) && !loadOverlayBagPaths(dialog.selectedFiles())) {
+    BagOverlaySession* session = getOverlaySession();
+    QMessageBox messageBox(QMessageBox::Warning, tr("Overlay bag files"),
+                           (session != nullptr) ? session->getError() : tr("No plots to overlay on"), QMessageBox::Ok, this);
+    Theme::apply(&messageBox);
+    messageBox.exec();
+  }
+}
+
+void PlotTableConfigWidget::menuOverlayOffsetsTriggered() {
+  if (overlayDialog_ == nullptr) {
+    overlayDialog_ = new BagOverlayDialog(this);
+  }
+  Theme::apply(overlayDialog_);
+  overlayDialog_->setSession(getOverlaySession());
+  overlayDialog_->show();
+  overlayDialog_->raise();
+  overlayDialog_->activateWindow();
 }
 
 void PlotTableConfigWidget::menuExportImageFileTriggered() {

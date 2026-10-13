@@ -31,6 +31,7 @@ class QToolButton;
 
 namespace rqt_multiplot {
 
+class BagOverlaySession;
 class BagReader;
 class PlotConfig;
 class PlotTableWidget;
@@ -57,6 +58,8 @@ class PlotTabWidget : public QWidget {
   bool isAnyPlotRunning() const;
   void togglePlots();
   void loadFromBagFiles(const QStringList& fileNames, bool replace);
+  bool loadOverlayBagFiles(const QStringList& fileNames);
+  BagOverlaySession* getOverlaySession() const;
 
  signals:
   void currentPlotTableChanged(PlotTableWidget* plotTable);
@@ -73,6 +76,7 @@ class PlotTabWidget : public QWidget {
   QToolButton* addButton_;
   MultiplotConfig* config_;
   BagReader* bagReader_;
+  BagOverlaySession* overlay_;
   QHash<PlotTableWidget*, int> activeJobCounts_;
   QHash<PlotTableWidget*, double> jobProgress_;
 
@@ -112,6 +116,8 @@ class PlotTabWidget : public QWidget {
   void bagReadingProgressChanged(double progress);
   void bagReadingFinished();
   void bagReadingFailed(const QString& error);
+  void overlayReadingFinished(const QString& message);
+  void overlayReadingFailed(const QString& error);
 };
 
 }  // namespace rqt_multiplot

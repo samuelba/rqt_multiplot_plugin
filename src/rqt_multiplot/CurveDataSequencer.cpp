@@ -141,8 +141,10 @@ void CurveDataSequencer::subscribe() {
 
 void CurveDataSequencer::unsubscribe() {
   if (isSubscribed()) {
-    for (QMap<CurveConfig::Axis, QString>::iterator it = subscribedTopics_.begin(); it != subscribedTopics_.end(); ++it) {
-      broker_->unsubscribe(it.value(), this);
+    if (broker_ != nullptr) {
+      for (QMap<CurveConfig::Axis, QString>::iterator it = subscribedTopics_.begin(); it != subscribedTopics_.end(); ++it) {
+        broker_->unsubscribe(it.value(), this);
+      }
     }
 
     subscribedTopics_.clear();

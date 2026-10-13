@@ -32,6 +32,8 @@ class PlotTableConfigWidget;
 
 namespace rqt_multiplot {
 
+class BagOverlayDialog;
+class BagOverlaySession;
 class PlotTableWidget;
 class PlotTabWidget;
 
@@ -53,8 +55,14 @@ class PlotTableConfigWidget : public QWidget {
   QAction* getActionAddBagFiles() const;
   QAction* getActionImportBagDirectory() const;
   QAction* getActionAddBagDirectory() const;
+  QAction* getActionOverlayBagFiles() const;
+  QAction* getActionOverlayOffsets() const;
   QAction* getActionExportImageFile() const;
   QAction* getActionExportTextFile() const;
+
+  bool loadOverlayBagPaths(const QStringList& paths);
+  BagOverlaySession* getOverlaySession() const;
+  BagOverlayDialog* getOverlayDialog() const;
 
  private:
   Ui::PlotTableConfigWidget* ui_;
@@ -63,12 +71,15 @@ class PlotTableConfigWidget : public QWidget {
   QAction* actionAddBagFiles_;
   QAction* actionImportBagDirectory_;
   QAction* actionAddBagDirectory_;
+  QAction* actionOverlayBagFiles_;
+  QAction* actionOverlayOffsets_;
   QAction* actionExportImageFile_;
   QAction* actionExportTextFile_;
 
   PlotTableConfig* config_;
   PlotTabWidget* plotTabs_;
   PlotTableWidget* plotTable_;
+  BagOverlayDialog* overlayDialog_;
   int playbackJobCount_;
   QString lastJobFailure_;
   QString lastBagDirectory_;
@@ -77,6 +88,7 @@ class PlotTableConfigWidget : public QWidget {
   void bindPlaybackSignals();
   void completePlaybackJob(const QString& toolTip, bool failed);
   void loadBagPaths(const QStringList& paths, bool replace);
+  void updateOverlayActions();
 
  private slots:
   void configLinkScaleChanged(bool link);
@@ -104,6 +116,8 @@ class PlotTableConfigWidget : public QWidget {
   void menuAddBagFilesTriggered();
   void menuImportBagDirectoryTriggered();
   void menuAddBagDirectoryTriggered();
+  void menuOverlayBagFilesTriggered();
+  void menuOverlayOffsetsTriggered();
   void menuExportImageFileTriggered();
   void menuExportTextFileTriggered();
 
