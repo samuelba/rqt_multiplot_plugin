@@ -102,6 +102,8 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/AboutDialog.cpp
   src/rqt_multiplot/AxisTimeFormat.cpp
   src/rqt_multiplot/BagOpen.cpp
+  src/rqt_multiplot/BagOverlayDialog.cpp
+  src/rqt_multiplot/BagOverlaySession.cpp
   src/rqt_multiplot/BagQuery.cpp
   src/rqt_multiplot/BagReader.cpp
   src/rqt_multiplot/BagTopicLoader.cpp
@@ -198,6 +200,7 @@ set(rqt_multiplot_SRCS
   src/rqt_multiplot/PlotLayoutConfig.cpp
   src/rqt_multiplot/PlotMagnifier.cpp
   src/rqt_multiplot/PlotMarkerPair.cpp
+  src/rqt_multiplot/PlotOverlayCurves.cpp
   src/rqt_multiplot/PlotMarkerReadout.cpp
   src/rqt_multiplot/PlotPanner.cpp
   src/rqt_multiplot/PlotReadoutTable.cpp
@@ -247,6 +250,8 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/AboutDialog.hpp
   include/rqt_multiplot/AxisTimeFormat.hpp
   include/rqt_multiplot/BagOpen.hpp
+  include/rqt_multiplot/BagOverlayDialog.hpp
+  include/rqt_multiplot/BagOverlaySession.hpp
   include/rqt_multiplot/BagQuery.hpp
   include/rqt_multiplot/BagReader.hpp
   include/rqt_multiplot/BagTopicLoader.hpp
@@ -338,6 +343,7 @@ set(rqt_multiplot_HDRS
   include/rqt_multiplot/PlotLayoutConfig.hpp
   include/rqt_multiplot/PlotMagnifier.hpp
   include/rqt_multiplot/PlotMarkerPair.hpp
+  include/rqt_multiplot/PlotOverlayCurves.hpp
   include/rqt_multiplot/PlotMarkerReadout.hpp
   include/rqt_multiplot/PlotMouseBindings.hpp
   include/rqt_multiplot/PlotCanvasPolicy.hpp
@@ -526,6 +532,8 @@ if(BUILD_TESTING)
   ament_add_gtest(test_${PROJECT_NAME}
     test/AxisTimeFormatTest.cpp
     test/BagReaderTest.cpp
+    test/BagOverlaySessionTest.cpp
+    test/BagOverlayUiTest.cpp
     ${rqt_multiplot_test_MOCS}
     test/BagTopicLoaderTest.cpp
     test/CurveAxisConfigTest.cpp
@@ -583,6 +591,7 @@ if(BUILD_TESTING)
     test/PlotWidgetTopicDropTest.cpp
     test/PlotCursorLabelTest.cpp
     test/PlotMarkerPairTest.cpp
+    test/PlotOverlayCurvesTest.cpp
     test/SnapshotHistoryTest.cpp
     test/StatusWidgetTest.cpp
     test/ThemeTest.cpp

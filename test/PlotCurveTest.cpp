@@ -28,6 +28,7 @@
 namespace {
 
 using rqt_multiplot::CurveAxisConfig;
+using rqt_multiplot::CurveColorConfig;
 using rqt_multiplot::CurveConfig;
 using rqt_multiplot::CurveDataCircularBuffer;
 using rqt_multiplot::CurveDataConfig;
@@ -35,6 +36,7 @@ using rqt_multiplot::CurveDataListTimeFrame;
 using rqt_multiplot::PlotConfig;
 using rqt_multiplot::PlotCurve;
 using rqt_multiplot::PlotWidget;
+using rqt_multiplot::snapshotFadeAlpha;
 
 QApplication* ensureApplication() {
   if (QApplication::instance() != nullptr) {
@@ -413,6 +415,108 @@ TEST(PlotCurve, snapshotCurveIgnoresFilters) {
   curve.setConfig(&config);
 
   EXPECT_EQ(curve.getRawData(), curve.getData());
+}
+
+TEST(PlotCurve, overlaySourceAddsBagLabelToTitleAndFollowsRename) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.setTitle(QStringLiteral("speed"));
+  PlotCurve curve;
+  curve.setOverlaySource(1, QStringLiteral("run2"));
+  curve.setConfig(&config);
+
+  EXPECT_EQ(curve.getOverlayBag(), 1);
+  EXPECT_EQ(curve.title().text(), QStringLiteral("speed [run2]"));
+
+  config.setTitle(QStringLiteral("velocity"));
+  EXPECT_EQ(curve.title().text(), QStringLiteral("velocity [run2]"));
+}
+
+TEST(PlotCurve, overlayPenStyleDependsOnBagAndUsesWeakerColor) {
+  ensureApplication();
+
+  CurveConfig config;
+  PlotCurve reference;
+  reference.setConfig(&config);
+  PlotCurve second;
+  second.setOverlaySource(1, QStringLiteral("b"));
+  second.setConfig(&config);
+  PlotCurve third;
+  third.setOverlaySource(2, QStringLiteral("c"));
+  third.setConfig(&config);
+
+  const QColor referenceColor = reference.pen().color();
+  const int fadedAlpha = snapshotFadeAlpha(referenceColor.alpha(), 1, 2);
+
+  EXPECT_EQ(reference.pen().style(), Qt::SolidLine);
+  EXPECT_EQ(second.pen().style(), Qt::DashLine);
+  EXPECT_EQ(third.pen().style(), Qt::DotLine);
+  EXPECT_EQ(second.pen().color().rgb(), referenceColor.rgb());
+  EXPECT_EQ(third.pen().color().rgb(), referenceColor.rgb());
+  EXPECT_EQ(second.pen().color().alpha(), fadedAlpha);
+  EXPECT_EQ(third.pen().color().alpha(), fadedAlpha);
+
+  config.getStyleConfig()->setPenWidth(3);
+  EXPECT_EQ(second.pen().width(), 3);
+  EXPECT_EQ(second.pen().color().alpha(), fadedAlpha);
+
+  config.getColorConfig()->setType(CurveColorConfig::Custom);
+  config.getColorConfig()->setCustomColor(QColor(10, 20, 30));
+  EXPECT_EQ(reference.pen().color(), QColor(10, 20, 30));
+  EXPECT_EQ(second.pen().color(), QColor(10, 20, 30, fadedAlpha));
+  EXPECT_EQ(third.pen().color(), QColor(10, 20, 30, fadedAlpha));
+}
+
+TEST(PlotCurve, xOffsetShiftsIncomingAndStoredTimePoints) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.setXOffset(-10.0);
+  curve.run();
+  feedPoints(curve, {{100.0, 1.0}, {101.0, 2.0}});
+
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{90.0, 1.0}, {91.0, 2.0}}));
+
+  curve.setXOffset(-5.0);
+
+  EXPECT_DOUBLE_EQ(curve.getXOffset(), -5.0);
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{95.0, 1.0}, {96.0, 2.0}}));
+}
+
+TEST(PlotCurve, xOffsetShiftsRawAndFilteredPoints) {
+  ensureApplication();
+
+  CurveConfig config;
+  configureReceiptTimeCurve(&config);
+  config.getFilterChainConfig()->setFilters({rqt_multiplot::defaultCurveFilterSpec(rqt_multiplot::CurveFilterType::Derivative)});
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.run();
+  feedPoints(curve, {{0.0, 0.0}, {1.0, 2.0}, {2.0, 6.0}});
+
+  curve.setXOffset(10.0);
+
+  EXPECT_EQ(curvePoints(*curve.getRawData()), QVector<QPointF>({{10.0, 0.0}, {11.0, 2.0}, {12.0, 6.0}}));
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{11.0, 2.0}, {12.0, 4.0}}));
+}
+
+TEST(PlotCurve, xOffsetIsIgnoredWhenXIsNotTime) {
+  ensureApplication();
+
+  CurveConfig config;
+  config.getAxisConfig(CurveConfig::X)->setField("position");
+  config.getAxisConfig(CurveConfig::Y)->setField("velocity");
+  PlotCurve curve;
+  curve.setConfig(&config);
+  curve.setXOffset(-10.0);
+  curve.run();
+  feedPoints(curve, {{1.0, 1.0}});
+
+  EXPECT_EQ(curvePoints(*curve.getData()), QVector<QPointF>({{1.0, 1.0}}));
 }
 
 }  // namespace

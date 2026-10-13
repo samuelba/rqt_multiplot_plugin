@@ -17,6 +17,7 @@
  ******************************************************************************/
 
 #include <array>
+#include <limits>
 #include <optional>
 
 #include <QApplication>
@@ -30,6 +31,7 @@
 #include <QFileDialog>
 #include <QFontMetrics>
 #include <QGridLayout>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QMetaObject>
@@ -58,6 +60,7 @@
 
 #include "rqt_multiplot/ArrayDropDialog.hpp"
 #include "rqt_multiplot/AxisTimeFormat.hpp"
+#include "rqt_multiplot/BagOverlaySession.hpp"
 #include "rqt_multiplot/ClampedLogTransform.hpp"
 #include "rqt_multiplot/CurveAxisConfig.hpp"
 #include "rqt_multiplot/CurveData.hpp"
@@ -74,6 +77,7 @@
 #include "rqt_multiplot/PlotMagnifier.hpp"
 #include "rqt_multiplot/PlotMarkerPair.hpp"
 #include "rqt_multiplot/PlotMouseBindings.hpp"
+#include "rqt_multiplot/PlotOverlayCurves.hpp"
 #include "rqt_multiplot/PlotPanner.hpp"
 #include "rqt_multiplot/PlotReplotPolicy.hpp"
 #include "rqt_multiplot/PlotZoomer.hpp"
@@ -102,6 +106,35 @@ QwtText axisTitleWithColor(const QString& text, const QColor& color) {
   QwtText title(text);
   title.setColor(color);
   return title;
+}
+
+std::optional<QString> askThemedItem(QWidget* parent, const QString& title, const QString& label, const QStringList& items) {
+  QInputDialog dialog(parent);
+  Theme::apply(&dialog);
+  dialog.setWindowTitle(title);
+  dialog.setLabelText(label);
+  dialog.setComboBoxItems(items);
+  dialog.setComboBoxEditable(false);
+  return (dialog.exec() == QDialog::Accepted) ? std::optional<QString>(dialog.textValue()) : std::nullopt;
+}
+
+std::optional<double> askThemedDouble(QWidget* parent, const QString& title, const QString& label, double initial) {
+  constexpr int kDecimals = 6;
+  QInputDialog dialog(parent);
+  Theme::apply(&dialog);
+  dialog.setWindowTitle(title);
+  dialog.setLabelText(label);
+  dialog.setInputMode(QInputDialog::DoubleInput);
+  dialog.setDoubleRange(std::numeric_limits<double>::lowest(), std::numeric_limits<double>::max());
+  dialog.setDoubleDecimals(kDecimals);
+  dialog.setDoubleValue(initial);
+  return (dialog.exec() == QDialog::Accepted) ? std::optional<double>(dialog.doubleValue()) : std::nullopt;
+}
+
+void showThemedInformation(QWidget* parent, const QString& title, const QString& text) {
+  QMessageBox messageBox(QMessageBox::Information, title, text, QMessageBox::Ok, parent);
+  Theme::apply(&messageBox);
+  messageBox.exec();
 }
 
 class BoolGuard {
@@ -142,6 +175,10 @@ PlotWidget::PlotWidget(QWidget* parent)
       actionContextMarkerA_(nullptr),
       actionContextMarkerB_(nullptr),
       actionContextClearMarkers_(nullptr),
+      actionContextAlignOverlay_(nullptr),
+      menuContextAlignOverlay_(nullptr),
+      actionContextAlignThreshold_(nullptr),
+      actionContextResetOverlayAlignment_(nullptr),
       contextMenuX_(0.0),
       actionContextConfigure_(nullptr),
       actionContextFilterCurves_(nullptr),
@@ -158,6 +195,7 @@ PlotWidget::PlotWidget(QWidget* parent)
       dataStatisticsDialog_(nullptr),
       config_(nullptr),
       broker_(nullptr),
+      overlay_(nullptr),
       legend_(nullptr),
       cursor_(nullptr),
       grid_(nullptr),
@@ -240,6 +278,12 @@ PlotWidget::PlotWidget(QWidget* parent)
   markers_->setCoordinateFormatter([this](double value, bool isX) {
     return (cursor_ != nullptr) ? cursor_->formatCoordinate(value, isX) : QString::number(value, 'g', 6);
   });
+  overlay_ = new PlotOverlayCurves(this, ui_->plot);
+  connect(overlay_, &PlotOverlayCurves::replotRequested, this, &PlotWidget::curveReplotRequested);
+  connect(overlay_, &PlotOverlayCurves::curvesChanged, this, [this]() {
+    rescale_ = true;
+    forceReplot();
+  });
   createCanvasPickers();
 
 #if QWT_VERSION >= 0x060100
@@ -277,6 +321,8 @@ PlotWidget::PlotWidget(QWidget* parent)
 PlotWidget::~PlotWidget() {
   timer_->stop();
   pause();
+  delete overlay_;
+  overlay_ = nullptr;
   for (auto* curve : curves_) {
     curve->detach();
     delete curve;
@@ -377,6 +423,18 @@ const QVector<PlotCurve*>& PlotWidget::getCurves() const {
   return curves_;
 }
 
+const QVector<PlotCurve*>& PlotWidget::getOverlayCurves() const {
+  return overlay_->getCurves();
+}
+
+void PlotWidget::setOverlaySession(BagOverlaySession* session) {
+  overlay_->setSession(session, curves_, !paused_);
+}
+
+BagOverlaySession* PlotWidget::getOverlaySession() const {
+  return overlay_->getSession();
+}
+
 void PlotWidget::setTimeAxisFormat(PlotTableConfig::TimeAxisFormat format) {
   if (format == timeAxisFormat_) {
     return;
@@ -426,8 +484,8 @@ void PlotWidget::setGridForegroundColor(const QColor& color) {
 BoundingRectangle PlotWidget::getPreferredScale() const {
   BoundingRectangle bounds;
 
-  for (int index = 0; index < curves_.count(); ++index) {
-    bounds += curves_[index]->getPreferredScale();
+  for (const PlotCurve* curve : allCurves()) {
+    bounds += curve->getPreferredScale();
   }
 
   if (bounds.isValid()) {
@@ -658,9 +716,13 @@ void PlotWidget::applyAxisScale(int axisId, double minimum, double maximum, bool
   }
 }
 
+QVector<PlotCurve*> PlotWidget::allCurves() const {
+  return curves_ + overlay_->getCurves();
+}
+
 std::optional<double> PlotWidget::minimumPositive(CurveConfig::Axis axis) const {
   std::optional<double> minimum;
-  for (PlotCurve* curve : curves_) {
+  for (PlotCurve* curve : allCurves()) {
     if ((curve == nullptr) || !curve->isVisible()) {
       continue;
     }
@@ -954,6 +1016,27 @@ void PlotWidget::buildContextMenu() {
   actionContextClearMarkers_ = menuContext_->addAction(tr("Clear markers"), this, SLOT(menuClearMarkersTriggered()));
   actionContextClearMarkers_->setObjectName(QStringLiteral("actionContextClearMarkers"));
 
+  actionContextAlignOverlay_ = menuContext_->addAction(tr("Align overlay at markers"), this, [this]() { alignOverlayAtMarkers(1); });
+  actionContextAlignOverlay_->setObjectName(QStringLiteral("actionContextAlignOverlay"));
+  actionContextAlignOverlay_->setToolTip(tr("Shift the overlay bag so that marker B moves onto marker A"));
+
+  menuContextAlignOverlay_ = menuContext_->addMenu(tr("Align overlay at markers"));
+  menuContextAlignOverlay_->setObjectName(QStringLiteral("menuContextAlignOverlay"));
+  menuContextAlignOverlay_->menuAction()->setVisible(false);
+
+  actionContextAlignThreshold_ =
+      menuContext_->addAction(tr("Align overlay at threshold..."), this, [this]() { alignOverlayAtThreshold(); });
+  actionContextAlignThreshold_->setObjectName(QStringLiteral("actionContextAlignThreshold"));
+  actionContextAlignThreshold_->setToolTip(tr("Shift each overlay bag so that a curve first crosses a value at the same time"));
+
+  actionContextResetOverlayAlignment_ = menuContext_->addAction(tr("Reset overlay alignment"), this, [this]() {
+    if (BagOverlaySession* session = overlay_->getSession()) {
+      session->resetOffsets();
+    }
+  });
+  actionContextResetOverlayAlignment_->setObjectName(QStringLiteral("actionContextResetOverlayAlignment"));
+  actionContextResetOverlayAlignment_->setToolTip(tr("Align the overlay bags at their start again"));
+
   menuContext_->addSeparator();
 
   actionContextConfigure_ = menuContext_->addAction(tr("Configure plot..."), this, SLOT(pushButtonSetupClicked()));
@@ -1036,6 +1119,79 @@ void PlotWidget::updateContextMenuState() {
   if ((actionContextClearMarkers_ != nullptr) && (markers_ != nullptr)) {
     actionContextClearMarkers_->setEnabled(markers_->hasAnyMarker());
   }
+  updateAlignOverlayMenu();
+}
+
+void PlotWidget::updateAlignOverlayMenu() {
+  if ((actionContextAlignOverlay_ == nullptr) || (markers_ == nullptr) || (overlay_ == nullptr)) {
+    return;
+  }
+  const BagOverlaySession* session = overlay_->getSession();
+  const MarkerPositions& positions = markers_->positions();
+  const bool canAlign = (session != nullptr) && session->isActive() && positions.a.has_value() && positions.b.has_value();
+  const bool useSubmenu = (session != nullptr) && (session->getNumBags() > BagOverlaySession::kMinBags);
+
+  menuContextAlignOverlay_->clear();
+  if (useSubmenu) {
+    for (int bag = 1; bag < session->getNumBags(); ++bag) {
+      QAction* action = menuContextAlignOverlay_->addAction(session->getLabel(bag), this, [this, bag]() { alignOverlayAtMarkers(bag); });
+      action->setObjectName(QStringLiteral("actionContextAlignOverlay%1").arg(bag));
+    }
+  }
+  actionContextAlignOverlay_->setVisible(!useSubmenu);
+  actionContextAlignOverlay_->setEnabled(canAlign);
+  menuContextAlignOverlay_->menuAction()->setVisible(useSubmenu);
+  menuContextAlignOverlay_->setEnabled(canAlign);
+  actionContextAlignThreshold_->setEnabled(!overlay_->isEmpty());
+  actionContextResetOverlayAlignment_->setEnabled((session != nullptr) && session->isActive());
+}
+
+void PlotWidget::alignOverlayAtMarkers(int bag) {
+  BagOverlaySession* session = overlay_->getSession();
+  const MarkerPositions& positions = markers_->positions();
+  if ((session != nullptr) && positions.a.has_value() && positions.b.has_value()) {
+    session->alignAtMarkers(bag, *positions.a, *positions.b);
+    markers_->removeMarkers();
+  }
+}
+
+void PlotWidget::alignOverlayAtThreshold() {
+  QVector<PlotCurve*> references;
+  QStringList titles;
+  for (PlotCurve* curve : curves_) {
+    if (!overlay_->copiesOf(curve).isEmpty()) {
+      references.append(curve);
+      titles.append(curve->title().text());
+    }
+  }
+  if (references.isEmpty()) {
+    return;
+  }
+
+  const QString dialogTitle = tr("Align overlay at threshold");
+  int index = 0;
+  if (references.size() > 1) {
+    const std::optional<QString> title = askThemedItem(this, dialogTitle, tr("Curve:"), titles);
+    index = title ? static_cast<int>(titles.indexOf(*title)) : -1;
+  }
+  if (index < 0) {
+    return;
+  }
+
+  const CurveData* data = references[index]->getData();
+  const QPair<double, double> bounds = data->getAxisBounds(CurveConfig::Y);
+  const double initial = data->isEmpty() ? 0.0 : 0.5 * (bounds.first + bounds.second);
+  const std::optional<double> value = askThemedDouble(this, dialogTitle, tr("First crossing of %1 at:").arg(titles[index]), initial);
+  if (!value) {
+    return;
+  }
+
+  const ThresholdAlignment result = overlay_->alignAtThreshold(references[index], *value);
+  if (!result.referenceCrosses) {
+    showThemedInformation(this, dialogTitle, tr("%1 never crosses %2.").arg(titles[index]).arg(*value));
+  } else if (!result.missedLabels.isEmpty()) {
+    showThemedInformation(this, dialogTitle, tr("Not aligned, no crossing in: %1").arg(result.missedLabels.join(QStringLiteral(", "))));
+  }
 }
 
 void PlotWidget::showPlotContextMenu(const QPoint& globalPos) {
@@ -1053,6 +1209,7 @@ void PlotWidget::run() {
     for (int index = 0; index < curves_.count(); ++index) {
       curves_[index]->run();
     }
+    overlay_->run();
 
     ui_->pushButtonRunPause->setIcon(pauseIcon_);
 
@@ -1065,6 +1222,7 @@ void PlotWidget::pause() {
     for (int index = 0; index < curves_.count(); ++index) {
       curves_[index]->pause();
     }
+    overlay_->pause();
 
     paused_ = true;
 
@@ -1078,6 +1236,7 @@ void PlotWidget::clear() {
   for (int index = 0; index < curves_.count(); ++index) {
     curves_[index]->clear();
   }
+  overlay_->clear();
   markers_->clearMarkers();
 
   resetAxisOrigins();
@@ -1152,11 +1311,11 @@ void PlotWidget::renderToPixmap(QPixmap& pixmap, const QRectF& bounds) {
 void PlotWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
   formattedData.clear();
 
-  for (int index = 0; index < curves_.count(); ++index) {
+  for (const PlotCurve* curve : allCurves()) {
     QStringList formattedX;
     QStringList formattedY;
 
-    curves_[index]->getData()->writeFormatted(formattedX, formattedY);
+    curve->getData()->writeFormatted(formattedX, formattedY);
 
     formattedData.append(formattedX);
     formattedData.append(formattedY);
@@ -1166,15 +1325,21 @@ void PlotWidget::writeFormattedCurveData(QList<QStringList>& formattedData) {
 void PlotWidget::writeFormattedCurveAxisTitles(QStringList& formattedAxisTitles) {
   formattedAxisTitles.clear();
 
-  for (int index = 0; index < curves_.count(); ++index) {
-    CurveAxisConfig* xAxisConfig = curves_[index]->getConfig()->getAxisConfig(CurveConfig::X);
-    CurveAxisConfig* yAxisConfig = curves_[index]->getConfig()->getAxisConfig(CurveConfig::Y);
+  for (const PlotCurve* curve : allCurves()) {
+    CurveAxisConfig* xAxisConfig = curve->getConfig()->getAxisConfig(CurveConfig::X);
+    CurveAxisConfig* yAxisConfig = curve->getConfig()->getAxisConfig(CurveConfig::Y);
 
     QString xAxisTitle = xAxisConfig->getTopic();
     QString yAxisTitle = yAxisConfig->getTopic();
 
     xAxisTitle += "/" + xAxisConfig->getFieldLabel();
     yAxisTitle += "/" + yAxisConfig->getFieldLabel();
+
+    if (curve->getOverlayBag() > 0) {
+      const QString suffix = QString(" [%1]").arg(curve->getOverlayLabel());
+      xAxisTitle += suffix;
+      yAxisTitle += suffix;
+    }
 
     formattedAxisTitles.append(xAxisTitle);
     formattedAxisTitles.append(yAxisTitle);
@@ -1617,11 +1782,13 @@ void PlotWidget::configCurveAdded(size_t index) {
 }
 
 void PlotWidget::configCurveRemoved(size_t index) {
+  const CurveConfig* removedConfig = curves_[static_cast<int>(index)]->getConfig();
   curves_[static_cast<int>(index)]->detach();
 
   delete curves_[static_cast<int>(index)];
 
   curves_.remove(static_cast<int>(index));
+  overlay_->removeCopiesOf(removedConfig);
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
@@ -1638,6 +1805,7 @@ void PlotWidget::configCurvesCleared() {
   }
 
   curves_.clear();
+  overlay_->removeAll();
 
   configXAxisConfigChanged();
   configYAxisConfigChanged();
@@ -1664,6 +1832,7 @@ void PlotWidget::applyPlotTimeWindow() {
   for (PlotCurve* curve : curves_) {
     curve->setPlotTimeWindowLength(length);
   }
+  overlay_->setPlotTimeWindowLength(length);
 }
 
 void PlotWidget::configTimeWindowEnabledChanged(bool /*enabled*/) {
@@ -1776,6 +1945,10 @@ void PlotWidget::menuSplitBottomTriggered() {
 }
 
 void PlotWidget::configDestroyed() {
+  {
+    const QSignalBlocker blocker(overlay_);
+    overlay_->removeAll();
+  }
   for (PlotCurve* curve : curves_) {
     curve->setConfig(nullptr);
   }

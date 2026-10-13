@@ -20,6 +20,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 - **Nested plot layout** — split any plot left/right or top/bottom and nest splits (two on the left, one on the right). Drag splitter handles; reset the active tab to even sizes. Ratios are stored in the XML
 - **Tabs** — multiple named layouts in one window; each tab has its own plots, colors, grid, and link/track settings
 - **Live topics and rosbag2** — subscribe while running, or import `.mcap` / `.db3` files and bag directories
+- **[Bag overlay](#bag-overlay)** — compare 2 or 3 recordings on the same plots, aligned at the start, at markers, or at a Y threshold
 - **Linked plots** — shared scale and cursor; optional point tracking under the pointer; click a legend item to hide a curve
 - **Curve values** — collapsible per-tab list of each curve's latest X and Y, grouped by plot
 - **Time axes** — message receipt time, start from zero, date-time labels, or raw stamps. Time zone in **File → Preferences** (local, UTC, or IANA). Optional plot-level **Time window** (last *N* seconds)
@@ -157,7 +158,7 @@ Use the plot toolbar to run, pause, clear, configure, split (left / right / top 
 
 The timer and calendar toggles set the X-axis time labels for the active tab: start from zero (default), date and time (`HH:mm:ss.z` / `yyyy MMM dd`), or raw timestamps. Only one of those two can be on; both off shows the timestamp. Array-index and other numeric X axes are unchanged. Set the date-time zone in **File → Preferences** (local system zone by default, UTC, or a named IANA zone). The choice is stored in the plot XML.
 
-**File** — new / open / save / save as XML; import or add bag files or a bag directory; export image or text; preferences. Closing with unsaved layout changes asks to save.
+**File** — new / open / save / save as XML; import or add bag files or a bag directory; overlay 2 or 3 bags; export image or text; preferences. Closing with unsaved layout changes asks to save.
 
 ### Preferences
 
@@ -197,6 +198,32 @@ From the plot table or a single plot:
 
 - Image: PNG, SVG, PDF
 - Data: TXT (comment header) or CSV
+
+## Bag overlay
+
+Compare the same curves from 2 or 3 recordings. **File → Overlay bag files…** reads `.mcap` or `.db3` files. Fewer or more than that is rejected. The bags are ordered by start time. The earliest bag is the reference and fills the curves already on the plots. Each later bag adds a copy of every time-series curve. The plots pause when the read finishes.
+
+| Bag | Drawn as | Legend |
+| --- | --- | --- |
+| Reference (earliest) | the curve's own pen | the curve title |
+| Second | dashed, same color | `title [name]` |
+| Third | dotted, same color | `title [name]` |
+
+The legend name is the file name without the extension. Two files with the same name use `folder/name`.
+
+Copies are shifted so the bag start times coincide. The shift is a time offset, and it applies only when X is message receipt time or a header stamp. Array curves are not copied. A filter chain on a curve also runs on its copies, and TXT/CSV export includes the copies with the bag name in the column title. One overlay is shared by every plot and every tab: the same bags, and the same offsets. Set up the curves first. A curve added later has no copy until you overlay again. The overlay is not stored in the XML. **Import from bag files…** removes it. **Add bag files…** keeps it.
+
+**File → Overlay offsets…** lists each offset in seconds. The reference stays at 0. Change an overlay offset to slide that bag on every plot. The step is 0.1 s.
+
+Right-click a plot to align from the data:
+
+| Action | What it does |
+| --- | --- |
+| **Align overlay at markers** | Put [marker](#markers) A on a feature of the reference and marker B on the same feature of an overlay curve. The overlay moves until B lies on A, then the markers are cleared. With 3 bags the menu names each overlay bag, and only that bag moves. Both markers must be set |
+| **Align overlay at threshold…** | Enter a Y value. The dialog starts at the middle of the curve's Y range. Each overlay moves so its first crossing of that value is at the same time as the reference. With more than one curve, pick the curve first |
+| **Reset overlay alignment** | Restore the start-time alignment |
+
+The crossing time is linearly interpolated between the samples on either side of the value, rising or falling. Alignment uses the plotted points, so an active filter chain counts. A bag that never reaches the value stays where it is, and a message names it. If the reference never crosses the value, no bag moves. An offset changed on one plot applies to that bag on all plots.
 
 ## Array curves
 

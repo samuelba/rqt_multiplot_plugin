@@ -27,6 +27,7 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include "rqt_multiplot/BagOverlaySession.hpp"
 #include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/BoundingRectangle.hpp"
 #include "rqt_multiplot/MessageSubscriberRegistry.hpp"
@@ -80,6 +81,9 @@ class PlotTableWidget : public QWidget {
   void writeFormattedCurveData(QList<QStringList>& formattedData);
 
   void loadFromBagFiles(const QStringList& fileNames, bool replace);
+  bool loadOverlayBagFiles(const QStringList& fileNames);
+  BagOverlaySession* getOverlaySession() const;
+  void playOverlay(BagOverlaySession* session);
   void playFromBroker(MessageBroker* broker);
   void appendFromBroker(MessageBroker* broker);
   void restoreLiveBroker();
@@ -117,6 +121,7 @@ class PlotTableWidget : public QWidget {
 
   MessageSubscriberRegistry* registry_;
   BagReader* bagReader_;
+  BagOverlaySession* overlay_;
 
   void updatePlotScale(const BoundingRectangle& bounds, PlotWidget* excluded = nullptr);
   bool anyPlotUserScaleLocked() const;
@@ -160,6 +165,8 @@ class PlotTableWidget : public QWidget {
   void bagReaderReadingProgressChanged(double progress);
   void bagReaderReadingFinished();
   void bagReaderReadingFailed(const QString& error);
+  void overlayReadingFinished(const QString& message);
+  void overlayReadingFailed(const QString& error);
 };
 
 }  // namespace rqt_multiplot

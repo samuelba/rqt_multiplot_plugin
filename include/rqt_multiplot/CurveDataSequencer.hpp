@@ -25,6 +25,7 @@
 #include <QMap>
 #include <QObject>
 #include <QPointF>
+#include <QPointer>
 #include <QString>
 #include <QVector>
 
@@ -84,7 +85,8 @@ class CurveDataSequencer : public QObject {
 
   CurveConfig* config_;
 
-  MessageBroker* broker_;
+  // Overlay bag readers are deleted while curves may still point at them.
+  QPointer<MessageBroker> broker_;
 
   QMap<CurveConfig::Axis, QString> subscribedTopics_;
   QMap<CurveConfig::Axis, QString> timeFields_;

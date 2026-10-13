@@ -190,6 +190,9 @@ MultiplotWidget::MultiplotWidget(QWidget* parent)
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionImportBagDirectory());
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionAddBagDirectory());
   fileMenu->addSeparator();
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionOverlayBagFiles());
+  fileMenu->addAction(ui_->plotTableConfigWidget->getActionOverlayOffsets());
+  fileMenu->addSeparator();
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportImageFile());
   fileMenu->addAction(ui_->plotTableConfigWidget->getActionExportTextFile());
   fileMenu->addSeparator();

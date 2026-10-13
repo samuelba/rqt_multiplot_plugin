@@ -51,6 +51,16 @@ void openBag(rosbag2_cpp::Reader& reader, const std::string& uri) {
   reader.open(storageOptionsForUri(uri));
 }
 
+std::optional<int64_t> bagStartTimeNs(const std::string& uri) {
+  try {
+    rosbag2_cpp::Reader reader;
+    openBag(reader, uri);
+    return reader.get_metadata().starting_time.time_since_epoch().count();
+  } catch (const std::exception&) {
+    return std::nullopt;
+  }
+}
+
 std::vector<std::string> registerMessageDefinitions(rosbag2_cpp::Reader& reader, runtime_types::RuntimeTypeSupportProvider& provider) {
   std::vector<rosbag2_storage::MessageDefinition> definitions;
   reader.get_all_message_definitions(definitions);

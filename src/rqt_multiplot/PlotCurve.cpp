@@ -305,6 +305,74 @@ void PlotCurve::copyDataFrom(const PlotCurve& source) {
   notifyDataReplaced(oldBounds);
 }
 
+void PlotCurve::setOverlaySource(int bag, const QString& label) {
+  overlayBag_ = bag;
+  overlayLabel_ = label;
+  if (config_ != nullptr) {
+    configTitleChanged(config_->getTitle());
+    configColorConfigCurrentColorChanged(config_->getColorConfig()->getCurrentColor());
+    configStyleConfigChanged();
+  }
+}
+
+int PlotCurve::getOverlayBag() const {
+  return overlayBag_;
+}
+
+QString PlotCurve::getOverlayLabel() const {
+  return overlayLabel_;
+}
+
+void PlotCurve::setXOffset(double offset) {
+  const double delta = offset - xOffset_;
+  xOffset_ = offset;
+  if ((delta == 0.0) || !appliesXOffset()) {
+    return;
+  }
+
+  const BoundingRectangle oldBounds = getPreferredScale();
+  shiftStoredX(delta);
+  notifyDataReplaced(oldBounds);
+}
+
+double PlotCurve::getXOffset() const {
+  return xOffset_;
+}
+
+bool PlotCurve::appliesXOffset() const {
+  return (config_ != nullptr) && !snapshotDataBackend_ && config_->getAxisConfig(CurveConfig::X)->isTimeSource();
+}
+
+void PlotCurve::shiftStoredX(double delta) {
+  CurveData* stored = rawData_ ? rawData_.get() : data_;
+  QVector<QPointF> points = copyPoints(*stored);
+  for (QPointF& point : points) {
+    point.rx() += delta;
+  }
+  stored->replacePoints(points);
+  if (rawData_) {
+    replayFilters();
+  }
+}
+
+Qt::PenStyle PlotCurve::overlayPenStyle(int bag) {
+  return (bag % 2 == 1) ? Qt::DashLine : Qt::DotLine;
+}
+
+QColor PlotCurve::overlayPenColor(const QColor& color) const {
+  if (overlayBag_ <= 0) {
+    return color;
+  }
+
+  QColor faded = color;
+  const int baseAlpha = (faded.alpha() > 0) ? faded.alpha() : 255;
+  // One step past the newest array-history ghost, about half opacity.
+  constexpr size_t kOverlayFadeAge = 1;
+  constexpr size_t kOverlayFadeHistory = 2;
+  faded.setAlpha(snapshotFadeAlpha(baseAlpha, kOverlayFadeAge, kOverlayFadeHistory));
+  return faded;
+}
+
 QVector<QPointF> PlotCurve::copyPoints(const CurveData& data) {
   QVector<QPointF> points;
   points.reserve(static_cast<int>(data.getNumPoints()));
@@ -445,7 +513,7 @@ void PlotCurve::syncGhosts() {
 }
 
 void PlotCurve::configTitleChanged(const QString& title) {
-  setTitle(title);
+  setTitle(overlayLabel_.isEmpty() ? title : QString("%1 [%2]").arg(title, overlayLabel_));
 }
 
 void PlotCurve::rescaleStoredAxis(CurveConfig::Axis axis, double factor) {
@@ -527,7 +595,9 @@ void PlotCurve::configAxisConfigChanged() {
 }
 
 void PlotCurve::configColorConfigCurrentColorChanged(const QColor& color) {
-  setPen(color);
+  QPen colored = pen();
+  colored.setColor(overlayPenColor(color));
+  setPen(colored);
   restyleGhosts();
 
   emit replotRequested();
@@ -556,7 +626,7 @@ void PlotCurve::configStyleConfigChanged() {
   QPen pen = QwtPlotCurve::pen();
 
   pen.setWidth(static_cast<int>(styleConfig->getPenWidth()));
-  pen.setStyle(styleConfig->getPenStyle());
+  pen.setStyle((overlayBag_ > 0) ? overlayPenStyle(overlayBag_) : styleConfig->getPenStyle());
 
   setPen(pen);
 
@@ -593,10 +663,14 @@ void PlotCurve::configFilterChainConfigChanged() {
 
 void PlotCurve::dataSequencerPointReceived(const QPointF& receivedPoint) {
   if (!paused_) {
-    std::optional<QPointF> filtered = receivedPoint;
+    QPointF shifted = receivedPoint;
+    if ((xOffset_ != 0.0) && appliesXOffset()) {
+      shifted.rx() += xOffset_;
+    }
+    std::optional<QPointF> filtered = shifted;
     if (rawData_) {
-      rawData_->appendPoint(receivedPoint);
-      filtered = filterChain_.process(receivedPoint);
+      rawData_->appendPoint(shifted);
+      filtered = filterChain_.process(shifted);
       if (!filtered.has_value()) {
         return;
       }

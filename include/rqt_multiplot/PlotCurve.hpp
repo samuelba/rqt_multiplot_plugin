@@ -69,6 +69,12 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   void clear();
   void copyDataFrom(const PlotCurve& source);
 
+  void setOverlaySource(int bag, const QString& label);
+  int getOverlayBag() const;
+  QString getOverlayLabel() const;
+  void setXOffset(double offset);
+  double getXOffset() const;
+
  signals:
   void preferredScaleChanged(const BoundingRectangle& bounds);
   void replotRequested();
@@ -89,7 +95,14 @@ class PlotCurve : public QObject, public QwtPlotCurve {
   bool snapshotDataBackend_;
   std::optional<int> plotTimeWindowLength_;
   CurveAxisConfig::UnitConversion appliedUnitConversion_[2];
+  int overlayBag_ = 0;
+  QString overlayLabel_;
+  double xOffset_ = 0.0;
 
+  bool appliesXOffset() const;
+  void shiftStoredX(double delta);
+  static Qt::PenStyle overlayPenStyle(int bag);
+  QColor overlayPenColor(const QColor& color) const;
   void createDataBackend();
   CurveData* newDataBackend() const;
   bool isFilterActive() const;

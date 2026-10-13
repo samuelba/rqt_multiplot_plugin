@@ -165,6 +165,10 @@ bool PlotLegend::eventFilter(QObject* object, QEvent* event) {
 }
 
 void PlotLegend::startCurveDrag(QWidget* widget, PlotCurve* curve, Qt::MouseButton button) {
+  if (curve->getOverlayBag() > 0) {
+    return;
+  }
+
   QByteArray data;
   QDataStream stream(&data, QIODevice::WriteOnly);
   stream << *curve->getConfig();

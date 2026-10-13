@@ -48,18 +48,21 @@ class CurveDataVector : public CurveData {
     inline XCoordinateRef(const XCoordinateRef& src) = default;
     inline XCoordinateRef& operator=(const XCoordinateRef& src) = default;
 
-    inline bool operator==(const XCoordinateRef& reference) const { return (x_ == reference.x_); };
-
     inline bool operator<(const XCoordinateRef& reference) const { return (x_ < reference.x_); };
 
     double x_;
     size_t index_;
   };
 
-  using XCoordinateRefSet = boost::container::flat_set<XCoordinateRef>;
+  using XCoordinateRefSet = boost::container::flat_multiset<XCoordinateRef>;
+
+  void buildIndex();
+  int lowerBoundIndex(double x) const;
 
   QVector<QPointF> points_;
+  // Only filled once X stops being monotonic; until then points_ is searched directly.
   XCoordinateRefSet x_;
+  bool isMonotonic_ = true;
 
   BoundingRectangle bounds_;
 };

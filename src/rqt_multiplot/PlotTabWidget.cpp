@@ -28,6 +28,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "rqt_multiplot/BagOverlaySession.hpp"
 #include "rqt_multiplot/BagReader.hpp"
 #include "rqt_multiplot/PackageResource.hpp"
 #include "rqt_multiplot/PlotTableWidget.hpp"
@@ -41,7 +42,8 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
       tabWidget_(new QTabWidget(this)),
       addButton_(new QToolButton(this)),
       config_(nullptr),
-      bagReader_(new BagReader(this)) {
+      bagReader_(new BagReader(this)),
+      overlay_(new BagOverlaySession(this)) {
   auto* layout = new QVBoxLayout(this);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->addWidget(tabWidget_);
@@ -62,6 +64,10 @@ PlotTabWidget::PlotTabWidget(QWidget* parent)
   connect(bagReader_, SIGNAL(readingProgressChanged(double)), this, SLOT(bagReadingProgressChanged(double)));
   connect(bagReader_, SIGNAL(readingFinished()), this, SLOT(bagReadingFinished()));
   connect(bagReader_, SIGNAL(readingFailed(const QString&)), this, SLOT(bagReadingFailed(const QString&)));
+  connect(overlay_, &BagOverlaySession::readingStarted, this, &PlotTabWidget::jobStarted);
+  connect(overlay_, &BagOverlaySession::readingProgressChanged, this, &PlotTabWidget::jobProgressChanged);
+  connect(overlay_, &BagOverlaySession::readingFinished, this, &PlotTabWidget::overlayReadingFinished);
+  connect(overlay_, &BagOverlaySession::readingFailed, this, &PlotTabWidget::overlayReadingFailed);
 }
 
 PlotTabWidget::~PlotTabWidget() = default;
@@ -185,8 +191,32 @@ void PlotTabWidget::loadFromBagFiles(const QStringList& fileNames, bool replace)
     }
   }
 
+  if (replace) {
+    overlay_->clear();
+  }
+
   bagReader_->read(fileNames);
   emit bagFilesImported(fileNames, replace);
+}
+
+bool PlotTabWidget::loadOverlayBagFiles(const QStringList& fileNames) {
+  if (!overlay_->load(fileNames)) {
+    return false;
+  }
+
+  for (int index = 0; index < tabWidget_->count(); ++index) {
+    if (PlotTableWidget* plotTable = getPlotTable(static_cast<size_t>(index))) {
+      plotTable->playOverlay(overlay_);
+    }
+  }
+
+  overlay_->read();
+  emit bagFilesImported(fileNames, true);
+  return true;
+}
+
+BagOverlaySession* PlotTabWidget::getOverlaySession() const {
+  return overlay_;
 }
 
 void PlotTabWidget::rebuildTabs() {
@@ -493,6 +523,16 @@ void PlotTabWidget::bagReadingFinished() {
 void PlotTabWidget::bagReadingFailed(const QString& error) {
   forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
   emit jobFailed(error.isEmpty() ? QString("Failed to read bag from [file://%1]").arg(bagReader_->getFileName()) : error);
+}
+
+void PlotTabWidget::overlayReadingFinished(const QString& message) {
+  forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
+  emit jobFinished(message);
+}
+
+void PlotTabWidget::overlayReadingFailed(const QString& error) {
+  forEachPlotTable(&PlotTableWidget::restoreLiveBroker);
+  emit jobFailed(error);
 }
 
 }  // namespace rqt_multiplot

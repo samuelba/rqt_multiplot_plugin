@@ -55,12 +55,14 @@ class PlotWidget;
 
 namespace rqt_multiplot {
 
+class BagOverlaySession;
 class DataStatisticsDialog;
 class PlotCursor;
 class PlotCurve;
 class PlotLegend;
 class PlotMagnifier;
 class PlotMarkerPair;
+class PlotOverlayCurves;
 class PlotPanner;
 class PlotZoomer;
 
@@ -115,6 +117,9 @@ class PlotWidget : public QWidget {
   PlotTitleStyle plotTitleStyle() const;
 
   const QVector<PlotCurve*>& getCurves() const;
+  const QVector<PlotCurve*>& getOverlayCurves() const;
+  void setOverlaySession(BagOverlaySession* session);
+  BagOverlaySession* getOverlaySession() const;
 
   void run();
   void pause();
@@ -169,6 +174,10 @@ class PlotWidget : public QWidget {
   QAction* actionContextMarkerA_;
   QAction* actionContextMarkerB_;
   QAction* actionContextClearMarkers_;
+  QAction* actionContextAlignOverlay_;
+  QMenu* menuContextAlignOverlay_;
+  QAction* actionContextAlignThreshold_;
+  QAction* actionContextResetOverlayAlignment_;
   double contextMenuX_;
   QAction* actionContextConfigure_;
   QAction* actionContextFilterCurves_;
@@ -189,6 +198,7 @@ class PlotWidget : public QWidget {
   MessageBroker* broker_;
 
   QVector<PlotCurve*> curves_;
+  PlotOverlayCurves* overlay_;
 
   PlotLegend* legend_;
   PlotCursor* cursor_;
@@ -228,6 +238,7 @@ class PlotWidget : public QWidget {
   void updateAxisScaleEngine(PlotAxesConfig::Axis axis);
   void installAxisScaleEngine(int axisId, bool logarithmic, bool withOffset);
   void applyAxisScale(int axisId, double minimum, double maximum, bool logarithmic);
+  QVector<PlotCurve*> allCurves() const;
   std::optional<double> minimumPositive(CurveConfig::Axis axis) const;
   void clampLogAxis(BoundingRectangle& bounds, CurveConfig::Axis axis) const;
   void applyPlotTitleStyle();
@@ -242,6 +253,9 @@ class PlotWidget : public QWidget {
   void buildSplitMenu();
   void buildContextMenu();
   void updateContextMenuState();
+  void updateAlignOverlayMenu();
+  void alignOverlayAtMarkers(int bag);
+  void alignOverlayAtThreshold();
   BoundingRectangle mergePreferredWithLocked(const BoundingRectangle& preferred) const;
   void updateZoomBaseFromPreferred(const BoundingRectangle& preferred);
   void applyPlotTimeWindow();

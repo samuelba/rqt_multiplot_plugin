@@ -55,7 +55,8 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
       openGLCanvasEnabled_(false),
       plotTitleStyle_(PlotTitleStyle::factory()),
       registry_(new MessageSubscriberRegistry(this)),
-      bagReader_(new BagReader(this)) {
+      bagReader_(new BagReader(this)),
+      overlay_(new BagOverlaySession(this)) {
   setLayout(layout_);
   setAutoFillBackground(true);
 
@@ -82,6 +83,10 @@ PlotTableWidget::PlotTableWidget(QWidget* parent)
   connect(bagReader_, SIGNAL(readingProgressChanged(double)), this, SLOT(bagReaderReadingProgressChanged(double)));
   connect(bagReader_, SIGNAL(readingFinished()), this, SLOT(bagReaderReadingFinished()));
   connect(bagReader_, SIGNAL(readingFailed(const QString&)), this, SLOT(bagReaderReadingFailed(const QString&)));
+  connect(overlay_, &BagOverlaySession::readingStarted, this, &PlotTableWidget::jobStarted);
+  connect(overlay_, &BagOverlaySession::readingProgressChanged, this, &PlotTableWidget::jobProgressChanged);
+  connect(overlay_, &BagOverlaySession::readingFinished, this, &PlotTableWidget::overlayReadingFinished);
+  connect(overlay_, &BagOverlaySession::readingFailed, this, &PlotTableWidget::overlayReadingFailed);
 }
 
 PlotTableWidget::~PlotTableWidget() = default;
@@ -305,16 +310,42 @@ void PlotTableWidget::loadFromBagFiles(const QStringList& fileNames, bool replac
 
   if (replace) {
     playFromBroker(bagReader_);
+    overlay_->clear();
   } else {
     appendFromBroker(bagReader_);
   }
   bagReader_->read(fileNames);
 }
 
+bool PlotTableWidget::loadOverlayBagFiles(const QStringList& fileNames) {
+  if (!overlay_->load(fileNames)) {
+    return false;
+  }
+  playOverlay(overlay_);
+  overlay_->read();
+  return true;
+}
+
+BagOverlaySession* PlotTableWidget::getOverlaySession() const {
+  return overlay_;
+}
+
+void PlotTableWidget::playOverlay(BagOverlaySession* session) {
+  clearPlots();
+
+  for (PlotWidget* plot : plotWidgets_) {
+    plot->setBroker(session->getReader(0));
+    plot->setOverlaySession(session);
+  }
+
+  runPlots();
+}
+
 void PlotTableWidget::playFromBroker(MessageBroker* broker) {
   clearPlots();
 
   for (PlotWidget* plot : plotWidgets_) {
+    plot->setOverlaySession(nullptr);
     plot->setBroker(broker);
   }
 
@@ -734,6 +765,16 @@ void PlotTableWidget::bagReaderReadingFailed(const QString& error) {
   restoreLiveBroker();
 
   emit jobFailed(error.isEmpty() ? QString("Failed to read bag from [file://%1]").arg(bagReader_->getFileName()) : error);
+}
+
+void PlotTableWidget::overlayReadingFinished(const QString& message) {
+  restoreLiveBroker();
+  emit jobFinished(message);
+}
+
+void PlotTableWidget::overlayReadingFailed(const QString& error) {
+  restoreLiveBroker();
+  emit jobFailed(error);
 }
 
 void PlotTableWidget::plotPreferredScaleChanged(const BoundingRectangle& bounds) {
