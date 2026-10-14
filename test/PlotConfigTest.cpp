@@ -1,6 +1,7 @@
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
+#include <QPointer>
 #include <QSettings>
 #include <QTemporaryDir>
 
@@ -284,6 +285,24 @@ TEST(PlotConfig, removeCurveEmitsCurveRemoved) {
 
   EXPECT_EQ(removedIndex, 0u);
   EXPECT_EQ(config.getNumCurves(), 1u);
+}
+
+TEST(PlotConfig, curveRemovedFiresWhileRemovedConfigIsAlive) {
+  PlotConfig config;
+  CurveConfig* first = config.addCurve();
+  first->setTitle(QStringLiteral("first"));
+  config.addCurve()->setTitle(QStringLiteral("second"));
+
+  QPointer<CurveConfig> alive(first);
+  bool aliveDuringSignal = false;
+  QObject::connect(&config, &PlotConfig::curveRemoved, [&aliveDuringSignal, &alive](size_t) { aliveDuringSignal = !alive.isNull(); });
+
+  config.removeCurve(static_cast<size_t>(0));
+
+  EXPECT_TRUE(aliveDuringSignal);
+  EXPECT_TRUE(alive.isNull());
+  EXPECT_EQ(config.getCurveConfig(0)->getTitle(), QStringLiteral("second"));
+  EXPECT_EQ(config.getCurveConfig(0)->getColorConfig()->getAutoColorIndex(), 0);
 }
 
 TEST(PlotAxisConfig, assignmentAndResetCopyLogScale) {
