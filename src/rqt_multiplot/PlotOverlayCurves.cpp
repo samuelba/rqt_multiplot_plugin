@@ -184,7 +184,6 @@ void PlotOverlayCurves::setPlotTimeWindowLength(std::optional<int> length) {
 }
 
 void PlotOverlayCurves::destroyCurve(PlotCurve* curve) {
-  // PlotConfig deletes a CurveConfig before it emits curveRemoved, so the copy's config may already be gone.
   curve->detach();
   delete curve;
 }

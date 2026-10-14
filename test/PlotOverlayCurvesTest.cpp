@@ -141,6 +141,66 @@ TEST_F(PlotOverlayCurvesTest, removingCurveRemovesOnlyItsCopies) {
   EXPECT_EQ(titles(widget.getOverlayCurves()), (QStringList{"a [run2]"}));
 }
 
+TEST_F(PlotOverlayCurvesTest, removingFirstLiveCurveKeepsTheRest) {
+  PlotConfig config;
+  configureFloatCurve(config.addCurve(), QStringLiteral("a"));
+  configureFloatCurve(config.addCurve(), QStringLiteral("b"));
+  configureFloatCurve(config.addCurve(), QStringLiteral("c"));
+  PlotWidget widget;
+  widget.setConfig(&config);
+
+  config.removeCurve(static_cast<size_t>(0));
+
+  ASSERT_EQ(widget.getCurves().size(), 2);
+  EXPECT_EQ(titles(widget.getCurves()), (QStringList{"b", "c"}));
+  EXPECT_EQ(config.getCurveConfig(0)->getColorConfig()->getAutoColorIndex(), 0);
+  EXPECT_EQ(config.getCurveConfig(1)->getColorConfig()->getAutoColorIndex(), 1);
+}
+
+TEST_F(PlotOverlayCurvesTest, removingFirstLiveCurveAfterOriginIsBound) {
+  PlotConfig config;
+  configureFloatCurve(config.addCurve(), QStringLiteral("a"));
+  configureFloatCurve(config.addCurve(), QStringLiteral("b"));
+  PlotWidget widget;
+  widget.setConfig(&config);
+  widget.bindAxisOrigin(CurveConfig::X, 1.0);
+
+  config.removeCurve(static_cast<size_t>(0));
+
+  EXPECT_EQ(titles(widget.getCurves()), (QStringList{"b"}));
+}
+
+TEST_F(PlotOverlayCurvesTest, deletingFirstCurveConfigNotifiesThePlot) {
+  PlotConfig config;
+  configureFloatCurve(config.addCurve(), QStringLiteral("a"));
+  configureFloatCurve(config.addCurve(), QStringLiteral("b"));
+  PlotWidget widget;
+  widget.setConfig(&config);
+
+  delete config.getCurveConfig(0);
+
+  EXPECT_EQ(widget.getCurves().size(), 1);
+  EXPECT_EQ(titles(widget.getCurves()), (QStringList{"b"}));
+  EXPECT_EQ(config.getNumCurves(), 1u);
+  EXPECT_EQ(config.getCurveConfig(0)->getColorConfig()->getAutoColorIndex(), 0);
+}
+
+TEST_F(PlotOverlayCurvesTest, removingFirstCurveRemovesOnlyItsCopies) {
+  PlotConfig config;
+  configureFloatCurve(config.addCurve(), QStringLiteral("a"));
+  configureFloatCurve(config.addCurve(), QStringLiteral("b"));
+  PlotWidget widget;
+  widget.setConfig(&config);
+  BagOverlaySession session;
+  ASSERT_TRUE(session.load(writeBags(2)));
+  widget.setOverlaySession(&session);
+
+  config.removeCurve(static_cast<size_t>(0));
+
+  EXPECT_EQ(titles(widget.getCurves()), (QStringList{"b"}));
+  EXPECT_EQ(titles(widget.getOverlayCurves()), (QStringList{"b [run2]"}));
+}
+
 TEST_F(PlotOverlayCurvesTest, clearingCurvesRemovesAllCopies) {
   PlotConfig config;
   configureFloatCurve(config.addCurve(), QStringLiteral("a"));

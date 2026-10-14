@@ -188,13 +188,14 @@ void PlotConfig::removeCurve(size_t index) {
 
   disconnect(curveConfig, SIGNAL(changed()), this, SLOT(curveConfigChanged()));
   disconnect(curveConfig, SIGNAL(destroyed()), this, SLOT(curveConfigDestroyed()));
+
+  emit curveRemoved(index);
   delete curveConfig;
 
   for (int i = 0; i < curveConfig_.count(); ++i) {
     curveConfig_[i]->getColorConfig()->setAutoColorIndex(static_cast<size_t>(i));
   }
 
-  emit curveRemoved(index);
   emit changed();
 }
 
@@ -422,7 +423,14 @@ void PlotConfig::curveConfigChanged() {
 }
 
 void PlotConfig::curveConfigDestroyed() {
-  const int index = static_cast<int>(curveConfig_.indexOf(dynamic_cast<CurveConfig*>(sender())));
+  QObject* dying = sender();
+  int index = -1;
+  for (int i = 0; i < curveConfig_.count(); ++i) {
+    if (static_cast<QObject*>(curveConfig_[i]) == dying) {
+      index = i;
+      break;
+    }
+  }
 
   if (index < 0) {
     return;
@@ -430,11 +438,12 @@ void PlotConfig::curveConfigDestroyed() {
 
   curveConfig_.remove(index);
 
+  emit curveRemoved(static_cast<size_t>(index));
+
   for (int i = 0; i < curveConfig_.count(); ++i) {
     curveConfig_[i]->getColorConfig()->setAutoColorIndex(static_cast<size_t>(i));
   }
 
-  emit curveRemoved(static_cast<size_t>(index));
   emit changed();
 }
 
