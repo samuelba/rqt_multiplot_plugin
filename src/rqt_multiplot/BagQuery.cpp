@@ -17,6 +17,8 @@
  ******************************************************************************/
 
 #include <QApplication>
+#include <QCoreApplication>
+#include <QEvent>
 
 #include "rqt_multiplot/MessageEvent.hpp"
 #include "rqt_multiplot/MessageFieldAccess.hpp"
@@ -24,10 +26,20 @@
 #include "rqt_multiplot/BagQuery.hpp"
 
 namespace rqt_multiplot {
+namespace {
+
+QEvent::Type unusedQueryEvent() {
+  static const int type = QEvent::registerEventType();
+  return static_cast<QEvent::Type>(type);
+}
+
+}  // namespace
 
 BagQuery::BagQuery(QObject* parent) : QObject(parent) {}
 
-BagQuery::~BagQuery() = default;
+BagQuery::~BagQuery() {
+  deleting_ = true;
+}
 
 bool BagQuery::event(QEvent* event) {
   if (event->type() == MessageEvent::Type) {
@@ -35,6 +47,11 @@ bool BagQuery::event(QEvent* event) {
 
     emit messageRead(messageEvent->getTopic(), messageEvent->getMessage());
 
+    return true;
+  }
+
+  if (event->type() == unusedQueryEvent()) {
+    destroyIfUnused();
     return true;
   }
 
@@ -52,12 +69,25 @@ void BagQuery::callback(const QString& topic, const QString& type, const rclcpp:
   QApplication::postEvent(this, messageEvent);
 }
 
-void BagQuery::disconnectNotify(const QMetaMethod& /*signal*/) {
-  if (receivers(QMetaObject::normalizedSignature(SIGNAL(messageRead(const QString&, const Message&)))) == 0) {
-    emit aboutToBeDestroyed();
-
-    deleteLater();
+void BagQuery::destroyIfUnused() {
+  if (deleting_) {
+    return;
   }
+  if (receivers(QMetaObject::normalizedSignature(SIGNAL(messageRead(const QString&, const Message&)))) != 0) {
+    return;
+  }
+
+  emit aboutToBeDestroyed();
+  deleteLater();
+}
+
+void BagQuery::disconnectNotify(const QMetaMethod& /*signal*/) {
+  // Qt calls this with the QObject mutex held, including from ~QObject.
+  // receivers(), emit, and deleteLater() lock that mutex again.
+  if (deleting_ || QCoreApplication::instance() == nullptr) {
+    return;
+  }
+  QCoreApplication::postEvent(this, new QEvent(unusedQueryEvent()));
 }
 
 }  // namespace rqt_multiplot

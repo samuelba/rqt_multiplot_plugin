@@ -379,6 +379,7 @@ void BagReader::threadFinished() {
 }
 
 void BagReader::queryAboutToBeDestroyed() {
+  QMutexLocker lock(&impl_.mutex_);
   for (QMap<QString, BagQuery*>::iterator it = impl_.queries_.begin(); it != impl_.queries_.end(); ++it) {
     if (it.value() == dynamic_cast<BagQuery*>(sender())) {
       impl_.queries_.erase(it);

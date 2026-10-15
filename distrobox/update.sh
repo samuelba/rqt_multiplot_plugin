@@ -1,26 +1,51 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly VALID_DISTROS=(jazzy kilted lyrical rolling)
+readonly VALID_TARGETS=(
+  jazzy lyrical rolling
+  el9-jazzy el10-lyrical el10-rolling fc43-lyrical fc44-rolling
+)
 
 usage() {
-  echo "Usage: $0 <distro>" >&2
-  echo "  distro: ${VALID_DISTROS[*]}" >&2
+  echo "Usage: $0 <target>" >&2
+  echo "  target: ${VALID_TARGETS[*]}" >&2
   exit 1
 }
 
-ros_distro="${1:-}"
-if [[ -z "${ros_distro}" ]]; then
+target="${1:-}"
+if [[ -z "${target}" ]]; then
   usage
 fi
 
-if [[ ! " ${VALID_DISTROS[*]} " =~ " ${ros_distro} " ]]; then
-  echo "Unknown ROS distro: ${ros_distro}" >&2
+case "${target}" in
+  jazzy | lyrical | rolling)
+    ros_distro="${target}"
+    base_image="ros:${target}"
+    ;;
+  el9-*)
+    ros_distro="${target#el9-}"
+    base_image="almalinux:9"
+    ;;
+  el10-*)
+    ros_distro="${target#el10-}"
+    base_image="almalinux:10"
+    ;;
+  fc43-*)
+    ros_distro="${target#fc43-}"
+    base_image="fedora:43"
+    ;;
+  fc44-*)
+    ros_distro="${target#fc44-}"
+    base_image="fedora:44"
+    ;;
+  *)
+    echo "Unknown target: ${target}" >&2
   usage
-fi
+    ;;
+esac
 
-readonly container_name="rqt-multiplot-${ros_distro}"
-readonly image_name="rqt-multiplot:${ros_distro}"
+readonly container_name="rqt-multiplot-${target}"
+readonly image_name="rqt-multiplot:${target}"
 readonly distrobox_path="$(dirname "$(realpath "$0")")"
 readonly current_path="$(pwd)"
 readonly start_time="$(date +%s)"
@@ -52,24 +77,24 @@ fi
 
 cd "${distrobox_path}"
 
-echo "Pull base image 'ros:${ros_distro}'"
-docker pull "ros:${ros_distro}"
+echo "Pull base image '${base_image}'"
+docker pull "${base_image}"
 
 echo "Build image '${image_name}'"
-docker buildx bake --allow=fs.read=.. --builder default --load "${ros_distro}"
+docker buildx bake --allow=fs.read=.. --builder default --load "${target}"
 
-host_rqt_config="${HOME}/.config/ros.org-${ros_distro}"
+host_rqt_config="${HOME}/.config/ros.org-${target}"
 mkdir -p "${host_rqt_config}"
 
-echo "Write Distrobox config file '${ros_distro}.ini'"
-cat <<EOF > "${ros_distro}.ini"
+echo "Write Distrobox config file '${target}.ini'"
+cat <<EOF > "${target}.ini"
 [${container_name}]
 image=${image_name}
 nvidia=false
 start_now=true
 init=false
 volume="/run/dbus/system_bus_socket:/run/dbus/system_bus_socket "
-volume="\$HOME/.config/ros.org-${ros_distro}:\$HOME/.config/ros.org"
+volume="\$HOME/.config/ros.org-${target}:\$HOME/.config/ros.org"
 hostname=\$HOSTNAME
 additional_flags="--device /dev/dri "
 additional_flags="--env ROS_VERSION=2 "
@@ -79,7 +104,7 @@ unshare_process=true
 EOF
 
 echo "Create container '${container_name}'"
-distrobox assemble create --file "${ros_distro}.ini"
+distrobox assemble create --file "${target}.ini"
 
 end_time="$(date +%s)"
 echo "Done. Execution time: $((end_time - start_time)) seconds"
