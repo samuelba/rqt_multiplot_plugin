@@ -44,8 +44,11 @@ class BagQuery : public QObject {
 
  private:
   void callback(const QString& topic, const QString& type, const rclcpp::SerializedMessage& serialized, const rclcpp::Time& time);
+  void destroyIfUnused();
 
   void disconnectNotify(const QMetaMethod& signal) override;
+
+  bool deleting_{false};
 };
 
 }  // namespace rqt_multiplot
