@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Debian upstream version for continuous builds. The tilde sorts below a bloom
-# package of the same package.xml version.
+# Continuous upstream version. The tilde sorts below a bloom package of the
+# same package.xml version, for Debian changelogs and RPM spec Version: lines.
 
 set -euo pipefail
 
 changelog=
+spec=
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --changelog)
       changelog=${2:?--changelog requires a path}
+      shift 2
+      ;;
+    --spec)
+      spec=${2:?--spec requires a path}
       shift 2
       ;;
     *)
@@ -52,6 +57,32 @@ if [[ -n "${changelog}" ]]; then
     { print }
   ' "${changelog}" > "${tmp}"
   mv "${tmp}" "${changelog}"
+fi
+
+if [[ -n "${spec}" ]]; then
+  if [[ ! -f "${spec}" ]]; then
+    echo "spec not found: ${spec}" >&2
+    exit 1
+  fi
+  tmp=$(mktemp)
+  awk -v base="${base}" -v continuous="${continuous_version}" '
+    /^Version:[[:space:]]/ && !done {
+      if ($2 != base) {
+        print "spec Version is " $2 ", expected " base > "/dev/stderr"
+        exit 1
+      }
+      sub(base, continuous)
+      done = 1
+    }
+    { print }
+    END {
+      if (!done) {
+        print "spec has no Version: " base > "/dev/stderr"
+        exit 1
+      }
+    }
+  ' "${spec}" > "${tmp}"
+  mv "${tmp}" "${spec}"
 fi
 
 printf 'BASE=%q\n' "${base}"

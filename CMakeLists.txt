@@ -50,7 +50,7 @@ find_package(rqt_gui_cpp REQUIRED)
 find_package(type_description_interfaces REQUIRED)
 
 # Follow the Qt major version already selected by qt_gui_cpp / rqt_gui_cpp.
-# Preferring Qt6 here would break jazzy/kilted hosts that also have Qt6 installed.
+# Preferring Qt6 here would break jazzy hosts that also have Qt6 installed.
 if(TARGET Qt6::Core OR QT_VERSION_MAJOR EQUAL 6)
   find_package(Qt6 REQUIRED COMPONENTS Widgets Svg OpenGL OpenGLWidgets Test)
   set(QT_VERSION_MAJOR 6)
@@ -79,13 +79,15 @@ if(QT_VERSION_MAJOR EQUAL 6)
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchQwtQt6.cmake")
   endif()
 else()
+  # Ubuntu: /usr/include/qwt/qwt_plot.h. RHEL: /usr/include/qt5/qwt/qwt_plot.h.
   find_path(
     QWT_INCLUDE_DIRS
     NAMES
-      qwt_plot.h
+      qwt/qwt_plot.h
     PATHS
-      /usr/include/qwt
-      /usr/local/include/qwt
+      /usr/include
+      /usr/include/qt5
+      /usr/local/include
   )
   find_library(
     QWT_LIBRARIES
@@ -670,14 +672,20 @@ if(BUILD_TESTING)
   )
   set_tests_properties(test_run_clang_tidy PROPERTIES LABELS "unit_testing_clang_tidy")
 
-  # Devel and CI jobs mount this file. They do not provide clang-format 23 or clang-tidy 23.
-  # -DRQT_MULTIPLOT_CLANG_LINT=ON/OFF overrides the skip. GitHub Actions does not mount it.
+  # Clang-format and clang-tidy are pinned to version 23. RPM images do not ship it.
+  # -DRQT_MULTIPLOT_CLANG_LINT=ON/OFF overrides detection. The ROS buildfarm does not provide it.
   set(_enable_clang_lint ON)
   if(DEFINED RQT_MULTIPLOT_CLANG_LINT)
     set(_enable_clang_lint "${RQT_MULTIPLOT_CLANG_LINT}")
   elseif(EXISTS "/tmp/ros_buildfarm/scripts/devel/build_and_test.py")
     set(_enable_clang_lint OFF)
     message(STATUS "rqt_multiplot: skipping clang-format and clang-tidy on the ROS buildfarm")
+  else()
+    find_program(_clang_format_23 clang-format-23)
+    if(NOT _clang_format_23)
+      set(_enable_clang_lint OFF)
+      message(STATUS "rqt_multiplot: skipping clang-format and clang-tidy; clang-format-23 is not installed")
+    endif()
   endif()
 
   if(_enable_clang_lint)

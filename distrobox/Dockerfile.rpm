@@ -1,0 +1,74 @@
+# syntax=docker/dockerfile:1.4
+
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+ARG ROS_DISTRO
+ARG ENABLE_ROS_TESTING=0
+ENV ROS_VERSION=2 \
+    ROS_DISTRO=${ROS_DISTRO} \
+    ENABLE_ROS_TESTING=${ENABLE_ROS_TESTING} \
+    GTEST_COLOR=1
+
+COPY scripts/setup_ros_rpm.sh /tmp/setup_ros_rpm.sh
+RUN chmod +x /tmp/setup_ros_rpm.sh && /tmp/setup_ros_rpm.sh
+
+RUN dnf install -y \
+    bash-completion \
+    diffutils \
+    findutils \
+    gnupg2 \
+    hostname \
+    iproute \
+    iputils \
+    less \
+    libglvnd-glx \
+    mesa-dri-drivers \
+    mesa-vulkan-drivers \
+    openssh-clients \
+    passwd \
+    procps-ng \
+    rsync \
+    sudo \
+    unzip \
+    vulkan-loader \
+    which \
+    xz \
+    zip
+
+COPY package.xml /tmp/ws/src/rqt_multiplot/package.xml
+
+RUN bash -c 'if [ -f /etc/profile.d/ros-os-override.sh ]; then . /etc/profile.d/ros-os-override.sh; fi \
+    && rosdep install --from-paths /tmp/ws/src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
+      --dependency-types buildtool \
+      --dependency-types build \
+      --dependency-types build_export \
+      --dependency-types exec \
+      --dependency-types test \
+      --skip-keys clang-tidy \
+      --skip-keys ament_cmake_clang_format \
+    && rm -rf /tmp/ws'
+
+RUN bash -c '. /etc/os-release; if [ "$ID" = fedora ] || [ "${VERSION_ID%%.*}" != 9 ]; then dnf install -y bloom-rpm-macros; fi'
+
+RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" > /etc/profile.d/ros.sh && \
+    echo 'export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"' >> /etc/profile.d/ros.sh && \
+    printf '%s\n' \
+      '_path_filtered=""' \
+      'IFS=":"' \
+      'for _dir in $PATH; do' \
+      '  case "${_dir}" in' \
+      '    */.local/share/mise/*|*/mise/shims|*/.asdf/shims) ;;' \
+      '    *)' \
+      '      if [ -n "${_path_filtered}" ]; then' \
+      '        _path_filtered="${_path_filtered}:${_dir}"' \
+      '      else' \
+      '        _path_filtered="${_dir}"' \
+      '      fi' \
+      '      ;;' \
+      '  esac' \
+      'done' \
+      'unset IFS' \
+      'export PATH="/usr/bin:/usr/local/bin:${_path_filtered}"' \
+      'unset _dir _path_filtered' \
+      > /etc/profile.d/zz-system-python.sh

@@ -57,6 +57,31 @@ grep -q 'Body still mentions (0.0.37-0noble).' debian/changelog
 grep -q 'ros-jazzy-rqt-multiplot (0.0.12-0noble) noble; urgency=high' debian/changelog
 [[ "$(cat package.xml)" == "${package_xml_before}" ]]
 
+cat > rpm.spec <<'EOF'
+Name:           ros-jazzy-rqt-multiplot
+Version:        0.0.37
+Release:        0%{?dist}
+
+* Tue Sep 29 2026 Test <test@example.com> - 0.0.37-0
+- Body still mentions 0.0.37.
+EOF
+
+eval "$("${version_script}" --spec rpm.spec)"
+[[ "$(awk '/^Version:/ { print $2; exit }' rpm.spec)" == "${CONTINUOUS_VERSION}" ]]
+grep -q 'Body still mentions 0.0.37.' rpm.spec
+grep -q -- '- 0.0.37-0' rpm.spec
+
+if python3 -c 'import rpm' >/dev/null 2>&1; then
+  python3 - "${CONTINUOUS_VERSION}" <<'PY'
+import sys
+import rpm
+
+continuous = sys.argv[1]
+if rpm.labelCompare(("0", continuous, "1"), ("0", "0.0.37", "1")) >= 0:
+    raise SystemExit("continuous RPM version does not sort below 0.0.37")
+PY
+fi
+
 if command -v dpkg >/dev/null 2>&1; then
   dpkg --compare-versions "${CONTINUOUS_VERSION}-0noble" lt "0.0.37-0noble"
   dpkg --compare-versions "0.0.37~continuous.20260929180200.aaaaaaa-0noble" lt "${CONTINUOUS_VERSION}-0noble"

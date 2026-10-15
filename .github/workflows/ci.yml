@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [jazzy, kilted, lyrical, rolling]
+        ros_distro: [jazzy, lyrical, rolling]
     container:
       image: ros:${{ matrix.ros_distro }}
     env:
@@ -82,7 +82,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [jazzy, kilted, lyrical, rolling]
+        ros_distro: [jazzy, lyrical, rolling]
     container:
       image: ros:${{ matrix.ros_distro }}
     env:
@@ -226,7 +226,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [jazzy, kilted, lyrical, rolling]
+        ros_distro: [jazzy, lyrical, rolling]
     container:
       image: ros:${{ matrix.ros_distro }}
     env:
@@ -261,7 +261,7 @@ jobs:
             debhelper
 
           case "${ROS_DISTRO}" in
-            jazzy|kilted) UBUNTU_VERSION=noble ;;
+            jazzy) UBUNTU_VERSION=noble ;;
             lyrical|rolling) UBUNTU_VERSION=resolute ;;
           esac
 
@@ -297,9 +297,156 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  rpm-build-and-test:
+    name: rpm-build-and-test / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: el9-jazzy
+            image: almalinux:9
+            ros_distro: jazzy
+            enable_testing: "0"
+          - name: el10-lyrical
+            image: almalinux:10
+            ros_distro: lyrical
+            enable_testing: "0"
+          - name: el10-rolling
+            image: almalinux:10
+            ros_distro: rolling
+            enable_testing: "1"
+          - name: fc43-lyrical
+            image: fedora:43
+            ros_distro: lyrical
+            enable_testing: "1"
+          - name: fc44-rolling
+            image: fedora:44
+            ros_distro: rolling
+            enable_testing: "1"
+    container:
+      image: ${{ matrix.image }}
+    env:
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+      ENABLE_ROS_TESTING: ${{ matrix.enable_testing }}
+    steps:
+      - name: Install git
+        run: dnf install -y git
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: src/rqt_multiplot_plugin
+
+      - name: Set up ROS RPM repositories
+        run: ./src/rqt_multiplot_plugin/scripts/setup_ros_rpm.sh
+
+      - name: Install dependencies
+        run: |
+          if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
+            source /etc/profile.d/ros-os-override.sh
+          fi
+          rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
+            --dependency-types buildtool \
+            --dependency-types build \
+            --dependency-types build_export \
+            --dependency-types exec \
+            --dependency-types test \
+            --skip-keys clang-tidy \
+            --skip-keys ament_cmake_clang_format
+
+      - name: Build
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          colcon build --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --cmake-args -DRQT_MULTIPLOT_CLANG_LINT=OFF
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          source install/setup.bash
+          colcon test --packages-select rqt_multiplot --event-handlers console_direct+ \
+            --ctest-args " -L" "^unit_testing$"
+          colcon test-result --verbose
+
+  rpm-packaging:
+    name: rpm-packaging / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: el9-jazzy
+            image: almalinux:9
+            ros_distro: jazzy
+            enable_testing: "0"
+          - name: el10-lyrical
+            image: almalinux:10
+            ros_distro: lyrical
+            enable_testing: "0"
+          - name: el10-rolling
+            image: almalinux:10
+            ros_distro: rolling
+            enable_testing: "1"
+          - name: fc43-lyrical
+            image: fedora:43
+            ros_distro: lyrical
+            enable_testing: "1"
+          - name: fc44-rolling
+            image: fedora:44
+            ros_distro: rolling
+            enable_testing: "1"
+    container:
+      image: ${{ matrix.image }}
+    env:
+      ROS_DISTRO: ${{ matrix.ros_distro }}
+      ENABLE_ROS_TESTING: ${{ matrix.enable_testing }}
+    steps:
+      - name: Install git
+        run: dnf install -y git
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          path: src/rqt_multiplot_plugin
+          fetch-depth: 0
+
+      - name: Set up ROS RPM repositories
+        run: ./src/rqt_multiplot_plugin/scripts/setup_ros_rpm.sh
+
+      - name: Install dependencies
+        run: |
+          if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
+            source /etc/profile.d/ros-os-override.sh
+          fi
+          rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
+            --dependency-types buildtool \
+            --dependency-types build \
+            --dependency-types build_export \
+            --dependency-types exec \
+            --skip-keys clang-tidy \
+            --skip-keys ament_cmake_clang_format
+
+      - name: Build RPM
+        run: |
+          source "/opt/ros/${ROS_DISTRO}/setup.bash"
+          ./src/rqt_multiplot_plugin/scripts/build_continuous_rpm.sh "${PWD}/rpm-packages"
+
+      - name: Upload RPM packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: rpm-${{ matrix.name }}
+          path: rpm-packages/*
+          retention-days: 7
+          if-no-files-found: error
+
   continuous-release:
     name: continuous-release
-    needs: debian-packaging
+    needs:
+      - debian-packaging
+      - rpm-packaging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -315,14 +462,21 @@ jobs:
           path: debian-packages
           merge-multiple: true
 
+      - name: Download RPM packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: rpm-*
+          path: rpm-packages
+          merge-multiple: true
+
       - name: Publish continuous prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           shopt -s nullglob
-          files=(debian-packages/*)
+          files=(debian-packages/* rpm-packages/*)
           if [[ ${#files[@]} -eq 0 ]]; then
-            echo "no debian packages downloaded" >&2
+            echo "no packages downloaded" >&2
             exit 1
           fi
 
@@ -336,7 +490,7 @@ jobs:
           notes=$(cat <<EOF
           Continuous build of ${SHA}. Not a ROS bloom release.
 
-          Debian version \`${CONTINUOUS_VERSION}\` sorts below a bloom package of the same package.xml version.
+          Package version \`${CONTINUOUS_VERSION}\` sorts below a bloom package of the same package.xml version. Debian and RPM packages use that version.
           EOF
           )
 

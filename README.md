@@ -13,7 +13,7 @@ Plots numeric ROS 2 message fields in tiled 2D charts ([Qwt](https://qwt.sourcef
 
 **License:** GNU Lesser General Public License v3.0 (LGPL-3.0)
 
-**ROS2 distributions:** Jazzy, Kilted, Lyrical, Rolling
+**ROS2 distributions:** Jazzy, Lyrical, Rolling
 
 ## Features
 
@@ -59,14 +59,13 @@ Also: run / pause / clear, circular and time-frame buffers, rad ↔ deg on an ax
 ```shell
 sudo apt-get update
 sudo apt-get install ros-jazzy-rqt-multiplot
-sudo apt-get install ros-kilted-rqt-multiplot
 sudo apt-get install ros-lyrical-rqt-multiplot
 sudo apt-get install ros-rolling-rqt-multiplot
 ```
 
 ### Building from source
 
-Tested on ROS 2 Jazzy, Kilted, Lyrical, and Rolling. Put this repository in a colcon workspace `src` folder (clone or symlink), then:
+Tested on ROS 2 Jazzy, Lyrical, and Rolling. Put this repository in a colcon workspace `src` folder (clone or symlink), then:
 
 ```shell
 cd ~/colcon_ws
@@ -417,7 +416,14 @@ cd distrobox
 distrobox enter rqt-multiplot-jazzy
 ```
 
-Supported distros: `jazzy`, `kilted`, `lyrical`, `rolling`. Inside the container, build from your colcon workspace as usual.
+Ubuntu images: `jazzy`, `lyrical`, `rolling`. RPM images, without clang: `el9-jazzy`, `el10-lyrical`, `el10-rolling`, `fc43-lyrical`, `fc44-rolling`.
+
+```shell
+./update.sh el9-jazzy
+distrobox enter rqt-multiplot-el9-jazzy
+```
+
+Inside the container, build from your colcon workspace as usual.
 
 ### Formatting
 
@@ -489,8 +495,6 @@ Generate the debian files:
 ```bash
 # noble/jazzy
 bloom-generate rosdebian --os-name ubuntu --os-version noble --ros-distro jazzy
-# noble/kilted
-bloom-generate rosdebian --os-name ubuntu --os-version noble --ros-distro kilted
 # resolute/lyrical
 bloom-generate rosdebian --os-name ubuntu --os-version resolute --ros-distro lyrical
 # resolute/rolling
@@ -502,3 +506,17 @@ Generate the deb packages:
 ```bash
 DEB_BUILD_OPTIONS=nocheck fakeroot debian/rules binary
 ```
+
+### RPM packaging
+
+Run this in the matching RPM distrobox, from the package folder. Delete `rpm/` first.
+
+| Image | ROS | Generator |
+| --- | --- | --- |
+| `el9-jazzy` | Jazzy on AlmaLinux 9 | `bloom-generate rosrpm --os-name rhel --os-version 9 --ros-distro jazzy` |
+| `el10-lyrical` | Lyrical on AlmaLinux 10 | dynamic spec (`scripts/generate_rosdynrpm.py`) |
+| `el10-rolling` | Rolling on AlmaLinux 10, `ros2-testing` | dynamic spec |
+| `fc43-lyrical` | Lyrical on Fedora 43, `ros2-testing` | dynamic spec |
+| `fc44-rolling` | Rolling on Fedora 44, `ros2-testing` | dynamic spec |
+
+`bloom-generate rosdynrpm` in bloom 0.14.4 exits before it writes a spec. `scripts/generate_rosdynrpm.py` calls the same bloom library and sets the ROS package name and `/opt/ros/<distro>` prefix. `scripts/build_continuous_rpm.sh` generates the spec, rewrites `Version:` to the continuous version, and runs `rpmbuild --without tests`. Jazzy on AlmaLinux 9 uses the legacy `rosrpm` generator.
