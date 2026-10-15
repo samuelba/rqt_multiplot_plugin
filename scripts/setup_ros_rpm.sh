@@ -14,13 +14,16 @@ if ! command -v curl >/dev/null 2>&1; then
   dnf install -y curl
 fi
 
+# grep -q in a pipeline exits before dnf finishes, and pipefail turns that SIGPIPE into a miss.
+dnf_version=$(dnf --version 2>&1 || true)
+
 case "${ID}" in
   fedora)
     rpm_channel=fc
     # codecs.fedoraproject.org is unreachable from some CI networks, and openh264
     # is only pulled in as a weak dependency.
     if [[ -f /etc/yum.repos.d/fedora-cisco-openh264.repo ]]; then
-      if dnf --version | head -n 1 | grep -q dnf5; then
+      if [[ ${dnf_version} == *dnf5* ]]; then
         dnf config-manager setopt fedora-cisco-openh264.enabled=0
       else
         dnf config-manager --set-disabled fedora-cisco-openh264
@@ -30,7 +33,7 @@ case "${ID}" in
   almalinux | rocky | centos | rhel)
     rpm_channel=el
     dnf install -y epel-release dnf-plugins-core
-    if dnf --version | head -n 1 | grep -q dnf5; then
+    if [[ ${dnf_version} == *dnf5* ]]; then
       dnf config-manager setopt crb.enabled=1
     else
       dnf config-manager --set-enabled crb
