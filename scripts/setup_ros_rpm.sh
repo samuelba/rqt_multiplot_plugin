@@ -17,6 +17,15 @@ fi
 case "${ID}" in
   fedora)
     rpm_channel=fc
+    # codecs.fedoraproject.org is unreachable from some CI networks, and openh264
+    # is only pulled in as a weak dependency.
+    if [[ -f /etc/yum.repos.d/fedora-cisco-openh264.repo ]]; then
+      if dnf --version | head -n 1 | grep -q dnf5; then
+        dnf config-manager setopt fedora-cisco-openh264.enabled=0
+      else
+        dnf config-manager --set-disabled fedora-cisco-openh264
+      fi
+    fi
     ;;
   almalinux | rocky | centos | rhel)
     rpm_channel=el

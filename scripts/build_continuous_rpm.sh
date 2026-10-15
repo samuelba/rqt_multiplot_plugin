@@ -56,6 +56,12 @@ tar -C "${parent}" -czf "${topdir}/SOURCES/${name}-${CONTINUOUS_VERSION}.tar.gz"
   --transform "s,^${base},${name}-${CONTINUOUS_VERSION}," \
   "${base}"
 
+# %generate_buildrequires asks for ros-<distro>(ros_workspace)(devel).
+# rosdep installs the runtime package only.
+if [[ ${ID} == fedora || ${VERSION_ID} != 9* || ${ROS_DISTRO} != jazzy ]]; then
+  dnf install -y "ros-${ROS_DISTRO}-ros-workspace-devel"
+fi
+
 rpmbuild -ba \
   --without tests \
   --define "_topdir ${topdir}" \
