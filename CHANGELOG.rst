@@ -2,6 +2,20 @@
 Changelog for package rqt_multiplot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.0 (2026-10-15)
+------------------
+* Migrate to ROS 2 (Jazzy, Lyrical, Rolling) with ament_cmake, rclcpp, and rosbag2
+* Use Qt 6 on Lyrical and Rolling, and Qt 5 on Jazzy
+* Subscribe to live topics through runtime type support, including diagnostics and array fields
+* Import rosbag2 recordings (``.mcap``, ``.db3``, and bag directories), including several files
+* Overlay 2 or 3 bags on the same plots, aligned at the start, at markers, or at a Y threshold
+* Replace the fixed row/column layout with nested splits and tabs
+* Add log scale, time windows, date-time axes, and rad/deg conversion
+* Add curve filters, markers, data statistics, and topic metrics (rate, bandwidth, delay)
+* Add a topic browser with drag and drop onto plots
+* Add a light/dark theme, keyboard shortcuts, and plot export (PNG, SVG, PDF, TXT, CSV)
+* Contributors: Samuel Bachmann
+
 0.0.12 (2021-01-13)
 -------------------
 * CurveDataSequence::processMessage: Catch variant_topic_tools exception
