@@ -45,12 +45,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build
         run: |
@@ -105,12 +111,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Download colcon workspace
         uses: actions/download-artifact@v8
@@ -172,12 +184,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Coverage
         run: |
@@ -270,7 +288,13 @@ jobs:
 
           cd ../..
           rosdep update --rosdistro "${ROS_DISTRO}"
-          rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
+          rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO}" \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
           cd src/rqt_multiplot_plugin
           bloom-generate rosdebian \
@@ -346,6 +370,10 @@ jobs:
           if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
             source /etc/profile.d/ros-os-override.sh
           fi
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
@@ -353,7 +381,9 @@ jobs:
             --dependency-types exec \
             --dependency-types test \
             --skip-keys clang-tidy \
-            --skip-keys ament_cmake_clang_format
+            --skip-keys ament_cmake_clang_format \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build
         run: |
@@ -421,13 +451,19 @@ jobs:
           if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
             source /etc/profile.d/ros-os-override.sh
           fi
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
             --skip-keys clang-tidy \
-            --skip-keys ament_cmake_clang_format
+            --skip-keys ament_cmake_clang_format \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build RPM
         run: |
