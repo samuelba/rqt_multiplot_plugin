@@ -1,0 +1,181 @@
+--- a/ros_babel_fish/src/babel_fish.cpp
++++ b/ros_babel_fish/src/babel_fish.cpp
+@@ -9,14 +9,9 @@
+ #include "ros_babel_fish/exceptions/babel_fish_exception.hpp"
+ #include "ros_babel_fish/idl/providers/local_type_support_provider.hpp"
+ 
+-#include <rclcpp/create_publisher.hpp>
+-#include <rclcpp/create_timer.hpp>
+ #include <rclcpp/detail/qos_parameters.hpp>
+-#include <rclcpp/detail/resolve_enable_topic_statistics.hpp>
+ #include <rclcpp/node.hpp>
+-#include <rclcpp/topic_statistics/subscription_topic_statistics.hpp>
+ #include <rclcpp/wait_set.hpp>
+-#include <statistics_msgs/msg/metrics_message.hpp>
+ 
+ namespace ros_babel_fish
+ {
+@@ -25,52 +20,6 @@
+ {
+ 
+ /*!
+- * Creates the topic statistics collector, publisher and publish timer for a subscription if topic statistics
+- * are enabled in the options (or by node default). Mirrors rclcpp::detail::create_subscription.
+- * @return The topic statistics instance or nullptr if topic statistics are disabled.
+- */
+-std::shared_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics>
+-create_subscription_topic_statistics( NodeInterfaces &node,
+-                                      const rclcpp::SubscriptionOptions &options )
+-{
+-  auto node_base = node.get_node_base_interface();
+-  if ( !rclcpp::detail::resolve_enable_topic_statistics( options, *node_base ) )
+-    return nullptr;
+-
+-  if ( options.topic_stats_options.publish_period <= std::chrono::milliseconds( 0 ) ) {
+-    throw std::invalid_argument(
+-        "topic_stats_options.publish_period must be greater than 0, specified value of " +
+-        std::to_string( options.topic_stats_options.publish_period.count() ) + " ms" );
+-  }
+-
+-  auto node_parameters = node.get_node_parameters_interface();
+-  auto node_topics = node.get_node_topics_interface();
+-  auto publisher = rclcpp::create_publisher<statistics_msgs::msg::MetricsMessage>(
+-      node_parameters, node_topics, options.topic_stats_options.publish_topic,
+-      options.topic_stats_options.qos );
+-
+-  auto subscription_topic_stats =
+-      std::make_shared<rclcpp::topic_statistics::SubscriptionTopicStatistics>( node_base->get_name(),
+-                                                                               publisher );
+-
+-  std::weak_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics> weak_subscription_topic_stats(
+-      subscription_topic_stats );
+-  auto publish_callback = [weak_subscription_topic_stats]() {
+-    if ( auto stats = weak_subscription_topic_stats.lock(); stats != nullptr ) {
+-      stats->publish_message_and_reset_measurements();
+-    }
+-  };
+-
+-  auto timer = rclcpp::create_wall_timer( std::chrono::duration_cast<std::chrono::nanoseconds>(
+-                                              options.topic_stats_options.publish_period ),
+-                                          publish_callback, options.callback_group, node_base.get(),
+-                                          node.get_node_timers_interface().get() );
+-
+-  subscription_topic_stats->set_publisher_timer( timer );
+-  return subscription_topic_stats;
+-}
+-
+-/*!
+  * Applies QoS overrides from parameters if requested via options.qos_overriding_options.
+  * Mirrors rclcpp::create_publisher / rclcpp::create_subscription which declare
+  * qos_overrides.<topic>.<entity>.* parameters and use their values instead of the default qos.
+@@ -151,13 +100,12 @@
+                               ". Type not found!" );
+   }
+   try {
+-    auto subscription_topic_stats = create_subscription_topic_statistics( node, options );
+     const rclcpp::QoS actual_qos =
+         resolve_qos_overrides( node, options.qos_overriding_options, topic, qos,
+                                rclcpp::detail::SubscriptionQosParametersTraits{} );
+     auto subscription = std::make_shared<BabelFishSubscription>(
+         node.get_node_base_interface().get(), type_support, topic, actual_qos,
+-        std::move( callback ), options, std::move( subscription_topic_stats ) );
++        std::move( callback ), options );
+ 
+     node.get_node_topics_interface()->add_subscription( subscription, options.callback_group );
+     return subscription;
+--- a/ros_babel_fish/src/detail/babel_fish_subscription.cpp
++++ b/ros_babel_fish/src/detail/babel_fish_subscription.cpp
+@@ -18,8 +18,7 @@
+     MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
+     const rclcpp::QoS &qos,
+     rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
+-    const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options,
+-    SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics )
++    const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options )
+     : rclcpp::SubscriptionBase( node_base, type_support->type_support_handle, topic_name,
+                                 options.to_rcl_subscription_options( qos ), options.event_callbacks,
+                                 options.use_default_callbacks,
+@@ -30,10 +29,6 @@
+ {
+   // TODO: Adding intra process support [very low priority]
+ 
+-  if ( subscription_topic_statistics != nullptr ) {
+-    this->subscription_topic_statistics_ = std::move( subscription_topic_statistics );
+-  }
+-
+   TRACETOOLS_TRACEPOINT( rclcpp_subscription_init,
+                          static_cast<const void *>( get_subscription_handle().get() ),
+                          static_cast<const void *>( this ) );
+@@ -66,40 +61,14 @@
+ void BabelFishSubscription::handle_message( std::shared_ptr<void> &message,
+                                             const rclcpp::MessageInfo &message_info )
+ {
+-  std::chrono::time_point<std::chrono::system_clock> now;
+-  if ( subscription_topic_statistics_ ) {
+-    // get current time before executing callback to
+-    // exclude callback duration from topic statistics result.
+-    now = std::chrono::system_clock::now();
+-  }
+-
+   callback_.dispatch( CompoundMessage::make_shared( *type_support_, message ), message_info );
+-
+-  if ( subscription_topic_statistics_ ) {
+-    const auto nanos = std::chrono::time_point_cast<std::chrono::nanoseconds>( now );
+-    const auto time = rclcpp::Time( nanos.time_since_epoch().count() );
+-    subscription_topic_statistics_->handle_message( message_info.get_rmw_message_info(), time );
+-  }
+ }
+ 
+ void BabelFishSubscription::handle_serialized_message(
+     const std::shared_ptr<rclcpp::SerializedMessage> &serialized_message,
+     const rclcpp::MessageInfo &message_info )
+ {
+-  std::chrono::time_point<std::chrono::system_clock> now;
+-  if ( subscription_topic_statistics_ ) {
+-    // get current time before executing callback to
+-    // exclude callback duration from topic statistics result.
+-    now = std::chrono::system_clock::now();
+-  }
+-
+   callback_.dispatch( serialized_message, message_info );
+-
+-  if ( subscription_topic_statistics_ ) {
+-    const auto nanos = std::chrono::time_point_cast<std::chrono::nanoseconds>( now );
+-    const auto time = rclcpp::Time( nanos.time_since_epoch().count() );
+-    subscription_topic_statistics_->handle_message( message_info.get_rmw_message_info(), time );
+-  }
+ }
+ 
+ void BabelFishSubscription::handle_loaned_message( void *loaned_message,
+--- a/ros_babel_fish/include/ros_babel_fish/detail/babel_fish_subscription.hpp
++++ b/ros_babel_fish/include/ros_babel_fish/detail/babel_fish_subscription.hpp
+@@ -17,10 +17,6 @@
+ 
+ class BabelFishSubscription : public rclcpp::SubscriptionBase
+ {
+-private:
+-  using SubscriptionTopicStatisticsSharedPtr =
+-      std::shared_ptr<rclcpp::topic_statistics::SubscriptionTopicStatistics>;
+-
+ public:
+   RCLCPP_SMART_PTR_DEFINITIONS( BabelFishSubscription )
+ 
+@@ -29,8 +25,7 @@
+       MessageTypeSupport::ConstSharedPtr type_support, const std::string &topic_name,
+       const rclcpp::QoS &qos,
+       rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback,
+-      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options,
+-      SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics = nullptr );
++      const rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> &options );
+ 
+   ~BabelFishSubscription() override;
+ 
+@@ -78,8 +73,6 @@
+ 
+   MessageTypeSupport::ConstSharedPtr type_support_;
+   rclcpp::AnySubscriptionCallback<CompoundMessage, std::allocator<void>> callback_;
+-  /// Component which computes and publishes topic statistics for this subscriber
+-  SubscriptionTopicStatisticsSharedPtr subscription_topic_statistics_{ nullptr };
+ };
+ } // namespace ros_babel_fish
+ 

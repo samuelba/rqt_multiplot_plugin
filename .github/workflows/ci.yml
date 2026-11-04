@@ -45,12 +45,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build
         run: |
@@ -105,12 +111,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Download colcon workspace
         uses: actions/download-artifact@v8
@@ -172,12 +184,18 @@ jobs:
       - name: Install dependencies
         run: |
           rosdep update --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
-            --dependency-types test
+            --dependency-types test \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Coverage
         run: |
@@ -249,6 +267,9 @@ jobs:
       - name: Test continuous Debian version
         run: ./src/rqt_multiplot_plugin/scripts/continuous_deb_version_test.sh
 
+      - name: Test rolling ros_babel_fish expiry check
+        run: ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish_test.sh
+
       - name: Build Debian package
         run: |
           source "/opt/ros/${ROS_DISTRO}/setup.bash"
@@ -270,7 +291,13 @@ jobs:
 
           cd ../..
           rosdep update --rosdistro "${ROS_DISTRO}"
-          rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO}"
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
+          rosdep install --from-paths src --ignore-src -r -y --rosdistro "${ROS_DISTRO}" \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
           cd src/rqt_multiplot_plugin
           bloom-generate rosdebian \
@@ -346,6 +373,10 @@ jobs:
           if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
             source /etc/profile.d/ros-os-override.sh
           fi
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
@@ -353,7 +384,9 @@ jobs:
             --dependency-types exec \
             --dependency-types test \
             --skip-keys clang-tidy \
-            --skip-keys ament_cmake_clang_format
+            --skip-keys ament_cmake_clang_format \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build
         run: |
@@ -421,13 +454,19 @@ jobs:
           if [[ -f /etc/profile.d/ros-os-override.sh ]]; then
             source /etc/profile.d/ros-os-override.sh
           fi
+          skip_keys=()
+          if [[ ${ROS_DISTRO} == rolling ]]; then
+            skip_keys+=(--skip-keys ros_babel_fish)
+          fi
           rosdep install --from-paths src --ignore-src -y --rosdistro "${ROS_DISTRO}" \
             --dependency-types buildtool \
             --dependency-types build \
             --dependency-types build_export \
             --dependency-types exec \
             --skip-keys clang-tidy \
-            --skip-keys ament_cmake_clang_format
+            --skip-keys ament_cmake_clang_format \
+            "${skip_keys[@]}"
+          ./src/rqt_multiplot_plugin/scripts/overlay_rolling_ros_babel_fish.sh
 
       - name: Build RPM
         run: |
@@ -441,6 +480,47 @@ jobs:
           path: rpm-packages/*
           retention-days: 7
           if-no-files-found: error
+
+  rolling-ros-babel-fish-expiry:
+    name: ros_babel_fish expiry / ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ubuntu-rolling
+            image: ros:rolling
+            setup_rpm: false
+            enable_testing: "0"
+          - name: fc44-rolling
+            image: fedora:44
+            setup_rpm: true
+            enable_testing: "1"
+    container:
+      image: ${{ matrix.image }}
+    env:
+      DEBIAN_FRONTEND: noninteractive
+      ROS_DISTRO: rolling
+      ENABLE_ROS_TESTING: ${{ matrix.enable_testing }}
+    steps:
+      - name: Install git
+        run: |
+          if command -v dnf >/dev/null 2>&1; then
+            dnf install -y git
+          else
+            apt-get update
+            apt-get install -y --no-install-recommends git
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up ROS RPM repositories
+        if: matrix.setup_rpm
+        run: ./scripts/setup_ros_rpm.sh
+
+      - name: Fail when the distro package no longer needs the overlay
+        run: ./scripts/overlay_rolling_ros_babel_fish.sh --check-expiry
 
   continuous-release:
     name: continuous-release
