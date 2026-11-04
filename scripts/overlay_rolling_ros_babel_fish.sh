@@ -2,8 +2,79 @@
 # Rolling rclcpp removed topic statistics. Released ros_babel_fish 5.26.90 still
 # uses it, so the Ubuntu package is gone and the RPM headers do not compile.
 # Build c6f4bb23 with that use removed and install it into /opt/ros/rolling.
+#
+# --check-expiry exits 1 when that distro package installs and its subscription
+# header no longer uses topic_statistics. CI fails on that so the overlay can
+# be removed.
 
 set -euo pipefail
+
+# True when the installed header shows the distro package no longer needs the patch.
+distro_header_is_fixed() {
+  local header=$1
+  [[ -f ${header} ]] && ! grep -q topic_statistics "${header}"
+}
+
+check_expiry() {
+  local pkg header
+  header="/opt/ros/${ROS_DISTRO}/include/ros_babel_fish/detail/babel_fish_subscription.hpp"
+
+  if command -v dnf >/dev/null 2>&1; then
+    pkg="ros-${ROS_DISTRO}-ros-babel-fish-devel"
+    echo "Checking whether ${pkg} still needs the topic_statistics overlay."
+    if ! dnf install -y "${pkg}"; then
+      echo "${pkg} is not installable. The rolling overlay is still required."
+      exit 0
+    fi
+  elif command -v apt-get >/dev/null 2>&1; then
+    export DEBIAN_FRONTEND="${DEBIAN_FRONTEND:-noninteractive}"
+    pkg="ros-${ROS_DISTRO}-ros-babel-fish"
+    echo "Checking whether ${pkg} still needs the topic_statistics overlay."
+    apt-get update
+    if ! apt-get install -y --no-install-recommends "${pkg}"; then
+      echo "${pkg} is not installable. The rolling overlay is still required."
+      exit 0
+    fi
+  else
+    echo "No dnf or apt-get; cannot check the rolling ros_babel_fish package." >&2
+    exit 1
+  fi
+
+  if [[ ! -f ${header} ]]; then
+    echo "${pkg} is installed but ${header} is absent. The rolling overlay is still required."
+    exit 0
+  fi
+
+  if distro_header_is_fixed "${header}"; then
+    echo "::error title=ros_babel_fish workaround expired::${pkg} no longer uses topic_statistics. Drop the overlay for this OS. Delete scripts/overlay_rolling_ros_babel_fish.sh and patches/ros_babel_fish-rolling-topic-statistics.patch when every expiry job is red."
+    exit 1
+  fi
+
+  echo "${pkg} still uses topic_statistics. The rolling overlay is still required."
+  exit 0
+}
+
+if [[ ${BASH_SOURCE[0]} != "$0" ]]; then
+  return 0
+fi
+
+if [[ $# -gt 1 ]]; then
+  echo "usage: $0 [--check-expiry]" >&2
+  exit 2
+fi
+
+if [[ ${1:-} == --check-expiry ]]; then
+  if [[ ${ROS_DISTRO:-} != rolling ]]; then
+    echo "ROS_DISTRO must be rolling to check the ros_babel_fish overlay." >&2
+    exit 1
+  fi
+  check_expiry
+fi
+
+if [[ $# -gt 0 ]]; then
+  echo "usage: $0 [--check-expiry]" >&2
+  exit 2
+fi
 
 if [[ ${ROS_DISTRO:-} != rolling ]]; then
   exit 0
